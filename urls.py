@@ -4,7 +4,7 @@ from django.conf.urls.defaults import *
 # from django.contrib import admin
 # admin.autodiscover()
 
-urlpatterns = patterns('oqapi.ui.views',
+urlpatterns = patterns('ui.views',
     # Example:
     # (r'^oqapi/', include('oqapi.foo.urls')),
 
