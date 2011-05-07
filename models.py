@@ -43,7 +43,7 @@ class OqUser(models.Model):
 
 class Upload(models.Model):
     owner = models.ForeignKey(OqUser)
-    path = models.TextField()
+    path = models.TextField(unique=True)
     last_update = models.DateTimeField(editable=False, default=datetime.utcnow)
     class Meta:
         db_table = 'uiapi\".\"upload'
@@ -52,11 +52,11 @@ class Upload(models.Model):
 class Input(models.Model):
     owner = models.ForeignKey(OqUser)
     upload = models.ForeignKey(Upload)
-    path = models.TextField()
+    path = models.TextField(unique=True)
     INPUT_TYPE_CHOICES = (
+        (u"unknown", u"Source model file"),
         (u"source", u"Source model file"),
-        (u"lt-source", u"Source logic tree"),
-        (u"lt-gmpe", u"GMPE logic tree"),
+        (u"ltree", u"GMPE logic tree"),
         (u"exposure", u"Exposure file"),
         (u"vulnerability", u"Vulnerability file"),
     )

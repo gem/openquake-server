@@ -93,8 +93,9 @@ def detect_input_type(chunk):
     """Detect and return the input file type."""
     tags = ("<sourceModel", "<vulnerabilityModel", "<exposurePortfolio",
             "<logicTreeSet")
-    types = ("source", "vulnerability", "exposure", "lt-source")
+    types = ("source", "vulnerability", "exposure", "ltree")
     type_dict = dict(zip(tags, types))
     for k, v in type_dict.iteritems():
         if chunk.find(k) >= 0:
             return v
+    return "unknown"
