@@ -18,10 +18,15 @@
 # <http://www.gnu.org/licenses/lgpl-3.0.txt> for a copy of the LGPLv3 License.
 
 
-from django.http import HttpResponse
 import simplejson
 
-def upload(request):
+from django.http import HttpResponse
+
+from openquake.models import OqUser, Upload, Input
+
+
+def input_upload(request):
+    """This handles a collection of input files uploaded by the GUI user."""
     result = dict(
         status="success", msg="Model upload successful",
         ruptures=[2, 3, 4], sources=[2,3,4])

@@ -23,17 +23,17 @@ from django.contrib.gis.db import models
 
 
 class Organization(models.Model):
-    name = models.CharField()
-    address = models.CharField(null=True)
-    url = models.CharField(null=True)
+    name = models.TextField()
+    address = models.TextField(null=True)
+    url = models.TextField(null=True)
     last_update = models.DateTimeField(editable=False, default=datetime.utcnow)
     class Meta:
         db_table = 'admin\".\"organization'
 
 
 class OqUser(models.Model):
-    user_name = models.CharField()
-    full_name = models.CharField()
+    user_name = models.TextField()
+    full_name = models.TextField()
     organization = models.ForeignKey(Organization)
     data_is_open = models.BooleanField()
     last_update = models.DateTimeField(editable=False, default=datetime.utcnow)
@@ -43,7 +43,7 @@ class OqUser(models.Model):
 
 class Upload(models.Model):
     owner = models.ForeignKey(OqUser)
-    path = models.CharField()
+    path = models.TextField()
     last_update = models.DateTimeField(editable=False, default=datetime.utcnow)
     class Meta:
         db_table = 'uiapi\".\"upload'
@@ -52,7 +52,7 @@ class Upload(models.Model):
 class Input(models.Model):
     owner = models.ForeignKey(OqUser)
     upload = models.ForeignKey(Upload)
-    path = models.CharField()
+    path = models.TextField()
     INPUT_TYPE_CHOICES = (
         (u"source", u"Source model file"),
         (u"lt-source", u"Source logic tree"),
@@ -60,7 +60,7 @@ class Input(models.Model):
         (u"exposure", u"Exposure file"),
         (u"vulnerability", u"Vulnerability file"),
     )
-    input_type = models.CharField(choices=INPUT_TYPE_CHOICES)
+    input_type = models.TextField(choices=INPUT_TYPE_CHOICES)
     size = models.PositiveIntegerField()
     last_update = models.DateTimeField(editable=False, default=datetime.utcnow)
     class Meta:
@@ -83,7 +83,7 @@ class OqParams(models.Model):
         (u"probabilistic", u"Probabilistic calculation"),
         (u"deterministic", u"Deterministic calculation"),
     )
-    job_type = models.CharField(choices=JOB_TYPE_CHOICES)
+    job_type = models.TextField(choices=JOB_TYPE_CHOICES)
     upload = models.ForeignKey(Upload)
     region_grid_spacing = models.FloatField()
     min_magnitude = models.FloatField(null=True)
@@ -92,21 +92,21 @@ class OqParams(models.Model):
         (u"average", u"Average horizontal"),
         (u"gmroti50", u"Average horizontal (GMRotI50)"),
     )
-    component = models.CharField(choices=COMPONENT_CHOICES)
+    component = models.TextField(choices=COMPONENT_CHOICES)
     IMT_CHOICES = (
         (u"pga", u"Peak ground acceleration"),
         (u"sa", u"Spectral acceleration"),
         (u"pgv", u"Peak ground velocity"),
         (u"pgd", u"Peak ground displacement"),
     )
-    imt = models.CharField(choices=IMT_CHOICES)
+    imt = models.TextField(choices=IMT_CHOICES)
     period = models.FloatField(null=True)
     TRUNCATION_TYPE_CHOICES = (
         (u"none", u"None"),
         (u"1-sided", u"One-sided"),
         (u"2-sided", u"Two-sided"),
     )
-    truncation_type = models.CharField(choices=TRUNCATION_TYPE_CHOICES)
+    truncation_type = models.TextField(choices=TRUNCATION_TYPE_CHOICES)
     truncation_level = models.FloatField()
     reference_vs30_value = models.FloatField()
     imls = FloatArrayField(null=True, verbose_name="Intensity measure levels")
@@ -116,7 +116,7 @@ class OqParams(models.Model):
         null=True, verbose_name="Number of logic tree samples")
     histories = models.PositiveIntegerField(
         null=True, verbose_name="Number of seismicity histories")
-    gm_correlated = models.BooleanField(
+    gm_correlated = models.NullBooleanField(
         null=True, verbose_name="Ground motion correlation flag")
 
     last_update = models.DateTimeField(editable=False, default=datetime.utcnow)
@@ -127,20 +127,20 @@ class OqParams(models.Model):
 
 class OqJob(models.Model):
     owner = models.ForeignKey(OqUser)
-    description = models.CharField()
+    description = models.TextField()
     JOB_TYPE_CHOICES = (
         (u"classical", u"Classical PSHA calculation"),
         (u"probabilistic", u"Probabilistic calculation"),
         (u"deterministic", u"Deterministic calculation"),
     )
-    job_type = models.CharField(choices=JOB_TYPE_CHOICES)
+    job_type = models.TextField(choices=JOB_TYPE_CHOICES)
     STATUS_TYPE_CHOICES = (
         (u"created", u"OpenQuake engine job has not started yet"),
         (u"in-progress", u"OpenQuake engine job is in progress"),
         (u"failed", u"OpenQuake engine job has failed"),
         (u"succeeded", u"OpenQuake engine job ran successfully"),
     )
-    status_type = models.CharField(choices=STATUS_TYPE_CHOICES)
+    status_type = models.TextField(choices=STATUS_TYPE_CHOICES)
     duration = models.IntegerField()
     oq_params = models.ForeignKey(OqParams)
     last_update = models.DateTimeField(editable=False, default=datetime.utcnow)
