@@ -27,7 +27,7 @@ import tempfile
 from django.http import HttpResponse, Http404
 from django.views.decorators.csrf import csrf_exempt
 
-from openquake.models import OqUser, Upload, Input
+from geonode.openquake.models import OqUser, Upload, Input
 
 
 logging.basicConfig(level=logging.DEBUG)
