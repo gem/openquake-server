@@ -19,7 +19,7 @@
 
 
 from datetime import datetime
-from django.db import models
+from django.contrib.gis.db import models
 
 
 class Organization(models.Model):
@@ -68,8 +68,13 @@ class Input(models.Model):
 
 
 class FloatArrayField(models.Field):
+    """This field models a postgres `float` array."""
+
     def db_type(self, connection):
         return 'float[]'
+
+    def get_prep_value(self, value):
+        return "{" + ', '.join(str(v) for v in value) + "}"
 
 
 class OqParams(models.Model):
@@ -115,6 +120,7 @@ class OqParams(models.Model):
         null=True, verbose_name="Ground motion correlation flag")
 
     last_update = models.DateTimeField(editable=False, default=datetime.utcnow)
+    region = models.PolygonField()
     class Meta:
         db_table = 'uiapi\".\"oq_params'
 
