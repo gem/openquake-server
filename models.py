@@ -20,4 +20,20 @@
 
 from django.db import models
 
-# Create your models here.
+
+class Organization(models.Model):
+    name = models.CharField()
+    address = models.CharField(null=True)
+    url = models.CharField(null=True)
+    last_update = models.DateField(editable=False)
+    class Meta:
+        db_table = 'admin\".\"organization'
+
+class OqUser(models.Model):
+    user_name = models.CharField()
+    full_name = models.CharField()
+    organization = models.ForeignKey(Organization, related_name="+")
+    data_is_open = models.BooleanField()
+    last_update = models.DateField(editable=False)
+    class Meta:
+        db_table = 'admin\".\"oq_user'
