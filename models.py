@@ -29,11 +29,113 @@ class Organization(models.Model):
     class Meta:
         db_table = 'admin\".\"organization'
 
+
 class OqUser(models.Model):
     user_name = models.CharField()
     full_name = models.CharField()
-    organization = models.ForeignKey(Organization, related_name="+")
+    organization = models.ForeignKey(Organization)
     data_is_open = models.BooleanField()
     last_update = models.DateField(editable=False)
     class Meta:
         db_table = 'admin\".\"oq_user'
+
+
+class Upload(models.Model):
+    owner = models.ForeignKey(OqUser)
+    path = models.CharField()
+    last_update = models.DateField(editable=False)
+    class Meta:
+        db_table = 'uiapi\".\"upload'
+
+
+class Input(models.Model):
+    owner = models.ForeignKey(OqUser)
+    upload = models.ForeignKey(Upload)
+    path = models.CharField()
+    INPUT_TYPE_CHOICES = (
+        (u"source", u"Source model file"),
+        (u"lt-source", u"Source logic tree"),
+        (u"lt-gmpe", u"GMPE logic tree"),
+        (u"exposure", u"Exposure file"),
+        (u"vulnerability", u"Vulnerability file"),
+    )
+    input_type = models.CharField(choices=INPUT_TYPE_CHOICES)
+    size = models.PositiveIntegerField()
+    last_update = models.DateField(editable=False)
+    class Meta:
+        db_table = 'uiapi\".\"input'
+
+
+class FloatArrayField(models.Field):
+    def db_type(self, connection):
+        return 'float[]'
+
+
+class OqParams(models.Model):
+    JOB_TYPE_CHOICES = (
+        (u"classical", u"Classical PSHA calculation"),
+        (u"probabilistic", u"Probabilistic calculation"),
+        (u"deterministic", u"Deterministic calculation"),
+    )
+    job_type = models.CharField(choices=JOB_TYPE_CHOICES)
+    upload = models.ForeignKey(Upload)
+    region_grid_spacing = models.FloatField()
+    min_magnitude = models.FloatField(null=True)
+    investigation_time = models.FloatField(null=True)
+    COMPONENT_CHOICES = (
+        (u"average", u"Average horizontal"),
+        (u"gmroti50", u"Average horizontal (GMRotI50)"),
+    )
+    component = models.CharField(choices=COMPONENT_CHOICES)
+    IMT_CHOICES = (
+        (u"pga", u"Peak ground acceleration"),
+        (u"sa", u"Spectral acceleration"),
+        (u"pgv", u"Peak ground velocity"),
+        (u"pgd", u"Peak ground displacement"),
+    )
+    imt = models.CharField(choices=IMT_CHOICES)
+    period = models.FloatField(null=True)
+    TRUNCATION_TYPE_CHOICES = (
+        (u"none", u"None"),
+        (u"1-sided", u"One-sided"),
+        (u"2-sided", u"Two-sided"),
+    )
+    truncation_type = models.CharField(choices=TRUNCATION_TYPE_CHOICES)
+    truncation_level = models.FloatField()
+    reference_vs30_value = models.FloatField()
+    imls = FloatArrayField(null=True, verbose_name="Intensity measure levels")
+    poes = FloatArrayField(
+        null=True, verbose_name="Probabilities of exceedence")
+    realizations = models.PositiveIntegerField(
+        null=True, verbose_name="Number of logic tree samples")
+    histories = models.PositiveIntegerField(
+        null=True, verbose_name="Number of seismicity histories")
+    gm_correlated = models.BooleanField(
+        null=True, verbose_name="Ground motion correlation flag")
+
+    last_update = models.DateField(editable=False)
+    class Meta:
+        db_table = 'uiapi\".\"oq_params'
+
+
+class OqJob(models.Model):
+    owner = models.ForeignKey(OqUser)
+    description = models.CharField()
+    JOB_TYPE_CHOICES = (
+        (u"classical", u"Classical PSHA calculation"),
+        (u"probabilistic", u"Probabilistic calculation"),
+        (u"deterministic", u"Deterministic calculation"),
+    )
+    job_type = models.CharField(choices=JOB_TYPE_CHOICES)
+    STATUS_TYPE_CHOICES = (
+        (u"created", u"OpenQuake engine job has not started yet"),
+        (u"in-progress", u"OpenQuake engine job is in progress"),
+        (u"failed", u"OpenQuake engine job has failed"),
+        (u"succeeded", u"OpenQuake engine job ran successfully"),
+    )
+    status_type = models.CharField(choices=STATUS_TYPE_CHOICES)
+    duration = models.IntegerField()
+    oq_params = models.ForeignKey(OqParams)
+    last_update = models.DateField(editable=False)
+    class Meta:
+        db_table = 'uiapi\".\"oq_job'
