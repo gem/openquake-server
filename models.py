@@ -18,6 +18,7 @@
 # <http://www.gnu.org/licenses/lgpl-3.0.txt> for a copy of the LGPLv3 License.
 
 
+from datetime import datetime
 from django.db import models
 
 
@@ -25,7 +26,7 @@ class Organization(models.Model):
     name = models.CharField()
     address = models.CharField(null=True)
     url = models.CharField(null=True)
-    last_update = models.DateField(editable=False)
+    last_update = models.DateTimeField(editable=False, default=datetime.utcnow)
     class Meta:
         db_table = 'admin\".\"organization'
 
@@ -35,7 +36,7 @@ class OqUser(models.Model):
     full_name = models.CharField()
     organization = models.ForeignKey(Organization)
     data_is_open = models.BooleanField()
-    last_update = models.DateField(editable=False)
+    last_update = models.DateTimeField(editable=False, default=datetime.utcnow)
     class Meta:
         db_table = 'admin\".\"oq_user'
 
@@ -43,7 +44,7 @@ class OqUser(models.Model):
 class Upload(models.Model):
     owner = models.ForeignKey(OqUser)
     path = models.CharField()
-    last_update = models.DateField(editable=False)
+    last_update = models.DateTimeField(editable=False, default=datetime.utcnow)
     class Meta:
         db_table = 'uiapi\".\"upload'
 
@@ -61,7 +62,7 @@ class Input(models.Model):
     )
     input_type = models.CharField(choices=INPUT_TYPE_CHOICES)
     size = models.PositiveIntegerField()
-    last_update = models.DateField(editable=False)
+    last_update = models.DateTimeField(editable=False, default=datetime.utcnow)
     class Meta:
         db_table = 'uiapi\".\"input'
 
@@ -113,7 +114,7 @@ class OqParams(models.Model):
     gm_correlated = models.BooleanField(
         null=True, verbose_name="Ground motion correlation flag")
 
-    last_update = models.DateField(editable=False)
+    last_update = models.DateTimeField(editable=False, default=datetime.utcnow)
     class Meta:
         db_table = 'uiapi\".\"oq_params'
 
@@ -136,6 +137,6 @@ class OqJob(models.Model):
     status_type = models.CharField(choices=STATUS_TYPE_CHOICES)
     duration = models.IntegerField()
     oq_params = models.ForeignKey(OqParams)
-    last_update = models.DateField(editable=False)
+    last_update = models.DateTimeField(editable=False, default=datetime.utcnow)
     class Meta:
         db_table = 'uiapi\".\"oq_job'
