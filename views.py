@@ -52,7 +52,8 @@ def prepare_result(upload):
                   upload=upload.id)
     files = []
     for input in upload.input_set.all():
-        files.append(dict(id=input.id, name=os.path.basename(input.path)))
+        if input.input_type == "source":
+            files.append(dict(id=input.id, name=os.path.basename(input.path)))
     result['files']=files
     return simplejson.dumps(result)
 
