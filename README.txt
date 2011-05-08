@@ -30,6 +30,8 @@ Run the psql tool to check:
      21 | /var/spool/openquake/tmpT_xmbo/source_model1.xml   | source     | 10092
     (3 rows)
 
+***
+***
 
 For more detail on the API please see: https://github.com/gem/openquake/wiki/demo-client-API
 
@@ -37,7 +39,7 @@ Please note that for the purpose of deployment a symbolic link (pointing to this
 
     gemsun02 geonode $ pwd
     /var/www/geonode/wsgi/geonode/src/GeoNodePy/geonode
-    gemsun02 geonode $ sudo ln -s /home/muharem/oqapi openquake
+    gemsun02 geonode $ sudo ln -s ~muharem/oqapi/geonode/openquake
 
 Also, the following entry needs to be added to /var/www/geonode/wsgi/geonode/src/GeoNodePy/geonode/urls.py
 
