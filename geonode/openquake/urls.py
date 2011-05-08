@@ -25,5 +25,5 @@
 from django.conf.urls.defaults import patterns, url
 
 urlpatterns = patterns('geonode.openquake.views',
-    url(r'^input_upload$', 'input_upload'),
+    url(r'^input_upload/$', 'input_upload'),
 )

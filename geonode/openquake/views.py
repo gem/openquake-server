@@ -39,7 +39,7 @@ def input_upload(request):
     logger.debug(pprint.pprint(request.FILES))
     if request.method == "POST":
         upload = handle_upload()
-        for f in request.FILES.getlist('file'):
+        for f in request.FILES.getlist('input_files'):
             handle_uploaded_file(upload, f)
         return HttpResponse(prepare_result(upload))
     else:
