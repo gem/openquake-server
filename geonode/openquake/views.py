@@ -36,10 +36,12 @@ logger = logging.getLogger("openquake.views")
 @csrf_exempt
 def input_upload(request):
     """This handles a collection of input files uploaded by the GUI user."""
-    logger.debug(pprint.pprint(request.FILES))
+    logger.debug("request.FILES: %s\n" % pprint.pprint(request.FILES))
+    logger.debug("request: %s\n" % pprint.pprint(request))
     if request.method == "POST":
         upload = handle_upload()
         for f in request.FILES.getlist('input_files'):
+            logger.debug("file: %s" % f.name)
             handle_uploaded_file(upload, f)
         return HttpResponse(prepare_result(upload))
     else:
