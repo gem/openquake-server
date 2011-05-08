@@ -30,7 +30,7 @@ from django.views.decorators.csrf import csrf_exempt
 from geonode.openquake.models import OqUser, Upload, Input
 
 
-logger = logging.getLogger("geonode.openquake.views")
+logger = logging.getLogger("openquake.views")
 
 
 @csrf_exempt
