@@ -30,13 +30,13 @@ from django.views.decorators.csrf import csrf_exempt
 from geonode.openquake.models import OqUser, Upload, Input
 
 
-logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger("geonode.openquake.views")
 
 
 @csrf_exempt
 def input_upload(request):
     """This handles a collection of input files uploaded by the GUI user."""
-    pprint.pprint(request.FILES)
+    logger.debug(pprint.pprint(request.FILES))
     if request.method == "POST":
         upload = handle_upload()
         for f in request.FILES.getlist('file'):
@@ -74,7 +74,7 @@ def handle_uploaded_file(upload, f):
     chunk_counter = 0
     input_type = None
     path = "%s/%s" % (upload.path, f.name)
-    logging.debug(path)
+    logger.debug(path)
     destination = open(path, "wb+")
     for chunk in f.chunks():
         destination.write(chunk)
