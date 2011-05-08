@@ -94,7 +94,7 @@ INSTALLED_APPS = (
     # Uncomment the next line to enable admin documentation:
     # 'django.contrib.admindocs',
     'django.contrib.gis',
-    'geonode.openquake'
+    'geonode.mtapi'
 )
 
 LOGGING = {
@@ -125,11 +125,11 @@ LOGGING = {
             'propagate': True,
             'level':'INFO',
         },
-        'openquake.models': {
+        'mtapi.models': {
             'handlers': ['console'],
             'level': 'DEBUG',
         },
-        'openquake.views': {
+        'mtapi.views': {
             'handlers': ['console'],
             'level': 'DEBUG',
         }

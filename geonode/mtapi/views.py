@@ -27,10 +27,12 @@ import tempfile
 from django.http import HttpResponse, Http404
 from django.views.decorators.csrf import csrf_exempt
 
-from geonode.openquake.models import OqUser, Upload, Input
+from geonode.mtapi.models import OqUser, Upload, Input
 
+from openquake.utils import db
+from openquake.utils.db import loader
 
-logger = logging.getLogger("openquake.views")
+logger = logging.getLogger("mtapi.views")
 
 
 @csrf_exempt
@@ -43,6 +45,7 @@ def input_upload(request):
         for f in request.FILES.getlist('input_files'):
             logger.debug("file: %s" % f.name)
             handle_uploaded_file(upload, f)
+        load_source_files(upload)
         return HttpResponse(prepare_result(upload))
     else:
         raise Http404
@@ -101,3 +104,18 @@ def detect_input_type(chunk):
         if chunk.find(k) >= 0:
             return v
     return "unknown"
+
+
+def load_source_files(upload):
+    """Load the source files into the database."""
+    sources = [i for i in upload.input_set.all() if i.input_type == "source"]
+    if not sources:
+        return
+    logger.debug("number of sources: %s" % len(sources))
+    engine = db.create_engine("openquake", "oq_pshai_etl")
+    for source in sources:
+        src_loader = loader.SourceModelLoader(source.path, engine)
+        results = src_loader.serialize()
+        src_loader.close()
+        logging.debug("Total sources inserted: %s" % len(results))
+        logging.debug("Results: %s" % results)

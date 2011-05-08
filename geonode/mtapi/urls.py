@@ -21,9 +21,9 @@
 # Please note: the following line needs to be added to
 # /var/www/geonode/wsgi/geonode/src/GeoNodePy/geonode/urls.py
 #
-#       (r'^openquake/', include('geonode.openquake.urls')),
+#       (r'^mtapi/', include('geonode.mtapi.urls')),
 from django.conf.urls.defaults import patterns, url
 
-urlpatterns = patterns('geonode.openquake.views',
+urlpatterns = patterns('geonode.mtapi.views',
     url(r'^input_upload/$', 'input_upload'),
 )
