@@ -22,12 +22,12 @@ Run the psql tool to check:
       4 |        1 | /var/spool/openquake/tmpT_xmbo | 2011-05-08 04:32:34.287716
     (1 row)
 
-    $ psql -U postgres -d openquake -c "SELECT * FROM uiapi.input WHERE upload_id=4"
-     id | owner_id | upload_id |                        path                        | input_type | size  |        last_update         
-    ----+----------+-----------+----------------------------------------------------+------------+-------+----------------------------
-     19 |        1 |         4 | /var/spool/openquake/tmpT_xmbo/gmpe_logic_tree.xml | ltree      |   819 | 2011-05-08 04:32:34.290076
-     20 |        1 |         4 | /var/spool/openquake/tmpT_xmbo/small_exposure.xml  | exposure   | 82510 | 2011-05-08 04:32:34.291814
-     21 |        1 |         4 | /var/spool/openquake/tmpT_xmbo/source_model1.xml   | source     | 10092 | 2011-05-08 04:32:34.292969
+    $ psql -U postgres -d openquake -c "SELECT id, path, input_type, size FROM uiapi.input WHERE upload_id=4"
+     id |                        path                        | input_type | size  
+    ----+----------------------------------------------------+------------+-------
+     19 | /var/spool/openquake/tmpT_xmbo/gmpe_logic_tree.xml | ltree      |   819
+     20 | /var/spool/openquake/tmpT_xmbo/small_exposure.xml  | exposure   | 82510
+     21 | /var/spool/openquake/tmpT_xmbo/source_model1.xml   | source     | 10092
     (3 rows)
 
 
