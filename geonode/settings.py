@@ -9,16 +9,32 @@ ADMINS = (
 
 MANAGERS = ADMINS
 
+
+
+
+
+# PLEASE NOTE: do *not* ever use any of the password below in production !!
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.contrib.gis.db.backends.postgis', # Add 'postgresql_psycopg2', 'postgresql', 'mysql', 'sqlite3' or 'oracle'.
         'NAME': 'openquake',                      # Or path to database file if using sqlite3.
         'USER': 'oq_uiapi_writer',                      # Not used with sqlite3.
-        'PASSWORD': '',                  # Not used with sqlite3.
+        'PASSWORD': '_Bloujqueewjack9',                  # Not used with sqlite3.
         'HOST': '',                      # Set to empty string for localhost. Not used with sqlite3.
         'PORT': '',                      # Set to empty string for default. Not used with sqlite3.
     }
 }
+
+DATABASE_NAME = 'openquake'
+DATABASE_USER = 'oq_uiapi_writer'
+DATABASE_PASSWORD = '_Bloujqueewjack9'
+
+# PLEASE NOTE: do *not* ever use any of the password above in production !!
+
+
+
+
 
 # Local time zone for this installation. Choices can be found here:
 # http://en.wikipedia.org/wiki/List_of_tz_zones_by_name

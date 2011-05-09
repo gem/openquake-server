@@ -18,14 +18,15 @@
 # <http://www.gnu.org/licenses/lgpl-3.0.txt> for a copy of the LGPLv3 License.
 
 
-import logging
 import os
 import pprint
 import simplejson
+import sys
 import tempfile
 
 from django.http import HttpResponse, Http404
 from django.views.decorators.csrf import csrf_exempt
+from django.conf import settings
 
 from geonode.mtapi.models import OqUser, Upload, Input
 
@@ -36,6 +37,7 @@ from openquake.utils.db import loader
 @csrf_exempt
 def input_upload(request):
     """This handles a collection of input files uploaded by the GUI user."""
+    print("sys.path = %s" % sys.path)
     print("name = %s" % __name__)
     print("request.FILES: %s\n" % pprint.pprint(request.FILES))
     # print("request: %s\n" % pprint.pprint(request))
@@ -111,7 +113,8 @@ def load_source_files(upload):
     if not sources:
         return
     print("number of sources: %s" % len(sources))
-    engine = db.create_engine("openquake", "oq_pshai_etl")
+    engine = db.create_engine(settings.DATABASE_NAME, settings.DATABASE_USER,
+                              settings.DATABASE_PASSWORD)
     for source in sources:
         src_loader = loader.SourceModelLoader(
             source.path, engine, input_id=source.id)
