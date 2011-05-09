@@ -41,6 +41,16 @@ Please note that for the purpose of deployment a symbolic link (pointing to this
     /var/www/geonode/wsgi/geonode/src/GeoNodePy/geonode
     gemsun02 geonode $ sudo ln -s ~muharem/oqapi/geonode/mtapi
 
-Also, the following entry needs to be added to /var/www/geonode/wsgi/geonode/src/GeoNodePy/geonode/urls.py
+The following entry needs to be added to /var/www/geonode/wsgi/geonode/src/GeoNodePy/geonode/urls.py
 
     (r'^mtapi/', include('geonode.mtapi.urls')),
+
+Also, the following lines need to be added to /var/www/geonode/wsgi/geonode/src/GeoNodePy/geonode/local_settings.py
+
+    import sys
+    sys.path.append("/home/muharem/lars")
+    sys.path.append("/usr/lib/python2.7/dist-packages")
+    sys.path.append("/usr/local/lib/python2.7/dist-packages")
+    sys.path.append("/usr/lib/pymodules/python2.7")
+    import os
+    os.environ["JAVA_HOME"] = "/usr/lib/jvm/java-6-openjdk"
