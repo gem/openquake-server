@@ -79,7 +79,6 @@ def handle_uploaded_file(upload, f):
     chunk_counter = 0
     input_type = None
     path = "%s/%s" % (upload.path, f.name)
-    logger.debug(path)
     destination = open(path, "wb+")
     for chunk in f.chunks():
         destination.write(chunk)
@@ -91,6 +90,7 @@ def handle_uploaded_file(upload, f):
     input = Input(upload=upload, owner=upload.owner, size=size, path=path,
                   input_type=input_type)
     input.save()
+    logger.debug(input)
     return input
 
 
@@ -108,6 +108,7 @@ def detect_input_type(chunk):
 
 def load_source_files(upload):
     """Load the source files into the database."""
+    logger.debug("in load_source_files()")
     sources = [i for i in upload.input_set.all() if i.input_type == "source"]
     if not sources:
         return
@@ -117,5 +118,5 @@ def load_source_files(upload):
         src_loader = loader.SourceModelLoader(source.path, engine)
         results = src_loader.serialize()
         src_loader.close()
-        logging.debug("Total sources inserted: %s" % len(results))
-        logging.debug("Results: %s" % results)
+        logger.debug("Total sources inserted: %s" % len(results))
+        logger.debug("Results: %s" % results)

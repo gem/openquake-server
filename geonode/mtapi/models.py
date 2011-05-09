@@ -20,6 +20,7 @@
 
 from datetime import datetime
 from django.contrib.gis.db import models
+from django.utils.encoding import smart_str
 
 
 class Organization(models.Model):
@@ -27,6 +28,8 @@ class Organization(models.Model):
     address = models.TextField(null=True)
     url = models.TextField(null=True)
     last_update = models.DateTimeField(editable=False, default=datetime.utcnow)
+    def __str__(self):
+        return smart_str("Organization: %s" % self.name)
     class Meta:
         db_table = 'admin\".\"organization'
 
@@ -37,6 +40,8 @@ class OqUser(models.Model):
     organization = models.ForeignKey(Organization)
     data_is_open = models.BooleanField()
     last_update = models.DateTimeField(editable=False, default=datetime.utcnow)
+    def __str__(self):
+        return smart_str("OqUser: %s (%s)" % (self.full_name, self.user_name))
     class Meta:
         db_table = 'admin\".\"oq_user'
 
@@ -45,6 +50,8 @@ class Upload(models.Model):
     owner = models.ForeignKey(OqUser)
     path = models.TextField(unique=True)
     last_update = models.DateTimeField(editable=False, default=datetime.utcnow)
+    def __str__(self):
+        return smart_str("Upload %s: (%s)" % (self.id, self.path))
     class Meta:
         db_table = 'uiapi\".\"upload'
 
@@ -63,6 +70,9 @@ class Input(models.Model):
     input_type = models.TextField(choices=INPUT_TYPE_CHOICES)
     size = models.PositiveIntegerField()
     last_update = models.DateTimeField(editable=False, default=datetime.utcnow)
+    def __str__(self):
+        return smart_str(
+            "Input: %s, (%s, %s)" % (self.input_type, self.path, self.size))
     class Meta:
         db_table = 'uiapi\".\"input'
 
