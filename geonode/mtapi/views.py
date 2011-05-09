@@ -46,7 +46,7 @@ def input_upload(request):
         for f in request.FILES.getlist('input_files'):
             handle_uploaded_file(upload, f)
         load_source_files(upload)
-        return HttpResponse(prepare_result(upload))
+        return HttpResponse(prepare_result(upload), mimetype="text/html")
     else:
         raise Http404
 
