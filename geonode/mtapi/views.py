@@ -32,18 +32,16 @@ from geonode.mtapi.models import OqUser, Upload, Input
 from openquake.utils import db
 from openquake.utils.db import loader
 
-logger = logging.getLogger("mtapi.views")
-
 
 @csrf_exempt
 def input_upload(request):
     """This handles a collection of input files uploaded by the GUI user."""
-    logger.debug("request.FILES: %s\n" % pprint.pprint(request.FILES))
-    logger.debug("request: %s\n" % pprint.pprint(request))
+    print("name = %s" % __name__)
+    print("request.FILES: %s\n" % pprint.pprint(request.FILES))
+    # print("request: %s\n" % pprint.pprint(request))
     if request.method == "POST":
         upload = handle_upload()
         for f in request.FILES.getlist('input_files'):
-            logger.debug("file: %s" % f.name)
             handle_uploaded_file(upload, f)
         load_source_files(upload)
         return HttpResponse(prepare_result(upload))
@@ -90,7 +88,7 @@ def handle_uploaded_file(upload, f):
     input = Input(upload=upload, owner=upload.owner, size=size, path=path,
                   input_type=input_type)
     input.save()
-    logger.debug(input)
+    print(input)
     return input
 
 
@@ -108,15 +106,17 @@ def detect_input_type(chunk):
 
 def load_source_files(upload):
     """Load the source files into the database."""
-    logger.debug("in load_source_files()")
+    print("> load_source_files")
     sources = [i for i in upload.input_set.all() if i.input_type == "source"]
     if not sources:
         return
-    logger.debug("number of sources: %s" % len(sources))
+    print("number of sources: %s" % len(sources))
     engine = db.create_engine("openquake", "oq_pshai_etl")
     for source in sources:
-        src_loader = loader.SourceModelLoader(source.path, engine)
+        src_loader = loader.SourceModelLoader(
+            source.path, engine, input_id=source.id)
         results = src_loader.serialize()
         src_loader.close()
-        logger.debug("Total sources inserted: %s" % len(results))
-        logger.debug("Results: %s" % results)
+        print("Total sources inserted: %s" % len(results))
+        print("Results: %s" % results)
+    print("< load_source_files")

@@ -29,7 +29,7 @@ class Organization(models.Model):
     url = models.TextField(null=True)
     last_update = models.DateTimeField(editable=False, default=datetime.utcnow)
     def __str__(self):
-        return smart_str("Organization: %s" % self.name)
+        return smart_str(":organization: %s" % self.name)
     class Meta:
         db_table = 'admin\".\"organization'
 
@@ -41,7 +41,7 @@ class OqUser(models.Model):
     data_is_open = models.BooleanField()
     last_update = models.DateTimeField(editable=False, default=datetime.utcnow)
     def __str__(self):
-        return smart_str("OqUser: %s (%s)" % (self.full_name, self.user_name))
+        return smart_str(":oq_user: %s (%s)" % (self.full_name, self.user_name))
     class Meta:
         db_table = 'admin\".\"oq_user'
 
@@ -51,7 +51,7 @@ class Upload(models.Model):
     path = models.TextField(unique=True)
     last_update = models.DateTimeField(editable=False, default=datetime.utcnow)
     def __str__(self):
-        return smart_str("Upload %s: (%s)" % (self.id, self.path))
+        return smart_str(":upload %s: (%s)" % (self.id, self.path))
     class Meta:
         db_table = 'uiapi\".\"upload'
 
@@ -72,7 +72,7 @@ class Input(models.Model):
     last_update = models.DateTimeField(editable=False, default=datetime.utcnow)
     def __str__(self):
         return smart_str(
-            "Input: %s, (%s, %s)" % (self.input_type, self.path, self.size))
+            ":input: %s, %s, %s" % (self.input_type, self.path, self.size))
     class Meta:
         db_table = 'uiapi\".\"input'
 
