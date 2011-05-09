@@ -1,5 +1,15 @@
 This is the OpenQuake django application that will be utilised by the OpenGeo UI.
 
+Dependencies
+------------
+
+ * django
+ * psycopg2
+
+
+Running the OQ-Server
+---------------------
+
 You can try the "input_upload" API endpoint as follows:
 
  * terminal window 1:
