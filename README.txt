@@ -8,7 +8,7 @@ You can try the "input_upload" API endpoint as follows:
 
  * terminal window 2:
   - cd <openquake>/smoketests/classical_psha_simple
-  - curl -F "file=@gmpe_logic_tree.xml" -F "file=@small_exposure.xml" -F "file=@source_model1.xml" http://127.0.0.1:8000/openquake/input_upload
+  - curl -F "input_files=@gmpe_logic_tree.xml" -F "input_files=@small_exposure.xml" -F "input_files=@source_model1.xml" http://127.0.0.1:8000/mtapi/input_upload/
 
 The response should be something along the lines of:
     {"msg": "Model upload successful", "status": "success", "upload": 4,
@@ -39,8 +39,8 @@ Please note that for the purpose of deployment a symbolic link (pointing to this
 
     gemsun02 geonode $ pwd
     /var/www/geonode/wsgi/geonode/src/GeoNodePy/geonode
-    gemsun02 geonode $ sudo ln -s ~muharem/oqapi/geonode/openquake
+    gemsun02 geonode $ sudo ln -s ~muharem/oqapi/geonode/mtapi
 
 Also, the following entry needs to be added to /var/www/geonode/wsgi/geonode/src/GeoNodePy/geonode/urls.py
 
-    (r'^openquake/', include('geonode.openquake.urls')),
+    (r'^mtapi/', include('geonode.mtapi.urls')),
