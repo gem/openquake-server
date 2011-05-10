@@ -5,6 +5,7 @@ Dependencies
 
  * django
  * psycopg2
+ * python-gflags
 
 
 Running the OQ-Server
