@@ -7,6 +7,17 @@ Dependencies
  * psycopg2
  * python-gflags
 
+Package Structure
+-----------------
+
+Code for OQ-Server is organized in the following manner:
+
+ * bin
+ * geonode  (code for the OQ-Server Django application; for Django code only!)
+   - mtapi  (mtapi is a Django application for the geonode project)
+ * oqrunner (contains code for running the OpenQuake engine)
+ * tests
+
 
 Running the OQ-Server
 ---------------------
