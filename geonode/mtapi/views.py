@@ -30,9 +30,6 @@ from django.conf import settings
 
 from geonode.mtapi.models import OqUser, Upload, Input
 
-from openquake.utils import db
-from openquake.utils.db import loader
-
 
 @csrf_exempt
 def input_upload(request):
@@ -108,18 +105,19 @@ def detect_input_type(chunk):
 
 def load_source_files(upload):
     """Load the source files into the database."""
-    print("> load_source_files")
-    sources = [i for i in upload.input_set.all() if i.input_type == "source"]
-    if not sources:
-        return
-    print("number of sources: %s" % len(sources))
-    engine = db.create_engine(settings.DATABASE_NAME, settings.DATABASE_USER,
-                              settings.DATABASE_PASSWORD)
-    for source in sources:
-        src_loader = loader.SourceModelLoader(
-            source.path, engine, input_id=source.id)
-        results = src_loader.serialize()
-        src_loader.close()
-        print("Total sources inserted: %s" % len(results))
-        print("Results: %s" % results)
-    print("< load_source_files")
+    # use subprocess.Popen to start a python script that will process the
+    # uploaded source model files.
+
+
+@csrf_exempt
+def run_oq_job(request):
+    """
+    This starts an OpenQuake engine job with the user supplied parameters.
+    """
+    print("name = %s" % __name__)
+    print("request: %s\n" % pprint.pprint(request))
+    if request.method == "POST":
+        return HttpResponse(
+            {"status": "success", "msg": "Calculation started", "id": 123})
+    else:
+        raise Http404
