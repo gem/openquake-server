@@ -65,8 +65,8 @@ def prepare_result(upload):
 
 def handle_upload():
     """Create a directory for the files, return `Upload` object."""
-    user = OqUser.objects.filter(user_name='openquake')[0]
-    path = tempfile.mkdtemp(dir="/var/spool/openquake")
+    user = OqUser.objects.filter(user_name="openquake")[0]
+    path = tempfile.mkdtemp(dir=settings.OQ_UPLOAD_DIR)
     os.chmod(path, 0777)
     upload = Upload(owner=user, path=path)
     upload.save()
