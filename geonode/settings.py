@@ -10,9 +10,6 @@ ADMINS = (
 MANAGERS = ADMINS
 
 
-
-
-
 # PLEASE NOTE: do *not* ever use any of the password below in production !!
 
 DATABASES = {
@@ -23,18 +20,26 @@ DATABASES = {
         'PASSWORD': '_Bloujqueewjack9',                  # Not used with sqlite3.
         'HOST': '',                      # Set to empty string for localhost. Not used with sqlite3.
         'PORT': '',                      # Set to empty string for default. Not used with sqlite3.
+    },
+    'oqtest': {
+        'ENGINE': 'django.contrib.gis.db.backends.postgis', # Add 'postgresql_psycopg2', 'postgresql', 'mysql', 'sqlite3' or 'oracle'.
+        'NAME': 'oqtest',                      # Or path to database file if using sqlite3.
+        'USER': 'postgres',                      # Not used with sqlite3.
+        'PASSWORD': '',                  # Not used with sqlite3.
+        'HOST': '',                      # Set to empty string for localhost. Not used with sqlite3.
+        'PORT': '',                      # Set to empty string for default. Not used with sqlite3.
     }
 }
 
-DATABASE_NAME = 'openquake'
-DATABASE_USER = 'oq_uiapi_writer'
-DATABASE_PASSWORD = '_Bloujqueewjack9'
+DATABASE_NAME = "openquake"
+DATABASE_USER = "oq_uiapi_writer"
+DATABASE_PASSWORD = "_Bloujqueewjack9"
 
 # PLEASE NOTE: do *not* ever use any of the password above in production !!
 
 
-
-
+OQ_UPLOAD_DIR = "/usr/openquake/spool"
+OQ_USER_DIR = "/usr/openquake/%s"
 
 # Local time zone for this installation. Choices can be found here:
 # http://en.wikipedia.org/wiki/List_of_tz_zones_by_name
@@ -112,43 +117,3 @@ INSTALLED_APPS = (
     'django.contrib.gis',
     'geonode.mtapi'
 )
-
-#LOGGING = {
-#    "version": 1,
-#    "disable_existing_loggers": True,
-#    "formatters": {
-#        "verbose": {
-#            "format": "%(levelname)s %(asctime)s %(module)s %(process)d %(thread)d %(message)s"
-#        },
-#        "simple": {
-#            "format": "%(levelname)s %(message)s"
-#        },
-#    },
-#    "handlers": {
-#        "null": {
-#            "level":"DEBUG",
-#            "class":"django.utils.log.NullHandler",
-#        },
-#        "console":{
-#            "level":"DEBUG",
-#            "class":"logging.StreamHandler",
-#            "formatter": "simple"
-#        }
-#    },
-#    "loggers": {
-#        "django": {
-#            "handlers":["console"],
-#            "level":"DEBUG",
-#        },
-#        "geonode.mtapi.models": {
-#            "handlers": ["console"],
-#            "level": "DEBUG",
-#        },
-#        "geonode.mtapi.views": {
-#            "handlers": ["console"],
-#            "propagate": True,
-#            "level": "DEBUG",
-#        }
-#    }
-#}
-
