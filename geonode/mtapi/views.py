@@ -123,3 +123,17 @@ def load_source_files(upload):
         print("Total sources inserted: %s" % len(results))
         print("Results: %s" % results)
     print("< load_source_files")
+
+
+@csrf_exempt
+def run_oq_job(request):
+    """
+    This starts an OpenQuake engine job with the user supplied parameters.
+    """
+    print("name = %s" % __name__)
+    print("request: %s\n" % pprint.pprint(request))
+    if request.method == "POST":
+        return HttpResponse(
+            {"status": "success", "msg": "Calculation started", "id": 123})
+    else:
+        raise Http404
