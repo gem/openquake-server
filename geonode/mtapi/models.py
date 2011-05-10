@@ -49,6 +49,14 @@ class OqUser(models.Model):
 class Upload(models.Model):
     owner = models.ForeignKey(OqUser)
     path = models.TextField(unique=True)
+    UPLOAD_STATUS_CHOICES = (
+        (u"created", u"Files were saved to disk and upload/input records "
+                       "have been added to the database"),
+        (u"in-progress", u"The processing of model sources is in progress"),
+        (u"failed", u"The processing of model sources has failed"),
+        (u"succeeded", u"The processing of model sources has succeeded"),
+    )
+    status = models.TextField(choices=UPLOAD_STATUS_CHOICES)
     last_update = models.DateTimeField(editable=False, default=datetime.utcnow)
     def __str__(self):
         return smart_str(":upload %s: (%s)" % (self.id, self.path))
@@ -144,13 +152,13 @@ class OqJob(models.Model):
         (u"deterministic", u"Deterministic calculation"),
     )
     job_type = models.TextField(choices=JOB_TYPE_CHOICES)
-    STATUS_TYPE_CHOICES = (
+    JOB_STATUS_CHOICES = (
         (u"created", u"OpenQuake engine job has not started yet"),
         (u"in-progress", u"OpenQuake engine job is in progress"),
         (u"failed", u"OpenQuake engine job has failed"),
         (u"succeeded", u"OpenQuake engine job ran successfully"),
     )
-    status_type = models.TextField(choices=STATUS_TYPE_CHOICES)
+    status = models.TextField(choices=JOB_STATUS_CHOICES)
     duration = models.IntegerField()
     oq_params = models.ForeignKey(OqParams)
     last_update = models.DateTimeField(editable=False, default=datetime.utcnow)
