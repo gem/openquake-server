@@ -65,7 +65,7 @@ def handle_upload():
     user = OqUser.objects.filter(user_name="openquake")[0]
     path = tempfile.mkdtemp(dir=settings.OQ_UPLOAD_DIR)
     os.chmod(path, 0777)
-    upload = Upload(owner=user, path=path)
+    upload = Upload(owner=user, path=path, status="created")
     upload.save()
     return upload
 
