@@ -37,7 +37,8 @@ def input_upload_result(request, upload_id):
     print("upload_id: %s\n" % upload_id)
     if request.method == "GET":
         [upload] = Upload.objects.filter(id=int(upload_id))
-        if upload.status == "in-progress":
+        if upload.status == "running":
+            print "Upload processing in progress.."
             raise Http404
         else:
             result = prepare_result(upload)
@@ -65,7 +66,8 @@ def input_upload(request):
 
 def prepare_result(upload):
     """Prepare the result dictionary that is to be returned in json form."""
-    status_translation = dict(failed="failure", succeeded="success")
+    status_translation = dict(failed="failure", succeeded="success",
+                              running="running")
     msg = dict(upload.UPLOAD_STATUS_CHOICES)[upload.status]
     result = dict(status=status_translation[upload.status], msg=msg,
                   upload=upload.id)
@@ -77,7 +79,7 @@ def handle_upload():
     user = OqUser.objects.filter(user_name="openquake")[0]
     path = tempfile.mkdtemp(dir=settings.OQ_UPLOAD_DIR)
     os.chmod(path, 0777)
-    upload = Upload(owner=user, path=path, status="created", job_pid=0)
+    upload = Upload(owner=user, path=path, status="pending", job_pid=0)
     upload.save()
     return upload
 
@@ -122,7 +124,7 @@ def load_source_files(upload):
             "-u", str(upload.id), "--host", settings.OQ_DB_HOST]
     print("nrml loader args: %s\n" % pprint.pformat(args))
     pid = subprocess.Popen(args).pid
-    upload.status = "in-progress"
+    upload.status = "running"
     upload.job_pid = pid
     upload.save()
 
