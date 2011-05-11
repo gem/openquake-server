@@ -26,36 +26,60 @@ pshai schema tables in the database.
   -h | --help       : prints this help string
        --host H     : database host machine name [default: localhost]
   -d | --db D       : database to use [default: openquake]
-  -I | --inputid  I : db key of the associated input file
-  -n | --dryrun     : don't do anything just show what needs done
-  -p | --path P     : path to the NRML file
+  -u | --uploadid u : database key of the associated upload record
   -U | --user U     : database user to use [default: oq_pshai_etl]
   -W | --password W : password for the database user
 """
 
 import getopt
-import logging
+import pprint
 import sys
+
+from geonode.mtapi.models import Upload, Input
 
 from openquake.utils import db
 from openquake.utils.db import loader
 
 
-logging.basicConfig(level=logging.INFO)
+
+def load_source(config, path, input_id):
+    """Load a single model source from file, write to database.
+
+    :param dict config: the configuration to use: database, host, user, path.
+    :param str path: the full path of the model source file
+    :param int input_id: the database key of the associated input record
+    :returns: `False` on failure, `True` on success
+    """
+    try:
+        engine = db.create_engine(
+            config["db"], config["user"], config["password"])
+        src_loader = loader.SourceModelLoader(path, engine, input_id=input_id)
+        results = src_loader.serialize()
+        src_loader.close()
+        print("Total sources inserted: %s" % len(results))
+    except Exception, e:
+        print(e)
+        return False
+    else:
+        return True
 
 
-def load_nrml(config):
-    """Load the NRML data from file, write to database.
+def load_sources(config):
+    """Load a model sources for an upload, write their content to database.
 
     :param dict config: the configuration to use: database, host, user, path.
     """
-    engine = db.create_engine(config["db"], config["user"], config["password"])
-    src_loader = loader.SourceModelLoader(
-        config["path"], engine, input_id=config["inputid"])
-    results = src_loader.serialize()
-    src_loader.close()
-    print("Total sources inserted: %s" % len(results))
-    print("Results: %s" % results)
+    error_occurred = False
+    [upload] = Upload.objects.filter(id=config["uploadid"])
+    sources = Input.objects.filter(upload=3, input_type="source")
+    print("number of sources: %s" % len(sources))
+    for source in sources:
+        error_occurred = not load_source(config, source.path, source.id)
+        if error_occurred:
+            break
+
+    upload.status = "failed" if error_occurred else "succeeded"
+    upload.save()
 
 
 def main(cargs):
@@ -63,16 +87,15 @@ def main(cargs):
     def strip_dashes(arg):
         return arg.split('-')[-1]
 
-    config = dict(db="openquake", user="postgres", path="db/schema/upgrades",
-                  host="localhost", dryrun=False, password=None, inputid=None)
+    config = dict(db="openquake", host="localhost", user="postgres",
+                  password=None, uploadid=None)
     longopts = ["%s" % k if isinstance(v, bool) else "%s=" % k
                 for k, v in config.iteritems()] + ["help"]
     # Translation between short/long command line arguments.
-    s2l = dict(d="db", p="path", n="dryrun", U="user", W="password",
-               I="inputid")
+    s2l = dict(d="db", h="host", U="user", W="password", u="uploadid")
 
     try:
-        opts, args = getopt.getopt(cargs[1:], "hd:np:U:W:I:", longopts)
+        opts, args = getopt.getopt(cargs[1:], "hd:U:W:u:", longopts)
     except getopt.GetoptError, e:
         print e
         print __doc__
@@ -91,7 +114,8 @@ def main(cargs):
         print __doc__
         sys.exit(102)
 
-    load_nrml(config)
+    print("config = %s" % pprint.pprint(config))
+    load_sources(config)
 
 
 if __name__ == '__main__':

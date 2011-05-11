@@ -21,6 +21,7 @@
 import os
 import pprint
 import simplejson
+import subprocess
 import sys
 import tempfile
 
@@ -37,7 +38,6 @@ def input_upload(request):
     print("sys.path = %s" % sys.path)
     print("name = %s" % __name__)
     print("request.FILES: %s\n" % pprint.pprint(request.FILES))
-    # print("request: %s\n" % pprint.pprint(request))
     if request.method == "POST":
         upload = handle_upload()
         for f in request.FILES.getlist('input_files'):
@@ -105,8 +105,13 @@ def detect_input_type(chunk):
 
 def load_source_files(upload):
     """Load the source files into the database."""
-    # use subprocess.Popen to start a python script that will process the
-    # uploaded source model files.
+    args = [settings.NRML_RUNNER_PATH, "--db", settings.DATABASE_NAME,
+            "-U", settings.DATABASE_USER, "-W", settings.DATABASE_PASSWORD,
+            "-u", str(upload.id), "--host", settings.DATABASE_HOST]
+    print("nrml loader args: %s\n" % pprint.pprint(args))
+    subprocess.Popen(args, env=os.environ)
+    upload.status = "in-progress"
+    upload.save()
 
 
 @csrf_exempt

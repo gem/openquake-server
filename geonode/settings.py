@@ -31,6 +31,7 @@ DATABASES = {
     }
 }
 
+DATABASE_HOST = "127.0.0.1"
 DATABASE_NAME = "openquake"
 DATABASE_USER = "oq_uiapi_writer"
 DATABASE_PASSWORD = "_Bloujqueewjack9"
@@ -117,3 +118,5 @@ INSTALLED_APPS = (
     'django.contrib.gis',
     'geonode.mtapi'
 )
+
+NRML_RUNNER_PATH="/p/work/oqsrv/bin/nrml_runner.py"

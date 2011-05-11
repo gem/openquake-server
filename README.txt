@@ -47,6 +47,7 @@ The following entry needs to be added to /var/www/geonode/wsgi/geonode/src/GeoNo
 
 Also, the following lines need to be added to /var/www/geonode/wsgi/geonode/src/GeoNodePy/geonode/local_settings.py
 
+    NRML_RUNNER_PATH="/usr/local/bin/nrml_runner.py"
     import sys
     sys.path.append("/home/muharem/lars")
     sys.path.append("/usr/lib/python2.7/dist-packages")
