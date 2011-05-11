@@ -58,7 +58,7 @@ def handle_upload():
     user = OqUser.objects.filter(user_name="openquake")[0]
     path = tempfile.mkdtemp(dir=settings.OQ_UPLOAD_DIR)
     os.chmod(path, 0777)
-    upload = Upload(owner=user, path=path, status="created")
+    upload = Upload(owner=user, path=path, status="created", job_pid=0)
     upload.save()
     return upload
 
@@ -102,8 +102,9 @@ def load_source_files(upload):
             "-U", settings.OQ_DB_USER, "-W", settings.OQ_DB_PASSWORD,
             "-u", str(upload.id), "--host", settings.OQ_DB_HOST]
     print("nrml loader args: %s\n" % pprint.pformat(args))
-    subprocess.Popen(args)
+    pid = subprocess.Popen(args).pid
     upload.status = "in-progress"
+    upload.job_pid = pid
     upload.save()
 
 

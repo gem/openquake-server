@@ -57,6 +57,7 @@ class Upload(models.Model):
         (u"succeeded", u"The processing of model sources has succeeded"),
     )
     status = models.TextField(choices=UPLOAD_STATUS_CHOICES)
+    job_pid = models.PositiveIntegerField()
     last_update = models.DateTimeField(editable=False, default=datetime.utcnow)
     def __str__(self):
         return smart_str(":upload %s: (%s)" % (self.id, self.path))
@@ -159,7 +160,8 @@ class OqJob(models.Model):
         (u"succeeded", u"OpenQuake engine job ran successfully"),
     )
     status = models.TextField(choices=JOB_STATUS_CHOICES)
-    duration = models.IntegerField()
+    duration = models.PositiveIntegerField()
+    job_pid = models.PositiveIntegerField()
     oq_params = models.ForeignKey(OqParams)
     last_update = models.DateTimeField(editable=False, default=datetime.utcnow)
     class Meta:
