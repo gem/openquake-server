@@ -48,7 +48,7 @@ def input_upload(request):
 
 def prepare_result(upload):
     """Prepare the result dictionary that is to be returned in json form."""
-    result = dict(status="success", msg="Model upload successful",
+    result = dict(status="success", msg="Upload processing started",
                   upload=upload.id)
     return simplejson.dumps(result)
 
