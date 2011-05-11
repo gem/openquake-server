@@ -71,7 +71,7 @@ def prepare_result(upload, status=None):
                               running="running")
     msg = dict(upload.UPLOAD_STATUS_CHOICES)[upload.status]
     status = status_translation[upload.status] if status is None else status
-    result = dict(status=status, msg=msg, upload=upload.id)
+    result = dict(status=status, msg=msg, id=upload.id)
     if upload.status == "succeeded":
         files = []
         for source in upload.input_set.filter(input_type="source"):
