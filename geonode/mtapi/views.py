@@ -22,14 +22,31 @@ import os
 import pprint
 import simplejson
 import subprocess
-import sys
 import tempfile
 
-from django.http import HttpResponse, Http404
+from django.http import HttpResponse, Http404, HttpResponseServerError
 from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
 
 from geonode.mtapi.models import OqUser, Upload, Input
+
+
+@csrf_exempt
+def input_upload_result(request, upload_id):
+    """This handles a collection of input files uploaded by the GUI user."""
+    print("upload_id: %s\n" % upload_id)
+    if request.method == "GET":
+        [upload] = Upload.objects.filter(id=int(upload_id))
+        if upload.status == "in-progress":
+            raise Http404
+        else:
+            result = prepare_result(upload)
+            if upload.status == "failed":
+                return HttpResponse(result, status=500, mimetype="text/html")
+            else:
+                return HttpResponse(result, mimetype="text/html")
+    else:
+        raise Http404
 
 
 @csrf_exempt
@@ -48,7 +65,9 @@ def input_upload(request):
 
 def prepare_result(upload):
     """Prepare the result dictionary that is to be returned in json form."""
-    result = dict(status="success", msg="Upload processing started",
+    status_translation = dict(failed="failure", succeeded="success")
+    msg = dict(upload.UPLOAD_STATUS_CHOICES)[upload.status]
+    result = dict(status=status_translation[upload.status], msg=msg,
                   upload=upload.id)
     return simplejson.dumps(result)
 

@@ -26,5 +26,6 @@ from django.conf.urls.defaults import patterns, url
 
 urlpatterns = patterns('geonode.mtapi.views',
     url(r'^input_upload/$', 'input_upload'),
+    url(r'^input_upload_result/(\d+)/$', 'input_upload_result'),
     url(r'^hazard_risk_calc/$', 'run_oq_job'),
 )

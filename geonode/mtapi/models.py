@@ -50,11 +50,11 @@ class Upload(models.Model):
     owner = models.ForeignKey(OqUser)
     path = models.TextField(unique=True)
     UPLOAD_STATUS_CHOICES = (
-        (u"created", u"Files were saved to disk and upload/input records "
-                       "have been added to the database"),
-        (u"in-progress", u"The processing of model sources is in progress"),
-        (u"failed", u"The processing of model sources has failed"),
-        (u"succeeded", u"The processing of model sources has succeeded"),
+        (u"created", u"Files saved to disk, upload/input records "
+                     u"added to database"),
+        (u"in-progress", u"Upload processing started"),
+        (u"failed", u"Processing of uploaded files failed"),
+        (u"succeeded", u"All uploaded files processed"),
     )
     status = models.TextField(choices=UPLOAD_STATUS_CHOICES)
     job_pid = models.PositiveIntegerField()
@@ -154,10 +154,10 @@ class OqJob(models.Model):
     )
     job_type = models.TextField(choices=JOB_TYPE_CHOICES)
     JOB_STATUS_CHOICES = (
-        (u"created", u"OpenQuake engine job has not started yet"),
-        (u"in-progress", u"OpenQuake engine job is in progress"),
-        (u"failed", u"OpenQuake engine job has failed"),
-        (u"succeeded", u"OpenQuake engine job ran successfully"),
+        (u"created", u"OpenQuake engine input data saved"),
+        (u"in-progress", u"Calculation started"),
+        (u"failed", u"Calculation failed"),
+        (u"succeeded", u"Calculation succeeded"),
     )
     status = models.TextField(choices=JOB_STATUS_CHOICES)
     duration = models.PositiveIntegerField()
