@@ -71,6 +71,14 @@ def prepare_result(upload):
     msg = dict(upload.UPLOAD_STATUS_CHOICES)[upload.status]
     result = dict(status=status_translation[upload.status], msg=msg,
                   upload=upload.id)
+    if upload.status == "succeeded":
+        files = []
+        for source in upload.input_set.filter(input_type="source"):
+            files.append(dict(id=source.id,
+                              name=os.path.basename(source.path)))
+        if files:
+            result['files']=files
+
     return simplejson.dumps(result)
 
 
