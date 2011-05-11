@@ -32,6 +32,8 @@ pshai schema tables in the database.
 """
 
 import getopt
+import logging
+import os
 import pprint
 import sys
 
@@ -40,6 +42,28 @@ from geonode.mtapi.models import Upload, Input
 from openquake.utils import db
 from openquake.utils.db import loader
 
+
+logger = logging.getLogger('nrml_loader')
+logger.setLevel(logging.DEBUG)
+# create file handler which logs even debug messages
+LOG_FILE_PATH = "/tmp/nl.log"
+fh = logging.FileHandler(LOG_FILE_PATH)
+fh.setLevel(logging.DEBUG)
+# create console handler with a higher log level
+ch = logging.StreamHandler()
+ch.setLevel(logging.ERROR)
+# create formatter and add it to the handlers
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+fh.setFormatter(formatter)
+ch.setFormatter(formatter)
+# add the handlers to the logger
+logger.addHandler(fh)
+logger.addHandler(ch)
+
+os.chmod(LOG_FILE_PATH, 0600)
+
+
+logger.info(pprint.pformat(os.environ))
 
 
 def load_source(config, path, input_id):
@@ -50,17 +74,17 @@ def load_source(config, path, input_id):
     :param int input_id: the database key of the associated input record
     :returns: `False` on failure, `True` on success
     """
-    print("path = %s" % path)
-    print("input_id = %s" % input_id)
+    logger.info("path = %s" % path)
+    logger.info("input_id = %s" % input_id)
     try:
         engine = db.create_engine(
             config["db"], config["user"], config["password"])
         src_loader = loader.SourceModelLoader(path, engine, input_id=input_id)
         results = src_loader.serialize()
         src_loader.close()
-        print("Total sources inserted: %s" % len(results))
+        logger.info("Total sources inserted: %s" % len(results))
     except Exception, e:
-        print(e)
+        logger.exception(e)
         return False
     else:
         return True
@@ -74,7 +98,7 @@ def load_sources(config):
     error_occurred = False
     [upload] = Upload.objects.filter(id=config["uploadid"])
     sources = Input.objects.filter(upload=upload.id, input_type="source")
-    print("number of sources: %s" % len(sources))
+    logger.info("number of sources: %s" % len(sources))
     for source in sources:
         error_occurred = not load_source(config, source.path, source.id)
         if error_occurred:
@@ -116,7 +140,7 @@ def main(cargs):
         print __doc__
         sys.exit(102)
 
-    print("config = %s" % pprint.pformat(config))
+    logger.info("config = %s" % pprint.pformat(config))
     load_sources(config)
 
 

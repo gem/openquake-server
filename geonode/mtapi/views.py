@@ -123,7 +123,10 @@ def load_source_files(upload):
             "-U", settings.OQ_DB_USER, "-W", settings.OQ_DB_PASSWORD,
             "-u", str(upload.id), "--host", settings.OQ_DB_HOST]
     print("nrml loader args: %s\n" % pprint.pformat(args))
-    pid = subprocess.Popen(args).pid
+    env = os.environ
+    env["PYTHONPATH"] = settings.NRML_RUNNER_PYTHONPATH
+    pprint.pprint(env)
+    pid = subprocess.Popen(args, env=env).pid
     upload.status = "running"
     upload.job_pid = pid
     upload.save()
