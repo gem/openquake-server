@@ -59,18 +59,19 @@ def input_upload(request):
         for f in request.FILES.getlist('input_files'):
             handle_uploaded_file(upload, f)
         load_source_files(upload)
-        return HttpResponse(prepare_result(upload), mimetype="text/html")
+        return HttpResponse(prepare_result(upload, status="success"),
+                            mimetype="text/html")
     else:
         raise Http404
 
 
-def prepare_result(upload):
+def prepare_result(upload, status=None):
     """Prepare the result dictionary that is to be returned in json form."""
     status_translation = dict(failed="failure", succeeded="success",
                               running="running")
     msg = dict(upload.UPLOAD_STATUS_CHOICES)[upload.status]
-    result = dict(status=status_translation[upload.status], msg=msg,
-                  upload=upload.id)
+    status = status_translation[upload.status] if status is None else status
+    result = dict(status=status, msg=msg, upload=upload.id)
     if upload.status == "succeeded":
         files = []
         for source in upload.input_set.filter(input_type="source"):
