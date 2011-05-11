@@ -50,6 +50,8 @@ def load_source(config, path, input_id):
     :param int input_id: the database key of the associated input record
     :returns: `False` on failure, `True` on success
     """
+    print("path = %s" % path)
+    print("input_id = %s" % input_id)
     try:
         engine = db.create_engine(
             config["db"], config["user"], config["password"])
@@ -71,7 +73,7 @@ def load_sources(config):
     """
     error_occurred = False
     [upload] = Upload.objects.filter(id=config["uploadid"])
-    sources = Input.objects.filter(upload=3, input_type="source")
+    sources = Input.objects.filter(upload=upload.id, input_type="source")
     print("number of sources: %s" % len(sources))
     for source in sources:
         error_occurred = not load_source(config, source.path, source.id)
@@ -114,7 +116,7 @@ def main(cargs):
         print __doc__
         sys.exit(102)
 
-    print("config = %s" % pprint.pprint(config))
+    print("config = %s" % pprint.pformat(config))
     load_sources(config)
 
 

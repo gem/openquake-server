@@ -37,7 +37,7 @@ def input_upload(request):
     """This handles a collection of input files uploaded by the GUI user."""
     print("sys.path = %s" % sys.path)
     print("name = %s" % __name__)
-    print("request.FILES: %s\n" % pprint.pprint(request.FILES))
+    print("request.FILES: %s\n" % pprint.pformat(request.FILES))
     if request.method == "POST":
         upload = handle_upload()
         for f in request.FILES.getlist('input_files'):
@@ -108,7 +108,7 @@ def load_source_files(upload):
     args = [settings.NRML_RUNNER_PATH, "--db", settings.DATABASE_NAME,
             "-U", settings.DATABASE_USER, "-W", settings.DATABASE_PASSWORD,
             "-u", str(upload.id), "--host", settings.DATABASE_HOST]
-    print("nrml loader args: %s\n" % pprint.pprint(args))
+    print("nrml loader args: %s\n" % pprint.pformat(args))
     subprocess.Popen(args, env=os.environ)
     upload.status = "in-progress"
     upload.save()
@@ -120,7 +120,7 @@ def run_oq_job(request):
     This starts an OpenQuake engine job with the user supplied parameters.
     """
     print("name = %s" % __name__)
-    print("request: %s\n" % pprint.pprint(request))
+    print("request: %s\n" % pprint.pformat(request))
     if request.method == "POST":
         return HttpResponse(
             {"status": "success", "msg": "Calculation started", "id": 123})
