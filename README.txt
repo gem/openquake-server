@@ -48,6 +48,10 @@ The following entry needs to be added to /var/www/geonode/wsgi/geonode/src/GeoNo
 Also, the following lines need to be added to /var/www/geonode/wsgi/geonode/src/GeoNodePy/geonode/local_settings.py
 
     NRML_RUNNER_PATH="/usr/local/bin/nrml_runner.py"
+    OQ_DB_HOST = "127.0.0.1"
+    OQ_DB_NAME = "openquake"
+    OQ_DB_USER = "oq_uiapi_writer"
+    OQ_DB_PASSWORD = "z3cr3t"
     import sys
     sys.path.append("/home/muharem/lars")
     sys.path.append("/usr/lib/python2.7/dist-packages")

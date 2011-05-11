@@ -35,8 +35,6 @@ from geonode.mtapi.models import OqUser, Upload, Input
 @csrf_exempt
 def input_upload(request):
     """This handles a collection of input files uploaded by the GUI user."""
-    print("sys.path = %s" % sys.path)
-    print("name = %s" % __name__)
     print("request.FILES: %s\n" % pprint.pformat(request.FILES))
     if request.method == "POST":
         upload = handle_upload()
@@ -52,11 +50,6 @@ def prepare_result(upload):
     """Prepare the result dictionary that is to be returned in json form."""
     result = dict(status="success", msg="Model upload successful",
                   upload=upload.id)
-    files = []
-    for input in upload.input_set.all():
-        if input.input_type == "source":
-            files.append(dict(id=input.id, name=os.path.basename(input.path)))
-    result['files']=files
     return simplejson.dumps(result)
 
 
@@ -105,11 +98,11 @@ def detect_input_type(chunk):
 
 def load_source_files(upload):
     """Load the source files into the database."""
-    args = [settings.NRML_RUNNER_PATH, "--db", settings.DATABASE_NAME,
-            "-U", settings.DATABASE_USER, "-W", settings.DATABASE_PASSWORD,
-            "-u", str(upload.id), "--host", settings.DATABASE_HOST]
+    args = [settings.NRML_RUNNER_PATH, "--db", settings.OQ_DB_NAME,
+            "-U", settings.OQ_DB_USER, "-W", settings.OQ_DB_PASSWORD,
+            "-u", str(upload.id), "--host", settings.OQ_DB_HOST]
     print("nrml loader args: %s\n" % pprint.pformat(args))
-    subprocess.Popen(args, env=os.environ)
+    subprocess.Popen(args)
     upload.status = "in-progress"
     upload.save()
 

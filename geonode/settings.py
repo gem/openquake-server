@@ -31,10 +31,10 @@ DATABASES = {
     }
 }
 
-DATABASE_HOST = "127.0.0.1"
-DATABASE_NAME = "openquake"
-DATABASE_USER = "oq_uiapi_writer"
-DATABASE_PASSWORD = "_Bloujqueewjack9"
+OQ_DB_HOST = "127.0.0.1"
+OQ_DB_NAME = "openquake"
+OQ_DB_USER = "oq_uiapi_writer"
+OQ_DB_PASSWORD = "_Bloujqueewjack9"
 
 # PLEASE NOTE: do *not* ever use any of the password above in production !!
 
