@@ -24,7 +24,7 @@ import simplejson
 import subprocess
 import tempfile
 
-from django.http import HttpResponse, Http404, HttpResponseServerError
+from django.http import HttpResponse, Http404
 from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
 
