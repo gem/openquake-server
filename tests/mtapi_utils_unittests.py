@@ -23,10 +23,31 @@ Unit tests for the geonode/mtapi/utils.py module.
 """
 
 
+import os
 import subprocess
 import unittest
 
-from geonode.mtapi.utils import is_process_running, run_cmd
+from geonode.mtapi.utils import dbn, is_process_running, run_cmd
+
+
+class DbnTestCase(unittest.TestCase):
+    """Tests the behaviour of utils.dbn()."""
+
+    def test_dbn_without_env_setting(self):
+        """
+        In the absence of an `OQ_MTAPI_DB` environment variable `dbn` should
+        return "openquake".
+        """
+        del os.environ["OQ_MTAPI_DB"]
+        self.assertEqual("openquake", dbn())
+
+    def test_dbn_with_env_setting(self):
+        """
+        When the `OQ_MTAPI_DB` environment variable is set, `dbn` should
+        return the value of the former.
+        """
+        os.environ["OQ_MTAPI_DB"] = "closedquake"
+        self.assertEqual("closedquake", dbn())
 
 
 class IsProcessRunningTestCase(unittest.TestCase):

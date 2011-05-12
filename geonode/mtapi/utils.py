@@ -22,6 +22,7 @@
 """Various utility functions used by the django API"""
 
 
+import os
 import subprocess
 
 
@@ -84,3 +85,8 @@ def is_process_running(pid, name_pattern=None):
             result = True
             break
     return result
+
+
+def dbn():
+    """The name of the database to use."""
+    return os.environ.get("OQ_MTAPI_DB", "openquake")

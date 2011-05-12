@@ -37,7 +37,7 @@ def input_upload_result(request, upload_id):
     """This handles a collection of input files uploaded by the GUI user."""
     print("upload_id: %s" % upload_id)
     if request.method == "GET":
-        [upload] = Upload.objects.filter(id=int(upload_id))
+        [upload] = Upload.objects.using(utils.dbn()).filter(id=int(upload_id))
         if upload.status == "running":
             processor_is_alive = utils.is_process_running(
                 upload.job_pid, settings.NRML_RUNNER_PATH)
@@ -46,7 +46,7 @@ def input_upload_result(request, upload_id):
                 raise Http404
             else:
                 upload.status = "failed"
-                upload.save()
+                upload.save(using=utils.dbn())
                 result = prepare_result(upload)
                 print "Upload processing failed, process not found.."
                 return HttpResponse(result, status=500, mimetype="text/html")
@@ -86,9 +86,9 @@ def prepare_result(upload, status=None):
     result = dict(status=status, msg=msg, id=upload.id)
     if upload.status == "succeeded":
         files = []
-        for source in upload.input_set.filter(input_type="source"):
-            files.append(dict(id=source.id,
-                              name=os.path.basename(source.path)))
+        srcs = upload.input_set.using(utils.dbn()).filter(input_type="source")
+        for src in srcs:
+            files.append(dict(id=src.id, name=os.path.basename(src.path)))
         if files:
             result['files']=files
 
@@ -97,11 +97,11 @@ def prepare_result(upload, status=None):
 
 def handle_upload():
     """Create a directory for the files, return `Upload` object."""
-    user = OqUser.objects.filter(user_name="openquake")[0]
+    user = OqUser.objects.using(utils.dbn()).filter(user_name="openquake")[0]
     path = tempfile.mkdtemp(dir=settings.OQ_UPLOAD_DIR)
     os.chmod(path, 0777)
     upload = Upload(owner=user, path=path, status="pending", job_pid=0)
-    upload.save()
+    upload.save(using=utils.dbn())
     return upload
 
 
@@ -121,7 +121,7 @@ def handle_uploaded_file(upload, f):
     destination.close()
     input = Input(upload=upload, owner=upload.owner, size=size, path=path,
                   input_type=input_type)
-    input.save()
+    input.save(using=utils.dbn())
     print(input)
     return input
 
@@ -150,7 +150,7 @@ def load_source_files(upload):
     pid = subprocess.Popen(args, env=env).pid
     upload.status = "running"
     upload.job_pid = pid
-    upload.save()
+    upload.save(using=utils.dbn())
     print "pid = %s" % pid
 
 
