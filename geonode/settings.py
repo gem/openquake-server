@@ -21,6 +21,14 @@ DATABASES = {
         'HOST': '',                      # Set to empty string for localhost. Not used with sqlite3.
         'PORT': '',                      # Set to empty string for default. Not used with sqlite3.
     },
+    'openquake': {
+        'ENGINE': 'django.contrib.gis.db.backends.postgis', # Add 'postgresql_psycopg2', 'postgresql', 'mysql', 'sqlite3' or 'oracle'.
+        'NAME': 'mtapi',                      # Or path to database file if using sqlite3.
+        'USER': 'oq_uiapi_writer',                      # Not used with sqlite3.
+        'PASSWORD': '_Bloujqueewjack9',                  # Not used with sqlite3.
+        'HOST': '',                      # Set to empty string for localhost. Not used with sqlite3.
+        'PORT': '',                      # Set to empty string for default. Not used with sqlite3.
+    },
 }
 
 OQ_DB_HOST = "127.0.0.1"
