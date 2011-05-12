@@ -26,17 +26,19 @@ Replace these with more appropriate tests for your application.
 """
 
 from django.test import TestCase
+from geonode.mtapi.models import OqUser, Upload, Input
+from geonode.mtapi import views
 
-class SimpleTest(TestCase):
-    def test_basic_addition(self):
+
+class PrepareResultTest(TestCase):
+    """Tests for geonode.mtapi.views.prepare_result()."""
+
+    def test_prepare_result_with_pending_upload(self):
         """
-        Tests that 1 + 1 always equals 2.
+        The json for pending uploads contains no `files` array.
         """
-        self.failUnlessEqual(1 + 1, 2)
-
-__test__ = {"doctest": """
-Another way to test that 1 + 1 is equal to 2.
-
->>> 1 + 1 == 2
-True
-"""}
+        user = OqUser.objects.filter(user_name="openquake")[0]
+        upload = Upload(owner=user, path="/a/1", status="pending", job_pid=0)
+        Input(upload=upload, owner=upload.owner, size=11,
+              path=upload.path + "/a", input_type="source")
+        self.assertEqual("", views.prepare_result(upload))
