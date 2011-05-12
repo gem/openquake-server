@@ -28,8 +28,10 @@ class Organization(models.Model):
     address = models.TextField(null=True)
     url = models.TextField(null=True)
     last_update = models.DateTimeField(editable=False, default=datetime.utcnow)
+
     def __str__(self):
         return smart_str(":organization: %s" % self.name)
+
     class Meta:
         db_table = 'admin\".\"organization'
 
@@ -40,8 +42,11 @@ class OqUser(models.Model):
     organization = models.ForeignKey(Organization)
     data_is_open = models.BooleanField()
     last_update = models.DateTimeField(editable=False, default=datetime.utcnow)
+
     def __str__(self):
-        return smart_str(":oq_user: %s (%s)" % (self.full_name, self.user_name))
+        return smart_str(
+            ":oq_user: %s (%s)" % (self.full_name, self.user_name))
+
     class Meta:
         db_table = 'admin\".\"oq_user'
 
@@ -59,8 +64,10 @@ class Upload(models.Model):
     status = models.TextField(choices=UPLOAD_STATUS_CHOICES)
     job_pid = models.PositiveIntegerField()
     last_update = models.DateTimeField(editable=False, default=datetime.utcnow)
+
     def __str__(self):
         return smart_str(":upload %s: (%s)" % (self.id, self.path))
+
     class Meta:
         db_table = 'uiapi\".\"upload'
 
@@ -79,9 +86,11 @@ class Input(models.Model):
     input_type = models.TextField(choices=INPUT_TYPE_CHOICES)
     size = models.PositiveIntegerField()
     last_update = models.DateTimeField(editable=False, default=datetime.utcnow)
+
     def __str__(self):
         return smart_str(
             ":input: %s, %s, %s" % (self.input_type, self.path, self.size))
+
     class Meta:
         db_table = 'uiapi\".\"input'
 
@@ -140,6 +149,7 @@ class OqParams(models.Model):
 
     last_update = models.DateTimeField(editable=False, default=datetime.utcnow)
     region = models.PolygonField()
+
     class Meta:
         db_table = 'uiapi\".\"oq_params'
 
@@ -164,5 +174,6 @@ class OqJob(models.Model):
     job_pid = models.PositiveIntegerField()
     oq_params = models.ForeignKey(OqParams)
     last_update = models.DateTimeField(editable=False, default=datetime.utcnow)
+
     class Meta:
         db_table = 'uiapi\".\"oq_job'

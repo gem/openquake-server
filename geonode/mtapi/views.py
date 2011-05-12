@@ -90,7 +90,7 @@ def prepare_result(upload, status=None):
         for src in srcs:
             files.append(dict(id=src.id, name=os.path.basename(src.path)))
         if files:
-            result['files']=files
+            result['files'] = files
 
     return simplejson.dumps(result)
 

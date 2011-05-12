@@ -14,20 +14,22 @@ MANAGERS = ADMINS
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.contrib.gis.db.backends.postgis', # Add 'postgresql_psycopg2', 'postgresql', 'mysql', 'sqlite3' or 'oracle'.
-        'NAME': 'openquake',                      # Or path to database file if using sqlite3.
-        'USER': 'oq_uiapi_writer',                      # Not used with sqlite3.
-        'PASSWORD': '_Bloujqueewjack9',                  # Not used with sqlite3.
-        'HOST': '',                      # Set to empty string for localhost. Not used with sqlite3.
-        'PORT': '',                      # Set to empty string for default. Not used with sqlite3.
+        # Add 'postgresql_psycopg2', 'postgresql', 'mysql', 'sqlite3' or
+        # 'oracle'.
+        'ENGINE': 'django.contrib.gis.db.backends.postgis',
+        'NAME': 'openquake',
+        'USER': 'oq_uiapi_writer',
+        'PASSWORD': '_Bloujqueewjack9',
+        'HOST': '',
+        'PORT': '',
     },
     'openquake': {
-        'ENGINE': 'django.contrib.gis.db.backends.postgis', # Add 'postgresql_psycopg2', 'postgresql', 'mysql', 'sqlite3' or 'oracle'.
-        'NAME': 'mtapi',                      # Or path to database file if using sqlite3.
-        'USER': 'oq_uiapi_writer',                      # Not used with sqlite3.
-        'PASSWORD': '_Bloujqueewjack9',                  # Not used with sqlite3.
-        'HOST': '',                      # Set to empty string for localhost. Not used with sqlite3.
-        'PORT': '',                      # Set to empty string for default. Not used with sqlite3.
+        'ENGINE': 'django.contrib.gis.db.backends.postgis',
+        'NAME': 'mtapi',
+        'USER': 'oq_uiapi_writer',
+        'PASSWORD': '_Bloujqueewjack9',
+        'HOST': '',
+        'PORT': '',
     },
 }
 
@@ -100,7 +102,8 @@ MIDDLEWARE_CLASSES = (
 ROOT_URLCONF = 'geonode.urls'
 
 TEMPLATE_DIRS = (
-    # Put strings here, like "/home/html/django_templates" or "C:/www/django/templates".
+    # Put strings here, like "/home/html/django_templates" or
+    # "C:/www/django/templates".
     # Always use forward slashes, even on Windows.
     # Don't forget to use absolute paths, not relative paths.
 )
@@ -116,11 +119,10 @@ INSTALLED_APPS = (
     # Uncomment the next line to enable admin documentation:
     # 'django.contrib.admindocs',
     'django.contrib.gis',
-    'geonode.mtapi'
-)
+    'geonode.mtapi')
 
-NRML_RUNNER_PATH="/p/work/oqsrv/bin/nrml_runner.py"
+NRML_RUNNER_PATH = "/p/work/oqsrv/bin/nrml_runner.py"
 import sys
-NRML_RUNNER_PYTHONPATH=":".join([seg for seg in sys.path if seg.find("geonode")
-< 0])
+NRML_RUNNER_PYTHONPATH = ":".join(
+    [seg for seg in sys.path if seg.find("geonode") < 0])
 NRML_RUNNER_PYTHONPATH += ":/p/work/oqsrv"
