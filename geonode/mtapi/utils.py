@@ -43,3 +43,38 @@ def run_cmd(cmds, ignore_exit_code=False):
                  % (cmds[0], p.returncode, err))
         raise Exception(error)
     return (p.returncode, out, err)
+
+
+def process_running(pid, name_pattern=None):
+    """Is the process with the given `pid` still running?
+
+    :param int pid: the process ID (pid) to check
+    :param str name_pattern: a string that must occur in the command of the
+        process with the given `pid`.
+    :returns: `True` if process is still running, `False` otherwise.
+    """
+    code, out, err = run_cmd(["ps" "ax"])
+    if code != 0:
+        return False
+    #  PID TTY      STAT   TIME COMMAND
+    #    1 ?        Ss     0:02 /sbin/init
+    #    2 ?        S      0:00 [kthreadd]
+    #    3 ?        S      0:07 [ksoftirqd/0]
+    #26206 pts/17   Sl     0:54 evince postgresql-8.4.6-A4.pdf
+    #26211 ?        Sl     0:00 /usr/lib/evince/evinced
+    result = False
+    for line in out.split('\n'):
+        line = line.trim()
+        if not line:
+            continue
+        data = line.split()
+        if data[0] != pid:
+            continue
+        if name_pattern:
+            if data[4].find(name_pattern) > -1:
+                result = True
+                break
+        else:
+            result = True
+            break
+    return result

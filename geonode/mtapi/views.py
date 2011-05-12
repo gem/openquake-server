@@ -29,6 +29,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
 
 from geonode.mtapi.models import OqUser, Upload, Input
+from geonode.mtapi import utils
 
 
 @csrf_exempt
