@@ -37,14 +37,14 @@ def run_cmd(cmds, ignore_exit_code=False, shell=False):
     :raises Exception: when the command terminates with a non-zero command
         exit code.
     """
-    p = subprocess.Popen(
+    process = subprocess.Popen(
         cmds, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=shell)
-    out, err = p.communicate()
-    if p.returncode != 0 and not ignore_exit_code:
+    out, err = process.communicate()
+    if process.returncode != 0 and not ignore_exit_code:
         error = ("%s terminated with exit code: %s\n%s"
-                 % (cmds[0], p.returncode, err))
+                 % (cmds[0], process.returncode, err))
         raise Exception(error)
-    return (p.returncode, out, err)
+    return (process.returncode, out, err)
 
 
 def is_process_running(pid, name_pattern=None):
@@ -55,7 +55,7 @@ def is_process_running(pid, name_pattern=None):
         process with the given `pid`.
     :returns: `True` if process is still running, `False` otherwise.
     """
-    code, out, err = run_cmd(["ps ax"], shell=True)
+    code, out, _ = run_cmd(["ps ax"], shell=True)
     if code != 0:
         return False
     #  PID TTY      STAT   TIME COMMAND

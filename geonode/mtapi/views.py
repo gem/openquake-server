@@ -18,6 +18,12 @@
 # <http://www.gnu.org/licenses/lgpl-3.0.txt> for a copy of the LGPLv3 License.
 
 
+"""
+Views for the OpenQuake API endpoint, please see
+    https://github.com/gem/openquake/wiki/demo-client-API
+for details.
+"""
+
 import os
 import pprint
 import simplejson
@@ -68,8 +74,8 @@ def input_upload(request):
     print("request.FILES: %s\n" % pprint.pformat(request.FILES))
     if request.method == "POST":
         upload = handle_upload()
-        for f in request.FILES.getlist('input_files'):
-            handle_uploaded_file(upload, f)
+        for uploaded_file in request.FILES.getlist('input_files'):
+            handle_uploaded_file(upload, uploaded_file)
         load_source_files(upload)
         return HttpResponse(prepare_result(upload, status="success"),
                             mimetype="text/html")
@@ -105,25 +111,25 @@ def handle_upload():
     return upload
 
 
-def handle_uploaded_file(upload, f):
+def handle_uploaded_file(upload, uploaded_file):
     """Store a single uploaded file on disk and in the database."""
     size = 0
     chunk_counter = 0
     input_type = None
-    path = "%s/%s" % (upload.path, f.name)
+    path = "%s/%s" % (upload.path, uploaded_file.name)
     destination = open(path, "wb+")
-    for chunk in f.chunks():
+    for chunk in uploaded_file.chunks():
         destination.write(chunk)
         size += len(chunk)
         chunk_counter += 1
         if chunk_counter == 1:
             input_type = detect_input_type(chunk)
     destination.close()
-    input = Input(upload=upload, owner=upload.owner, size=size, path=path,
+    source = Input(upload=upload, owner=upload.owner, size=size, path=path,
                   input_type=input_type)
-    input.save(using=utils.dbn())
-    print(input)
-    return input
+    source.save(using=utils.dbn())
+    print(source)
+    return source
 
 
 def detect_input_type(chunk):
@@ -132,9 +138,9 @@ def detect_input_type(chunk):
             "<logicTreeSet")
     types = ("source", "vulnerability", "exposure", "ltree")
     type_dict = dict(zip(tags, types))
-    for k, v in type_dict.iteritems():
-        if chunk.find(k) >= 0:
-            return v
+    for key, value in type_dict.iteritems():
+        if chunk.find(key) >= 0:
+            return value
     return "unknown"
 
 

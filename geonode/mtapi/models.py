@@ -18,12 +18,20 @@
 # <http://www.gnu.org/licenses/lgpl-3.0.txt> for a copy of the LGPLv3 License.
 
 
+"""
+Models for the OpenQuake API endpoint, please see
+    https://github.com/gem/openquake/wiki/demo-client-API
+for details.
+"""
+
+
 from datetime import datetime
 from django.contrib.gis.db import models
 from django.utils.encoding import smart_str
 
 
 class Organization(models.Model):
+    """This corresponds to the admin.organization table."""
     name = models.TextField()
     address = models.TextField(null=True)
     url = models.TextField(null=True)
@@ -37,6 +45,7 @@ class Organization(models.Model):
 
 
 class OqUser(models.Model):
+    """This corresponds to the admin.oq_user table."""
     user_name = models.TextField()
     full_name = models.TextField()
     organization = models.ForeignKey(Organization)
@@ -52,6 +61,7 @@ class OqUser(models.Model):
 
 
 class Upload(models.Model):
+    """This corresponds to the uiapi.upload table."""
     owner = models.ForeignKey(OqUser)
     path = models.TextField(unique=True)
     UPLOAD_STATUS_CHOICES = (
@@ -73,6 +83,7 @@ class Upload(models.Model):
 
 
 class Input(models.Model):
+    """This corresponds to the uiapi.input table."""
     owner = models.ForeignKey(OqUser)
     upload = models.ForeignKey(Upload)
     path = models.TextField(unique=True)
@@ -106,6 +117,7 @@ class FloatArrayField(models.Field):
 
 
 class OqParams(models.Model):
+    """This corresponds to the uiapi.oq_params table."""
     JOB_TYPE_CHOICES = (
         (u"classical", u"Classical PSHA calculation"),
         (u"probabilistic", u"Probabilistic calculation"),
@@ -155,6 +167,7 @@ class OqParams(models.Model):
 
 
 class OqJob(models.Model):
+    """This corresponds to the uiapi.oq_job table."""
     owner = models.ForeignKey(OqUser)
     description = models.TextField()
     JOB_TYPE_CHOICES = (
