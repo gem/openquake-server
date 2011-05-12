@@ -123,7 +123,7 @@ def main(cargs):
     longopts = ["%s" % k if isinstance(v, bool) else "%s=" % k
                 for k, v in config.iteritems()] + ["help"]
     # Translation between short/long command line arguments.
-    s2l = dict(d="db", h="host", U="user", W="password", u="uploadid")
+    s2l = dict(d="db", U="user", W="password", u="uploadid")
 
     try:
         opts, args = getopt.getopt(cargs[1:], "hd:U:W:u:", longopts)
