@@ -23,6 +23,7 @@ Unit tests for the geonode/mtapi/utils.py module.
 """
 
 
+import subprocess
 import unittest
 
 from geonode.mtapi.utils import is_process_running, run_cmd
@@ -44,6 +45,14 @@ class IsProcessRunningTestCase(unittest.TestCase):
         pid is right but the name pattern does not match the init process.
         """
         self.assertFalse(is_process_running(1, "openquake"))
+
+    def test_is_process_running_with_compound_command(self):
+        """
+        pid and name pattern should match a process whose command consists of
+        multiple strings.
+        """
+        p = subprocess.Popen("sleep 5", shell=True)
+        self.assertTrue(is_process_running(p.pid, "p 5"))
 
 
 class RunCmdTestCase(unittest.TestCase):

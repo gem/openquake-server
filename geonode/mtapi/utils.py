@@ -72,7 +72,9 @@ def is_process_running(pid, name_pattern=None):
         if int(data[0]) != pid:
             continue
         if name_pattern:
-            if data[4].find(name_pattern) > -1:
+            # Is the pattern present in the command the process at hand is
+            # running?
+            if " ".join(data[4:]).find(name_pattern) > -1:
                 result = True
                 break
         else:

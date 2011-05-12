@@ -35,17 +35,28 @@ from geonode.mtapi import utils
 @csrf_exempt
 def input_upload_result(request, upload_id):
     """This handles a collection of input files uploaded by the GUI user."""
-    print("upload_id: %s\n" % upload_id)
+    print("upload_id: %s" % upload_id)
     if request.method == "GET":
         [upload] = Upload.objects.filter(id=int(upload_id))
         if upload.status == "running":
-            print "Upload processing in progress.."
-            raise Http404
+            processor_is_alive = utils.is_process_running(
+                upload.job_pid, settings.NRML_RUNNER_PATH)
+            if processor_is_alive:
+                print "Upload processing in progress.."
+                raise Http404
+            else:
+                upload.status = "failed"
+                upload.save()
+                result = prepare_result(upload)
+                print "Upload processing failed, process not found.."
+                return HttpResponse(result, status=500, mimetype="text/html")
         else:
             result = prepare_result(upload)
             if upload.status == "failed":
+                print "Upload processing failed.."
                 return HttpResponse(result, status=500, mimetype="text/html")
             else:
+                print "Upload processing succeeded.."
                 return HttpResponse(result, mimetype="text/html")
     else:
         raise Http404
@@ -69,7 +80,7 @@ def input_upload(request):
 def prepare_result(upload, status=None):
     """Prepare the result dictionary that is to be returned in json form."""
     status_translation = dict(failed="failure", succeeded="success",
-                              running="running")
+                              running="running", pending="pending")
     msg = dict(upload.UPLOAD_STATUS_CHOICES)[upload.status]
     status = status_translation[upload.status] if status is None else status
     result = dict(status=status, msg=msg, id=upload.id)
@@ -140,6 +151,7 @@ def load_source_files(upload):
     upload.status = "running"
     upload.job_pid = pid
     upload.save()
+    print "pid = %s" % pid
 
 
 @csrf_exempt

@@ -120,3 +120,7 @@ INSTALLED_APPS = (
 )
 
 NRML_RUNNER_PATH="/p/work/oqsrv/bin/nrml_runner.py"
+import sys
+NRML_RUNNER_PYTHONPATH=":".join([seg for seg in sys.path if seg.find("geonode")
+< 0])
+NRML_RUNNER_PYTHONPATH += ":/p/work/oqsrv"
