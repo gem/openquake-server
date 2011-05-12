@@ -40,7 +40,19 @@ from geonode.mtapi import utils
 
 @csrf_exempt
 def input_upload_result(request, upload_id):
-    """This handles a collection of input files uploaded by the GUI user."""
+    """This handles a collection of input files uploaded by the GUI user.
+
+    The request must be a HTTP GET.
+
+    :param request: the :py:class:`django.http.HttpRequest` object
+    :param integer upload_id: the database key of the associated upload record
+        (see also :py:class:`geonode.mtapi.models.Upload`)
+    :returns: a :py:class:`django.http.HttpResponse` object with status code
+        `200` and `500` if the upload processing succeeded and failed
+        respectively.
+    :raises Http404: when the processing of the uploaded source model files is
+        still in progress.
+    """
     print("upload_id: %s" % upload_id)
     if request.method == "GET":
         [upload] = Upload.objects.using(utils.dbn()).filter(id=int(upload_id))
@@ -70,7 +82,15 @@ def input_upload_result(request, upload_id):
 
 @csrf_exempt
 def input_upload(request):
-    """This handles a collection of input files uploaded by the GUI user."""
+    """This handles a collection of input files uploaded by the GUI user.
+
+    The request must be a HTTP POST.
+
+    :param request: the :py:class:`django.http.HttpRequest` object
+    :returns: a :py:class:`django.http.HttpResponse` object with status code
+        `200` after starting an external NRML loader program that will process
+        the uploaded source model files.
+    """
     print("request.FILES: %s\n" % pprint.pformat(request.FILES))
     if request.method == "POST":
         upload = handle_upload()
@@ -84,7 +104,13 @@ def input_upload(request):
 
 
 def prepare_result(upload, status=None):
-    """Prepare the result dictionary that is to be returned in json form."""
+    """Prepare the result dictionary that is to be returned in json form.
+
+    :param upload: the :py:class:`geonode.mtapi.models.Upload` instance
+        associated with this upload.
+    :param string status: if set overrides the `status` property of the passed
+        `upload` parameter
+    """
     status_translation = dict(failed="failure", succeeded="success",
                               running="running", pending="pending")
     msg = dict(upload.UPLOAD_STATUS_CHOICES)[upload.status]
@@ -102,7 +128,11 @@ def prepare_result(upload, status=None):
 
 
 def handle_upload():
-    """Create a directory for the files, return `Upload` object."""
+    """Create a directory for the files, return `Upload` object.
+
+    :returns: the :py:class:`geonode.mtapi.models.Upload` instance
+        associated with this upload.
+    """
     user = OqUser.objects.using(utils.dbn()).filter(user_name="openquake")[0]
     path = tempfile.mkdtemp(dir=settings.OQ_UPLOAD_DIR)
     os.chmod(path, 0777)
@@ -112,7 +142,13 @@ def handle_upload():
 
 
 def handle_uploaded_file(upload, uploaded_file):
-    """Store a single uploaded file on disk and in the database."""
+    """Store a single uploaded file on disk and in the database.
+
+    :param upload: the :py:class:`geonode.mtapi.models.Upload` instance
+        associated with this upload.
+    :param uploaded_file: an uploaded file from the POST request
+    :returns: the resulting :py:class:`geonode.mtapi.models.Input` instance
+    """
     size = 0
     chunk_counter = 0
     input_type = None
@@ -133,7 +169,12 @@ def handle_uploaded_file(upload, uploaded_file):
 
 
 def detect_input_type(chunk):
-    """Detect and return the input file type."""
+    """Detect and return the input file type.
+
+    :param string chunk: the first chunk of an uploaded input file.
+    :returns: one of the following strings:
+        "source", "vulnerability", "exposure", "ltree" or "unknown"
+    """
     tags = ("<sourceModel", "<vulnerabilityModel", "<exposurePortfolio",
             "<logicTreeSet")
     types = ("source", "vulnerability", "exposure", "ltree")
@@ -145,7 +186,13 @@ def detect_input_type(chunk):
 
 
 def load_source_files(upload):
-    """Load the source files into the database."""
+    """Load the source files into the database.
+
+    :param upload: the :py:class:`geonode.mtapi.models.Upload` instance
+        associated with this upload.
+    :returns: the integer process ID (pid) of the child process that is running
+        the NRML loader program.
+    """
     args = [settings.NRML_RUNNER_PATH, "--db", settings.OQ_DB_NAME,
             "-U", settings.OQ_DB_USER, "-W", settings.OQ_DB_PASSWORD,
             "-u", str(upload.id), "--host", settings.OQ_DB_HOST]
@@ -162,8 +209,11 @@ def load_source_files(upload):
 
 @csrf_exempt
 def run_oq_job(request):
-    """
-    This starts an OpenQuake engine job with the user supplied parameters.
+    """Starts an OpenQuake engine job with the user supplied parameters.
+
+    The request must be a HTTP POST.
+
+    :param request: the :py:class:`django.http.HttpRequest` object
     """
     print("name = %s" % __name__)
     print("request: %s\n" % pprint.pformat(request))

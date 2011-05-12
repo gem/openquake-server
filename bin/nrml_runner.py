@@ -94,7 +94,7 @@ def load_source(config, path, input_id):
 
 
 def load_sources(config):
-    """Load a model sources for an upload, write their content to database.
+    """Load model sources for an upload, write their content to database.
 
     :param dict config: the configuration to use: database, host, user,
         password, upload ID.
