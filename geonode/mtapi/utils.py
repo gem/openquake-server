@@ -25,18 +25,19 @@
 import subprocess
 
 
-def run_cmd(cmds, ignore_exit_code=False):
+def run_cmd(cmds, ignore_exit_code=False, shell=False):
     """Run the given command and return the exit code, stdout and stderr.
 
     :param list cmds: the strings that comprise the command to run
     :param bool ignore_exit_code: if `True` no `Exception` will be raised for
         non-zero command exit code.
+    :param bool shell: this flag is simply passed through to `subprocess.Popen`
     :returns: an `(exit code, stdout, stderr)` triple
     :raises Exception: when the command terminates with a non-zero command
         exit code.
     """
     p = subprocess.Popen(
-        cmds, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        cmds, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=shell)
     out, err = p.communicate()
     if p.returncode != 0 and not ignore_exit_code:
         error = ("%s terminated with exit code: %s\n%s"
@@ -45,7 +46,7 @@ def run_cmd(cmds, ignore_exit_code=False):
     return (p.returncode, out, err)
 
 
-def process_running(pid, name_pattern=None):
+def is_process_running(pid, name_pattern=None):
     """Is the process with the given `pid` still running?
 
     :param int pid: the process ID (pid) to check
@@ -53,7 +54,7 @@ def process_running(pid, name_pattern=None):
         process with the given `pid`.
     :returns: `True` if process is still running, `False` otherwise.
     """
-    code, out, err = run_cmd(["ps" "ax"])
+    code, out, err = run_cmd(["ps ax"], shell=True)
     if code != 0:
         return False
     #  PID TTY      STAT   TIME COMMAND
@@ -63,12 +64,12 @@ def process_running(pid, name_pattern=None):
     #26206 pts/17   Sl     0:54 evince postgresql-8.4.6-A4.pdf
     #26211 ?        Sl     0:00 /usr/lib/evince/evinced
     result = False
-    for line in out.split('\n'):
-        line = line.trim()
+    for line in out.split('\n')[1:]:
+        line = line.strip()
         if not line:
             continue
         data = line.split()
-        if data[0] != pid:
+        if int(data[0]) != pid:
             continue
         if name_pattern:
             if data[4].find(name_pattern) > -1:

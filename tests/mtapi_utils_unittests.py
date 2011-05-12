@@ -25,11 +25,29 @@ Unit tests for the geonode/mtapi/utils.py module.
 
 import unittest
 
-from geonode.mtapi.utils import run_cmd
+from geonode.mtapi.utils import is_process_running, run_cmd
+
+
+class IsProcessRunningTestCase(unittest.TestCase):
+    """Tests the behaviour of utils.is_process_running()."""
+
+    def test_is_process_running(self):
+        """The init process should be found."""
+        self.assertTrue(is_process_running(1))
+
+    def test_is_process_running_with_matching_pattern(self):
+        """pid and name pattern should match the init process."""
+        self.assertTrue(is_process_running(1, "init"))
+
+    def test_is_process_running_with_non_matching_pattern(self):
+        """
+        pid is right but the name pattern does not match the init process.
+        """
+        self.assertFalse(is_process_running(1, "openquake"))
 
 
 class RunCmdTestCase(unittest.TestCase):
-    """Tests the behaviour of dbmaint.run_cmd()."""
+    """Tests the behaviour of utils.run_cmd()."""
 
     def test_run_cmd_with_success(self):
         """Invoke a command without errors."""
