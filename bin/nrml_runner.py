@@ -117,6 +117,7 @@ def load_sources(config):
 def main(cargs):
     """Run the NRML loader."""
     def strip_dashes(arg):
+        """Remove leading dashes, return last portion of string remaining."""
         return arg.split('-')[-1]
 
     config = dict(db="openquake", host="localhost", user="postgres",
@@ -127,7 +128,7 @@ def main(cargs):
     s2l = dict(d="db", U="user", W="password", u="uploadid")
 
     try:
-        opts, args = getopt.getopt(cargs[1:], "hd:U:W:u:", longopts)
+        opts, _ = getopt.getopt(cargs[1:], "hd:U:W:u:", longopts)
     except getopt.GetoptError, e:
         # User supplied unknown argument(?); print help and exit.
         print e
