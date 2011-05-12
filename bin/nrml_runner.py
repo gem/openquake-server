@@ -69,7 +69,8 @@ logger.info(pprint.pformat(os.environ))
 def load_source(config, path, input_id):
     """Load a single model source from file, write to database.
 
-    :param dict config: the configuration to use: database, host, user, path.
+    :param dict config: the configuration to use: database, host, user,
+        password, upload ID.
     :param str path: the full path of the model source file
     :param int input_id: the database key of the associated input record
     :returns: `False` on failure, `True` on success
@@ -93,9 +94,11 @@ def load_source(config, path, input_id):
 def load_sources(config):
     """Load a model sources for an upload, write their content to database.
 
-    :param dict config: the configuration to use: database, host, user, path.
+    :param dict config: the configuration to use: database, host, user,
+        password, upload ID.
     """
     error_occurred = False
+    # There should be only one Upload record with the given ID.
     [upload] = Upload.objects.filter(id=config["uploadid"])
     sources = Input.objects.filter(upload=upload.id, input_type="source")
     logger.info("number of sources: %s" % len(sources))
@@ -123,6 +126,7 @@ def main(cargs):
     try:
         opts, args = getopt.getopt(cargs[1:], "hd:U:W:u:", longopts)
     except getopt.GetoptError, e:
+        # User supplied unknown argument(?); print help and exit.
         print e
         print __doc__
         sys.exit(101)
@@ -131,12 +135,14 @@ def main(cargs):
         if opt in ("-h", "--help"):
             print __doc__
             sys.exit(0)
+        # Update the configuration in accordance with the arguments passed.
         opt = strip_dashes(opt)
         if opt not in config:
             opt = s2l[opt]
         config[opt] = arg if arg else not config[opt]
 
-    if len(cargs) < 2:
+    # All arguments must be supplied.
+    if len(cargs) < 5:
         print __doc__
         sys.exit(102)
 
