@@ -64,12 +64,15 @@ def is_process_running(pid, name_pattern=None):
     #26206 pts/17   Sl     0:54 evince postgresql-8.4.6-A4.pdf
     #26211 ?        Sl     0:00 /usr/lib/evince/evinced
     result = False
-    for line in out.split('\n')[1:]:
+    pid = str(pid)
+    # Only consider lines that contain the given pid.
+    lines = [line for line in out.split('\n')[1:] if line.find(pid) > -1]
+    for line in lines:
         line = line.strip()
         if not line:
             continue
         data = line.split()
-        if int(data[0]) != pid:
+        if data[0] != pid:
             continue
         if name_pattern:
             # Is the pattern present in the command the process at hand is
