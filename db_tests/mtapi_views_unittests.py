@@ -19,26 +19,29 @@
 
 
 """
-This file demonstrates two different styles of tests (one doctest and one
-unittest). These will both pass when you run "manage.py test".
-
-Replace these with more appropriate tests for your application.
+database related unit tests for the geonode/mtapi/views.py module.
 """
 
-from django.test import TestCase
-from geonode.mtapi.models import OqUser, Upload, Input
-from geonode.mtapi import views
+
+import os
+import stat
+import unittest
+
+from geonode.mtapi.models import Upload
+from geonode.mtapi.views import prepare_upload
 
 
-class PrepareResultTest(TestCase):
-    """Tests for geonode.mtapi.views.prepare_result()."""
+class PrepareUploadTestCase(unittest.TestCase):
+    """Tests the behaviour of views.prepare_upload()."""
 
-    def test_prepare_result_with_pending_upload(self):
+    def test_prepare_upload(self):
         """
-        The json for pending uploads contains no `files` array.
+        `prepare_upload` returns a :py:class:`geonode.mtapi.models.Upload`
+        instance. The latter's `path` must be a file system directory and have
+        `0777` permissions.
         """
-        user = OqUser.objects.filter(user_name="openquake")[0]
-        upload = Upload(owner=user, path="/a/1", status="pending", job_pid=0)
-        Input(upload=upload, owner=upload.owner, size=11,
-              path=upload.path + "/a", input_type="source")
-        self.assertEqual("", views.prepare_result(upload))
+        upload = prepare_upload()
+        self.assertTrue(isinstance(upload, Upload))
+        info = os.stat(upload.path)
+        self.assertTrue(stat.S_ISDIR(info.st_mode))
+        self.assertEqual('0777', oct(stat.S_IMODE(info.st_mode)))
