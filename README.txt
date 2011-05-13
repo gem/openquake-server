@@ -5,7 +5,7 @@ Dependencies
 
  * django
  * psycopg2
- * python-gflags
+ * nose (for running tests)
 
 Package Structure
 -----------------
