@@ -9,16 +9,43 @@ ADMINS = (
 
 MANAGERS = ADMINS
 
+
+# PLEASE NOTE: do *not* ever use any of the password below in production !!
+
 DATABASES = {
     'default': {
-        'ENGINE': 'django.contrib.gis.db.backends.postgis', # Add 'postgresql_psycopg2', 'postgresql', 'mysql', 'sqlite3' or 'oracle'.
-        'NAME': 'openquake',                      # Or path to database file if using sqlite3.
-        'USER': 'oq_uiapi_writer',                      # Not used with sqlite3.
-        'PASSWORD': '',                  # Not used with sqlite3.
-        'HOST': '',                      # Set to empty string for localhost. Not used with sqlite3.
-        'PORT': '',                      # Set to empty string for default. Not used with sqlite3.
-    }
+        # Add 'postgresql_psycopg2', 'postgresql', 'mysql', 'sqlite3' or
+        # 'oracle'.
+        'ENGINE': 'django.contrib.gis.db.backends.postgis',
+        'NAME': 'openquake',
+        'USER': 'oq_uiapi_writer',
+        'PASSWORD': '_Bloujqueewjack9',
+        'HOST': '',
+        'PORT': '',
+    },
+    'openquake': {
+        'ENGINE': 'django.contrib.gis.db.backends.postgis',
+        'NAME': 'mtapi',
+        'USER': 'oq_uiapi_writer',
+        'PASSWORD': '_Bloujqueewjack9',
+        'HOST': '',
+        'PORT': '',
+    },
+    'openquake-test': {
+        'ENGINE': 'django.contrib.gis.db.backends.postgis',
+        'NAME': 'oqserv_test',
+        'USER': 'oq_uiapi_writer',
+        'PASSWORD': '_Bloujqueewjack9',
+        'HOST': '',
+        'PORT': '',
+    },
 }
+
+# PLEASE NOTE: do *not* ever use any of the password above in production !!
+
+
+OQ_UPLOAD_DIR = "/usr/openquake/spool"
+OQ_USER_DIR = "/usr/openquake/%s"
 
 # Local time zone for this installation. Choices can be found here:
 # http://en.wikipedia.org/wiki/List_of_tz_zones_by_name
@@ -78,7 +105,8 @@ MIDDLEWARE_CLASSES = (
 ROOT_URLCONF = 'geonode.urls'
 
 TEMPLATE_DIRS = (
-    # Put strings here, like "/home/html/django_templates" or "C:/www/django/templates".
+    # Put strings here, like "/home/html/django_templates" or
+    # "C:/www/django/templates".
     # Always use forward slashes, even on Windows.
     # Don't forget to use absolute paths, not relative paths.
 )
@@ -94,45 +122,10 @@ INSTALLED_APPS = (
     # Uncomment the next line to enable admin documentation:
     # 'django.contrib.admindocs',
     'django.contrib.gis',
-    'geonode.mtapi'
-)
+    'geonode.mtapi')
 
-#LOGGING = {
-#    "version": 1,
-#    "disable_existing_loggers": True,
-#    "formatters": {
-#        "verbose": {
-#            "format": "%(levelname)s %(asctime)s %(module)s %(process)d %(thread)d %(message)s"
-#        },
-#        "simple": {
-#            "format": "%(levelname)s %(message)s"
-#        },
-#    },
-#    "handlers": {
-#        "null": {
-#            "level":"DEBUG",
-#            "class":"django.utils.log.NullHandler",
-#        },
-#        "console":{
-#            "level":"DEBUG",
-#            "class":"logging.StreamHandler",
-#            "formatter": "simple"
-#        }
-#    },
-#    "loggers": {
-#        "django": {
-#            "handlers":["console"],
-#            "level":"DEBUG",
-#        },
-#        "geonode.mtapi.models": {
-#            "handlers": ["console"],
-#            "level": "DEBUG",
-#        },
-#        "geonode.mtapi.views": {
-#            "handlers": ["console"],
-#            "propagate": True,
-#            "level": "DEBUG",
-#        }
-#    }
-#}
-
+NRML_RUNNER_PATH = "/p/work/oqsrv/bin/nrml_runner.py"
+import sys
+NRML_RUNNER_PYTHONPATH = ":".join(
+    [seg for seg in sys.path if seg.find("geonode") < 0])
+NRML_RUNNER_PYTHONPATH += ":/p/work/oqsrv"
