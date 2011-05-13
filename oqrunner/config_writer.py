@@ -32,10 +32,12 @@ CLASSICAL_DEFAULTS = {
         'INCLUDE_AREA_SOURCES': 'true',
         'TREAT_AREA_SOURCE_AS': 'Point Sources',
         'AREA_SOURCE_DISCRETIZATION': 0.1,
-        'AREA_SOURCE_MAGNITUDE_SCALING_RELATIONSHIP': 'W&C 1994 Mag-Length Rel.',
+        'AREA_SOURCE_MAGNITUDE_SCALING_RELATIONSHIP': \
+            'W&C 1994 Mag-Length Rel.',
         'INCLUDE_GRID_SOURCES': 'true',
         'TREAT_GRID_SOURCE_AS': 'Point Sources',
-        'GRID_SOURCE_MAGNITUDE_SCALING_RELATIONSHIP': 'W&C 1994 Mag-Length Rel.',
+        'GRID_SOURCE_MAGNITUDE_SCALING_RELATIONSHIP': \
+            'W&C 1994 Mag-Length Rel.',
         'INCLUDE_FAULT_SOURCE': 'true',
         'FAULT_RUPTURE_OFFSET': 5.0,
         'FAULT_SURFACE_DISCRETIZATION': 1.0,
@@ -46,7 +48,8 @@ CLASSICAL_DEFAULTS = {
         'INCLUDE_SUBDUCTION_FAULT_SOURCE': 'true',
         'SUBDUCTION_FAULT_RUPTURE_OFFSET': 10.0,
         'SUBDUCTION_FAULT_SURFACE_DISCRETIZATION': 10.0,
-        'SUBDUCTION_FAULT_MAGNITUDE_SCALING_RELATIONSHIP': 'Wells & Coppersmith (1994)',
+        'SUBDUCTION_FAULT_MAGNITUDE_SCALING_RELATIONSHIP': \
+            'Wells & Coppersmith (1994)',
         'SUBDUCTION_FAULT_MAGNITUDE_SCALING_SIGMA': 0.0,
         'SUBDUCTION_RUPTURE_ASPECT_RATIO': 1.5,
         'SUBDUCTION_RUPTURE_FLOATING_TYPE': 'Along strike and down dip',
@@ -64,7 +67,7 @@ class JobConfigWriter(object):
 
     PARAMS_MAP = {
         'classical': CLASSICAL_DEFAULTS,
-        'event-based': None,
+        'event_based': None,
         'deterministic': None}
 
     def __init__(self, path, oq_params):
@@ -77,9 +80,11 @@ class JobConfigWriter(object):
         """
         self.path = path
         self.oq_params = oq_params
-        self.default_params = self.PARAMS_MAP[self.oq_params.job_type]
+        self.default_params = \
+            self.PARAMS_MAP.get(self.oq_params.job_type, None)
         if self.default_params is None:
-            raise ValueError("Unsupported calclulation mode: '%s'" % self.oq_params.job_type)
+            raise ValueError("Unsupported calclulation mode: '%s'" \
+                % self.oq_params.job_type)
         
 
     def write(self):

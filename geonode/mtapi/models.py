@@ -71,7 +71,7 @@ class Upload(models.Model):
         (u"failed", u"Processing of uploaded files failed"),
         (u"succeeded", u"All uploaded files processed"),
     )
-    status = models.TextField(choices=UPLOAD_STATUS_CHOICES)
+    status = models.TextField(choices=UPLOAD_STATUS_CHOICES, default="pending")
     job_pid = models.PositiveIntegerField()
     last_update = models.DateTimeField(editable=False, default=datetime.utcnow)
 
@@ -181,8 +181,8 @@ class OqJob(models.Model):
         (u"failed", u"Calculation failed"),
         (u"succeeded", u"Calculation succeeded"),
     )
-    status = models.TextField(choices=JOB_STATUS_CHOICES)
-    duration = models.PositiveIntegerField()
+    status = models.TextField(choices=JOB_STATUS_CHOICES, default="pending")
+    duration = models.PositiveIntegerField(default=0)
     job_pid = models.PositiveIntegerField()
     oq_params = models.ForeignKey(OqParams)
     last_update = models.DateTimeField(editable=False, default=datetime.utcnow)

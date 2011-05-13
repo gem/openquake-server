@@ -19,17 +19,20 @@
 
 
 import os
+import shutil
 import unittest
 import uuid
 
-from django.contrib.git import geos
+from django.contrib.gis import geos
 
 from geonode.mtapi import models as mt_models
 from oqrunner import config_writer
 
 
 TEST_OWNER_ID = 1
-TEST_UPLOAD_PATH = "data/inputs/"
+TEST_DATA_BASE_PATH = "tests/data"
+TEST_OUTPUT_BASE_PATH = "tests/output/"
+TEST_JOB_PID = 1
 
 TEST_PARAMS = {
     'CALCULATION_MODE': 'classical',
@@ -52,57 +55,75 @@ TEST_PARAMS = {
 # This is a pre-existing example file we'll use to validate the file we create
 EXPECTED_OUTPUT_FILE = "data/expected-config.gem"
 
-input_path = lambda path: os.path.join(TEST_UPLOAD_PATH, path)
+# Upload dir
+upload_dir_path = lambda upload_uuid: os.path.join(TEST_OUTPUT_BASE_PATH, upload_uuid)
+# A file in the input dir
+upload_file_path = lambda upload_uuid, file: os.path.join(upload_dir_path(upload_uuid), file)
+# Job folder within the upload dir
+job_dir_path = lambda upload_uuid, job_id: os.path.join(upload_dir_path(upload_uuid), job_id)
 
-def create_inputs():
+def create_inputs(upload_uuid):
     """
     Create some sample :py:class:`geonode.mtapi.models.Input` objects for the
     test case.
+
+    This function will copy the input files from the base data directory
+    to a unique temporary directory for the test.
     """
-    exposure_path = input_path('exposure.xml')
+    exposure_path = upload_file_path(upload_uuid, 'exposure.xml')
     exposure = mt_models.Input(
         owner_id=TEST_OWNER_ID,
         path=exposure_path,
-        input_type='exposure',
-        size=os.path.getsize(exposure_path))
+        input_type='exposure')
 
-    vuln_path = input_path('vulnerability.xml')
+    vuln_path = upload_file_path(upload_uuid, 'vulnerability.xml')
     vuln = mt_models.Input(
         owner_id=TEST_OWNER_ID,
         path=vuln_path,
-        input_type='vulnerability',
-        size=os.path.getsize(vuln_path))
+        input_type='vulnerability')
 
-    src_ltree_path = input_path('source-model-logic-tree.xml')
+    src_ltree_path = upload_file_path(upload_uuid, 'source-model-logic-tree.xml')
     src_ltree = mt_models.Input(
         owner_id=TEST_OWNER_ID,
         path=src_ltree_path,
-        input_type='ltree',
-        size=os.path.getsize(src_ltree_path))
+        input_type='ltree')
 
-    gmpe_ltree_path = input_path('gmpe-logic-tree.xml')
+    gmpe_ltree_path = upload_file_path(upload_uuid, 'gmpe-logic-tree.xml')
     gmpe_ltree = mt_models.Input(
         owner_id=TEST_OWNER_ID,
         path=gmpe_ltree_path,
-        input_type='ltree',
-        size=os.path.getsize(gmpe_ltree_path))
+        input_type='ltree')
 
-    source_path = input_path('source-model.xml')
+    source_path = upload_file_path(upload_uuid, 'source-model.xml')
     source = mt_models.Input(
         owner_id=TEST_OWNER_ID,
         path=source_path,
-        input_type='source',
-        size=os.path.getsize(source_path))
+        input_type='source')
 
-    return (exposure, vuln, src_ltree, gmpe_ltree, source)
+    inputs = (exposure, vuln, src_ltree, gmpe_ltree, source)
+
+    # copy the files to the test location and get the file size
+    for i in inputs:
+        file_name = os.path.basename(i.path)
+        file_path = os.path.join(TEST_DATA_BASE_PATH, file_name)
+        shutil.copy(file_path, i.path)
+        i.size = os.path.getsize(i.path)
+
+    return inputs
 
 
-class JobConfigWriterTestCase(unittest.TestCase):
+
+class JobConfigWriterClassicalTestCase(unittest.TestCase):
     """
     """
 
     def __init__(self, *args, **kwargs): 
-        super(RunnerTestCase, self).__init__(*args, **kwargs)
+        super(JobConfigWriterClassicalTestCase, self).__init__(*args, **kwargs)
+
+        self.upload_uuid = str(uuid.uuid4())
+        upload_dir = upload_dir_path(self.upload_uuid)
+        # create the unique upload dir
+        os.mkdir(upload_dir)
 
         # this sets up the basic params for a Classical PSHA calculation
         self.oqparams = mt_models.OqParams(
@@ -124,11 +145,15 @@ class JobConfigWriterTestCase(unittest.TestCase):
             owner_id=TEST_OWNER_ID,
             # Use a UUID here since this field needs to be unique;
             # makes the testing environment a little more 'forgiving'
-            description='Test job %s' % str(uuid.uuid4()),
+            description='Test job for upload %s' % self.upload_uuid,
+            job_pid=TEST_JOB_PID,
             job_type='classical')
             
         self.upload = \
-            mt_models.Upload(owner_id=TEST_OWNER_ID, path=TEST_UPLOAD_PATH)
+            mt_models.Upload(
+                owner_id=TEST_OWNER_ID,
+                path=upload_dir,
+                job_pid=TEST_JOB_PID)
 
         # load the test data into the db
         # once some of the pieces are saved, we'll need to set ids
@@ -142,14 +167,10 @@ class JobConfigWriterTestCase(unittest.TestCase):
         self.oqjob.oq_params_id = self.oqparams.id
         self.oqjob.save()
 
-        self.inputs = create_inputs()
+        self.inputs = create_inputs(self.upload_uuid)
         for item in self.inputs:
             item.upload_id = self.upload.id
             item.save()
-
-    def test_foo(self):
-        print "test foo"
-        self.assertFalse(True)
 
     def test_constructor_raises(self):
         """
@@ -158,8 +179,11 @@ class JobConfigWriterTestCase(unittest.TestCase):
         """
 
         fail_cases = [mt_models.OqParams(job_type=x) \
-            for x in ('deterministic', 'event-based', 'foobar')]
+            for x in ('deterministic', 'event_based', 'foobar')]
 
         for fail in fail_cases:
             self.assertRaises(
                 ValueError, config_writer.JobConfigWriter, 'fake/path', fail)
+
+    def test_foo(self):
+        pass
