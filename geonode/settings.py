@@ -31,6 +31,14 @@ DATABASES = {
         'HOST': '',
         'PORT': '',
     },
+    'openquake-test': {
+        'ENGINE': 'django.contrib.gis.db.backends.postgis',
+        'NAME': 'oqserv_test',
+        'USER': 'oq_uiapi_writer',
+        'PASSWORD': '_Bloujqueewjack9',
+        'HOST': '',
+        'PORT': '',
+    },
 }
 
 # PLEASE NOTE: do *not* ever use any of the password above in production !!
