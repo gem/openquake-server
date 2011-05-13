@@ -40,9 +40,16 @@ from geonode.mtapi import utils
 
 @csrf_exempt
 def input_upload_result(request, upload_id):
-    """This handles a collection of input files uploaded by the GUI user.
+    """This allows the GUI to poll for upload processing status.
 
-    The request must be a HTTP GET.
+    The request must be a HTTP GET. If the upload processing is in progress we
+    return a 404. In case of succes and failure we return a 200 and a 500
+    status code respectively.
+
+    Here's an example of the json data retuned in case of success:
+
+        {"msg": "All uploaded files processed", "status": "success", "id": 4,
+         "files": [{"name": "simpleFaultModel.xml", "id": 6}]}
 
     :param request: the :py:class:`django.http.HttpRequest` object
     :param integer upload_id: the database key of the associated upload record
@@ -51,7 +58,7 @@ def input_upload_result(request, upload_id):
         `200` and `500` if the upload processing succeeded and failed
         respectively.
     :raises Http404: when the processing of the uploaded source model files is
-        still in progress.
+        still in progress or if the request is not a HTTP GET request.
     """
     print("upload_id: %s" % upload_id)
     if request.method == "GET":
@@ -90,10 +97,11 @@ def input_upload(request):
     :returns: a :py:class:`django.http.HttpResponse` object with status code
         `200` after starting an external NRML loader program that will process
         the uploaded source model files.
+    :raises Http404: if the request is not a HTTP POST request.
     """
     print("request.FILES: %s\n" % pprint.pformat(request.FILES))
     if request.method == "POST":
-        upload = handle_upload()
+        upload = prepare_upload()
         for uploaded_file in request.FILES.getlist('input_files'):
             handle_uploaded_file(upload, uploaded_file)
         load_source_files(upload)
@@ -127,7 +135,7 @@ def prepare_result(upload, status=None):
     return simplejson.dumps(result)
 
 
-def handle_upload():
+def prepare_upload():
     """Create a directory for the files, return `Upload` object.
 
     :returns: the :py:class:`geonode.mtapi.models.Upload` instance
@@ -162,7 +170,7 @@ def handle_uploaded_file(upload, uploaded_file):
             input_type = detect_input_type(chunk)
     destination.close()
     source = Input(upload=upload, owner=upload.owner, size=size, path=path,
-                  input_type=input_type)
+                   input_type=input_type)
     source.save(using=utils.dbn())
     print(source)
     return source
@@ -186,16 +194,21 @@ def detect_input_type(chunk):
 
 
 def load_source_files(upload):
-    """Load the source files into the database.
+    """Load the source model files into the database.
+
+    This starts an external NRML loader program in a separate process that
+    loads the model data into the database in asynchronous fashion.
 
     :param upload: the :py:class:`geonode.mtapi.models.Upload` instance
         associated with this upload.
     :returns: the integer process ID (pid) of the child process that is running
         the NRML loader program.
     """
-    args = [settings.NRML_RUNNER_PATH, "--db", settings.OQ_DB_NAME,
-            "-U", settings.OQ_DB_USER, "-W", settings.OQ_DB_PASSWORD,
-            "-u", str(upload.id), "--host", settings.OQ_DB_HOST]
+    config = settings.DATABASES['openquake']
+    host = config["HOST"] if config["HOST"] else "localhost"
+    args = [settings.NRML_RUNNER_PATH, "--db", config["NAME"],
+            "-U", config["USER"], "-W", config["PASSWORD"],
+            "-u", str(upload.id), "--host", host]
     print("nrml loader args: %s\n" % pprint.pformat(args))
     env = os.environ
     env["PYTHONPATH"] = settings.NRML_RUNNER_PYTHONPATH
@@ -205,6 +218,7 @@ def load_source_files(upload):
     upload.job_pid = pid
     upload.save(using=utils.dbn())
     print "pid = %s" % pid
+    return pid
 
 
 @csrf_exempt
@@ -214,8 +228,8 @@ def run_oq_job(request):
     The request must be a HTTP POST.
 
     :param request: the :py:class:`django.http.HttpRequest` object
+    :raises Http404: if the request is not a HTTP POST request.
     """
-    print("name = %s" % __name__)
     print("request: %s\n" % pprint.pformat(request))
     if request.method == "POST":
         return HttpResponse(
