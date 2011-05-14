@@ -32,6 +32,7 @@ Write hazard/loss map data to a shapefile.
 import getopt
 import logging
 import ogr
+import operator
 import os
 import osr
 import pprint
@@ -106,6 +107,70 @@ def create_shapefile_from_hazard_map(config):
         feature.Destroy()
 
 
+def create_shapefile_from_loss_map(config):
+    assert config["type"] == "loss", "wrong map type: '%s'" % config["type"]
+
+    lmnode_re = re.compile('(<LMNode.+?/LMNode>)+', re.DOTALL)
+    pos_re = re.compile(
+        '<site>.+pos>([^>]+)</[^>]*pos>.+/[^>]*site>', re.DOTALL)
+    loss_re = re.compile('''
+     (<loss[^>]+assetRef="([^">]+)"[^>]*>    # assetRef attribute
+      [^>]+mean>([^>]+)</[^>]*mean>
+      [^>]+stdDev>([^>]+)</[^>]*stdDev>
+      [^>]*/[^>]*loss>)+
+    ''', (re.DOTALL|re.VERBOSE))
+
+    data = []
+    pos = None
+
+    fh = open(config["path"], "r")
+    xml = fh.read()
+    fh.close()
+
+    for lmnode in lmnode_re.findall(xml):
+      match = pos_re.search(lmnode)
+      pos = match.group(1).split()
+      losses = [loss[1:] for loss in loss_re.findall(lmnode)]
+      data.append((pos, losses))
+
+    logger.debug("Losses found: %s" % len(data))
+    logger.debug(pprint.pformat(data))
+
+    if not data:
+        return
+
+    driver = ogr.GetDriverByName("ESRI Shapefile")
+    assert driver is not None, "failed to instantiate driver"
+
+    source = driver.CreateDataSource(config["output"])
+    assert source is not None, "failed to instantiate data source"
+
+    srs = osr.SpatialReference()
+    srs.ImportFromEPSG(4326)
+
+    layer = source.CreateLayer("loss map", srs, ogr.wkbPoint)
+    assert layer is not None, "failed to instantiate layer"
+
+    field = ogr.FieldDefn("mean", ogr.OFTReal)
+    assert layer.CreateField(field) == 0, "failed to create 'mean' field"
+
+    mean_getter = operator.itemgetter(1)
+    for pos, losses in data:
+        feature = ogr.Feature(layer.GetLayerDefn())
+
+        # Get the 'mean' values for all the losses a this position.
+        means = [float(mean_getter(loss)) for loss in losses]
+        feature.SetField("mean", sum(means)/len(means))
+
+        # Set the geometry.
+        point = ogr.Geometry(ogr.wkbPoint)
+        point.SetPoint_2D(0, float(pos[0]), float(pos[1]))
+        feature.SetGeometry(point)
+        assert layer.CreateFeature(feature) == 0, \
+            "Failed to create feature, %s || %s" % (pos, losses)
+        feature.Destroy()
+
+
 def main(cargs):
     """Run the NRML loader."""
     def strip_dashes(arg):
@@ -174,8 +239,10 @@ def main(cargs):
     logger.info("config = %s" % pprint.pformat(config))
     if config["type"] == "hazard":
         create_shapefile_from_hazard_map(config)
+    elif  config["type"] == "loss":
+        create_shapefile_from_loss_map(config)
     else:
-        print "loss maps are not supported yet"
+        print "unknown map type: '%s'" % config["type"]
         sys.exit(104)
 
 
