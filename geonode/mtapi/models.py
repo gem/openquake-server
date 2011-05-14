@@ -89,7 +89,7 @@ class Input(models.Model):
     upload = models.ForeignKey(Upload)
     path = models.TextField(unique=True)
     INPUT_TYPE_CHOICES = (
-        (u"unknown", u"Source model file"),
+        (u"unknown", u"Unknown input file type"),
         (u"source", u"Source model file"),
         (u"lt_source", u"Source logic tree"),
         (u"lt_gmpe", u"GMPE logic tree"),
@@ -193,3 +193,31 @@ class OqJob(models.Model):
 
     class Meta:
         db_table = 'uiapi\".\"oq_job'
+
+
+class Output(models.Model):
+    """This corresponds to the uiapi.output table."""
+    owner = models.ForeignKey(OqUser)
+    oq_job = models.ForeignKey(OqJob)
+    path = models.TextField(unique=True)
+    OUTPUT_TYPE_CHOICES = (
+        (u"unknown", u"Unknown output file type"),
+        (u"hazard_curve", u"Hazard curve"),
+        (u"hazard_map", u"Hazard map"),
+        (u"loss_curve", u"Loss curve"),
+        (u"loss_map", u"Loss map"),
+    )
+    output_type = models.TextField(choices=OUTPUT_TYPE_CHOICES)
+    size = models.PositiveIntegerField(default=0)
+    shapefile_path = models.TextField(null=True)
+    shapefile_url = models.TextField(null=True)
+    min_value = models.FloatField(null=True)
+    max_value = models.FloatField(null=True)
+    last_update = models.DateTimeField(editable=False, default=datetime.utcnow)
+
+    def __str__(self):
+        return smart_str(
+            ":output: %s, %s, %s" % (self.output_type, self.path, self.size))
+
+    class Meta:
+        db_table = 'uiapi\".\"output'
