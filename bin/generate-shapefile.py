@@ -23,6 +23,7 @@
 Write hazard/loss map data to a shapefile.
 
   -h | --help       : prints this help string
+  -l | --layer L    : shapefile layer name
   -o | --output O   : path to the resulting shapefile
   -p | --path P     : path to the hazard/loss map file to be processed
   -t | --type T     : map type: may be one of hazard/loss
@@ -31,6 +32,7 @@ Write hazard/loss map data to a shapefile.
 import getopt
 import logging
 import ogr
+import os
 import osr
 import pprint
 import re
@@ -81,9 +83,7 @@ def create_shapefile_from_hazard_map(config):
     driver = ogr.GetDriverByName("ESRI Shapefile")
     assert driver is not None, "failed to instantiate driver"
 
-    # Throw away the extension.
-    basename = ".".join(config["path"].split(".")[:-1])
-    source = driver.CreateDataSource("%s.shp" % basename)
+    source = driver.CreateDataSource(config["output"])
     assert source is not None, "failed to instantiate data source"
 
     srs = osr.SpatialReference()
@@ -112,43 +112,64 @@ def main(cargs):
         """Remove leading dashes, return last portion of string remaining."""
         return arg.split('-')[-1]
 
-    config = dict(output="", path="", type="hazard")
+    mandatory_args = ["path"]
+    config = dict(layer="", output="", path="", type="hazard")
     longopts = ["%s" % k if isinstance(v, bool) else "%s=" % k
                 for k, v in config.iteritems()] + ["help"]
     # Translation between short/long command line arguments.
-    s2l = dict(o="output", p="path", t="type")
+    s2l = dict(l="layer", o="output", p="path", t="type")
 
     try:
-        opts, _ = getopt.getopt(cargs[1:], "ho:p:t:", longopts)
+        opts, _ = getopt.getopt(cargs[1:], "hl:o:p:t:", longopts)
     except getopt.GetoptError, e:
         # User supplied unknown argument(?); print help and exit.
         print e
         print __doc__
         sys.exit(101)
 
-    for opt, arg in opts:
-        if opt in ("-h", "--help"):
+    for help_flag in ("-h", "--help"):
+        if help_flag in opts:
             print __doc__
             sys.exit(0)
+
+    seen_args = []
+    for arg, value in opts:
         # Update the configuration in accordance with the arguments passed.
-        opt = strip_dashes(opt)
-        if opt not in config:
-            opt = s2l[opt]
-        arg = arg.strip()
-        if arg:
-            config[opt] = arg
+        arg = strip_dashes(arg)
+        if arg not in config:
+            arg = s2l[arg]
+        seen_args.append(arg)
+        value = value.strip()
+        if value:
+            config[arg] = value
         else:
-            if isinstance(config[opt], bool):
-                config[opt] = not config[opt]
+            if isinstance(config[arg], bool):
+                config[arg] = not config[arg]
             else:
-                print "Empty value for '%s' parameter" % opt
+                print "Empty value for '%s' parameter" % arg
                 print __doc__
                 sys.exit(102)
 
-    # All arguments must be supplied.
-    if len(cargs) < 2:
-        print __doc__
-        sys.exit(103)
+    # All mandatory arguments must be supplied.
+    for mandatory_arg in mandatory_args:
+        if mandatory_arg not in seen_args:
+            print "The '%s' parameter must be specified." % mandatory_arg
+            print __doc__
+            sys.exit(103)
+
+
+    assert os.path.isfile(config["path"]), \
+        "'%s' is not a file" % config["path"]
+    assert os.access(config["path"], os.R_OK), \
+        "'%s' is not readable" % config["path"]
+
+    if not config["output"]:
+        # Throw away the extension.
+        basename = ".".join(config["path"].split(".")[:-1])
+        config["output"] = "%s.shp" % basename
+
+    outdir = os.path.dirname(config["output"])
+    assert os.access(outdir, os.W_OK), "'%s' is not writable" % outdir
 
     logger.info("config = %s" % pprint.pformat(config))
     if config["type"] == "hazard":
