@@ -90,7 +90,8 @@ class Input(models.Model):
     INPUT_TYPE_CHOICES = (
         (u"unknown", u"Source model file"),
         (u"source", u"Source model file"),
-        (u"ltree", u"GMPE logic tree"),
+        (u"lt_source", u"Source model logic tree"),
+        (u"lt_gmpe", u"GMPE logic tree"),
         (u"exposure", u"Exposure file"),
         (u"vulnerability", u"Vulnerability file"),
     )

@@ -20,26 +20,29 @@
 
 import os
 import shutil
+import tests
 import unittest
 import uuid
 
+from ConfigParser import ConfigParser
 from django.contrib.gis import geos
-
 from geonode.mtapi import models as mt_models
+from geonode.mtapi import utils
 from oqrunner import config_writer
 
 
 TEST_OWNER_ID = 1
-TEST_DATA_BASE_PATH = "tests/data"
 TEST_OUTPUT_BASE_PATH = "tests/output/"
 TEST_JOB_PID = 1
 
 TEST_PARAMS = {
     'CALCULATION_MODE': 'classical',
-    'REGION_VERTEX': geos.Polygon(((-122.2, 38.0), (-121.7, 37.5), (-122.2, 37.5), (-122.2, 38.0))),
-    'REGION_GRID_SPACING': 0.1,
+    'REGION_VERTEX': geos.Polygon(
+        ((-122.2, 38.0), (-121.7, 38.0), (-121.7, 37.5),
+         (-122.2, 37.5), (-122.2, 38.0))),
+    'REGION_GRID_SPACING': 0.01,
     'MINIMUM_MAGNITUDE': 5.0,
-    'INVESTIGATION_TIME': 200.0,
+    'INVESTIGATION_TIME': 50.0,
     'COMPONENT': 'gmroti50',
     'INTENSITY_MEASURE_TYPE': 'pga',
     'GMPE_TRUNCATION_TYPE': '2-sided',
@@ -47,9 +50,9 @@ TEST_PARAMS = {
     'REFERENCE_VS30_VALUE': '760.0',
     'INTENSITY_MEASURE_LEVELS': [0.005, 0.007, 0.0098, 0.0137, 0.0192,
         0.0269, 0.0376, 0.0527, 0.0738, 0.103, 0.145, 0.203, 0.284,
-        0.397, 0.556, 0.778, 1.09, 1.52, 2.13],
+        0.397, 0.556, 0.778],
     'POES': [0.01, 0.10],
-    'NUMBER_OF_LOGIC_TREE_SAMPLES': 2}
+    'NUMBER_OF_LOGIC_TREE_SAMPLES': 1}
 
 
 # This is a pre-existing example file we'll use to validate the file we create
@@ -86,13 +89,13 @@ def create_inputs(upload_uuid):
     src_ltree = mt_models.Input(
         owner_id=TEST_OWNER_ID,
         path=src_ltree_path,
-        input_type='ltree')
+        input_type='lt_source')
 
     gmpe_ltree_path = upload_file_path(upload_uuid, 'gmpe-logic-tree.xml')
     gmpe_ltree = mt_models.Input(
         owner_id=TEST_OWNER_ID,
         path=gmpe_ltree_path,
-        input_type='ltree')
+        input_type='lt_gmpe')
 
     source_path = upload_file_path(upload_uuid, 'source-model.xml')
     source = mt_models.Input(
@@ -105,7 +108,7 @@ def create_inputs(upload_uuid):
     # copy the files to the test location and get the file size
     for i in inputs:
         file_name = os.path.basename(i.path)
-        file_path = os.path.join(TEST_DATA_BASE_PATH, file_name)
+        file_path = tests.test_data_path(file_name)
         shutil.copy(file_path, i.path)
         i.size = os.path.getsize(i.path)
 
@@ -117,16 +120,19 @@ class JobConfigWriterClassicalTestCase(unittest.TestCase):
     """
     """
 
-    def __init__(self, *args, **kwargs): 
-        super(JobConfigWriterClassicalTestCase, self).__init__(*args, **kwargs)
+    @classmethod
+    def setUpClass(cls):
+        """
+        One-time setup for test data. 
+        """
 
-        self.upload_uuid = str(uuid.uuid4())
-        upload_dir = upload_dir_path(self.upload_uuid)
+        cls.upload_uuid = str(uuid.uuid4())
+        cls.upload_dir = upload_dir_path(cls.upload_uuid)
         # create the unique upload dir
-        os.mkdir(upload_dir)
+        os.mkdir(cls.upload_dir)
 
         # this sets up the basic params for a Classical PSHA calculation
-        self.oqparams = mt_models.OqParams(
+        cls.oqparams = mt_models.OqParams(
             job_type=TEST_PARAMS['CALCULATION_MODE'],
             region=TEST_PARAMS['REGION_VERTEX'],
             region_grid_spacing=TEST_PARAMS['REGION_GRID_SPACING'],
@@ -141,49 +147,88 @@ class JobConfigWriterClassicalTestCase(unittest.TestCase):
             poes=TEST_PARAMS['POES'],
             realizations=TEST_PARAMS['NUMBER_OF_LOGIC_TREE_SAMPLES'])
 
-        self.oqjob = mt_models.OqJob(
+        cls.oqjob = mt_models.OqJob(
             owner_id=TEST_OWNER_ID,
             # Use a UUID here since this field needs to be unique;
             # makes the testing environment a little more 'forgiving'
-            description='Test job for upload %s' % self.upload_uuid,
+            description='Test job for upload %s' % cls.upload_uuid,
             job_pid=TEST_JOB_PID,
             job_type='classical')
             
-        self.upload = \
+        cls.upload = \
             mt_models.Upload(
                 owner_id=TEST_OWNER_ID,
-                path=upload_dir,
+                path=cls.upload_dir,
                 job_pid=TEST_JOB_PID)
 
         # load the test data into the db
         # once some of the pieces are saved, we'll need to set ids
         # of subsequent records to resolve foreign key dependencies
 
-        self.upload.save()
+        cls.upload.save(using=utils.dbn())
 
-        self.oqparams.upload_id = self.upload.id
-        self.oqparams.save()
+        cls.oqparams.upload_id = cls.upload.id
+        cls.oqparams.save(using=utils.dbn())
 
-        self.oqjob.oq_params_id = self.oqparams.id
-        self.oqjob.save()
+        cls.oqjob.oq_params_id = cls.oqparams.id
+        cls.oqjob.save(using=utils.dbn())
 
-        self.inputs = create_inputs(self.upload_uuid)
-        for item in self.inputs:
-            item.upload_id = self.upload.id
-            item.save()
+        # create the job folder underneath the upload folder
+        cls.job_dir = os.path.join(cls.upload_dir, str(cls.oqjob.id))
+        os.mkdir(cls.job_dir)
 
-    def test_constructor_raises(self):
-        """
-        Currently, we only support classical calculations. Event-based and
-        deterministic methods are not yet supported.
-        """
+        cls.inputs = create_inputs(cls.upload_uuid)
+        for item in cls.inputs:
+            item.upload_id = cls.upload.id
+            item.save(using=utils.dbn())
 
-        fail_cases = [mt_models.OqParams(job_type=x) \
-            for x in ('deterministic', 'event_based', 'foobar')]
+    def test_classical_config_file_generation(self):
+        out_path = os.path.join(self.job_dir, 'config.gem')
+        expected_config = tests.test_data_path('expected_config.gem') 
 
-        for fail in fail_cases:
-            self.assertRaises(
-                ValueError, config_writer.JobConfigWriter, 'fake/path', fail)
+        cfg_writer = config_writer.JobConfigWriter(self.oqjob.id)
 
-    def test_foo(self):
-        pass
+        path_to_new_cfg_file = cfg_writer.write()
+
+        # check that the result directory is what we specified
+        print out_path
+        print path_to_new_cfg_file
+        self.assertEqual(
+            os.path.abspath(out_path),
+            os.path.abspath(path_to_new_cfg_file))
+
+        # close the config writer to flush & write
+        cfg_writer.close()
+
+        # now compare the new file with the expected file
+        exp_parser = ConfigParser()
+        exp_fh = open(expected_config, 'r')
+        exp_parser.readfp(exp_fh)
+
+        actual_parser = ConfigParser()
+        act_fh = open(out_path, 'r')
+        actual_parser.readfp(act_fh)
+
+        # now compare the actual configuration items
+        for section in ('general', 'HAZARD', 'RISK'):
+            exp_items = exp_parser.items(section)
+            actual_items = actual_parser.items(section)
+
+            exp_items.sort()
+            actual_items.sort()
+
+            for ctr, _ in enumerate(exp_items):
+                exp = exp_items[ctr]
+                act = actual_items[ctr]
+                self.assertEqual(exp, act)
+            # self.assertEqual(exp_items, actual_items)
+
+            exp_fh.close()
+            act_fh.close()
+    
+    def test_polygon_to_coord_string(self):
+        expected_str = '38.0, -122.2, 38.0, -121.7, 37.5, -121.7, 37.5, -122.2'
+        polygon = TEST_PARAMS['REGION_VERTEX'] 
+
+        actual_str = config_writer.polygon_to_coord_string(polygon)
+        self.assertEqual(expected_str, actual_str)

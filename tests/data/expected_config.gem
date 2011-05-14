@@ -17,9 +17,9 @@ GMPE_LT_RANDOM_SEED = 5
 
 
 # file containing erf logic tree structure
-SOURCE_MODEL_LOGIC_TREE_FILE = source_model_logic_tree.xml
+SOURCE_MODEL_LOGIC_TREE_FILE = source-model-logic-tree.xml
 # file containing gmpe logic tree structure
-GMPE_LOGIC_TREE_FILE = gmpe_logic_tree.xml
+GMPE_LOGIC_TREE_FILE = gmpe-logic-tree.xml
 # output directory - relative to this file
 OUTPUT_DIR = computed_output
 
@@ -38,8 +38,6 @@ WIDTH_OF_MFD_BIN = 0.1
 COMPONENT = Average Horizontal (GMRotI50)
 # (PGA (g), PGD (cm), PGV (cm/s), SA (g))
 INTENSITY_MEASURE_TYPE = PGA
-# seconds, used only for Spectral Acceleration
-PERIOD = 0.0
 # in percent
 DAMPING = 5.0
 # (in the same units of the intensity measure type)
@@ -128,7 +126,7 @@ POES_HAZARD_MAPS = 0.01 0.1
 RISK_CALCULATION_MODE = Classical PSHA
 
 # file containing the exposure in nrml format
-EXPOSURE = small_exposure.xml
+EXPOSURE = exposure.xml
 
 # file containing the vulnerability functions
 VULNERABILITY = vulnerability.xml
