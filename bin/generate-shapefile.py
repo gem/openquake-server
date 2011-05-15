@@ -53,6 +53,12 @@ logger.addHandler(ch)
 
 
 def create_shapefile_from_hazard_map(config):
+    """Reads a hazard map and creates a shapefile from it.
+
+    :param dict config: = A configuratiion `dict` with the following data
+        items: layer, output, path, type
+
+    """
     assert config["type"] == "hazard", "wrong map type: '%s'" % config["type"]
 
     pos_re = re.compile(
