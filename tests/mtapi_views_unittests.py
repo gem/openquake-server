@@ -37,15 +37,15 @@ class DetectInputTypeTestCase(unittest.TestCase):
         """
         chunk = '''
         <?xml version='1.0' encoding='utf-8'?>
-        <nrml xmlns:gml="http://www.opengis.net/gml" 
+        <nrml xmlns:gml="http://www.opengis.net/gml"
               xmlns:qml="http://quakeml.org/xmlns/quakeml/1.1"
               xmlns="http://openquake.org/xmlns/nrml/0.2"
               gml:id="n1">
-              
+
             <!-- sourceModel is a gml:Feature -->
             <sourceModel gml:id="sm1">
                 <config/>
-        '''        
+        '''
         self.assertEqual("source", detect_input_type(chunk))
 
     def test_detect_input_type_with_source_ltree(self):
@@ -61,7 +61,7 @@ class DetectInputTypeTestCase(unittest.TestCase):
 
                 <logicTree id="lt1">
                         <logicTreeBranchSet branchingLevel="1" uncertaintyType="sourceModel">
-        '''        
+        '''
         self.assertEqual("lt_source", detect_input_type(chunk))
 
     def test_detect_input_type_with_gmpe_ltree(self):
@@ -77,7 +77,7 @@ class DetectInputTypeTestCase(unittest.TestCase):
             <logicTreeSet>
                 <logicTree id="lt1" tectonicRegion="Active Shallow Crust">
                     <logicTreeBranchSet branchingLevel="1" uncertaintyType="gmpeModel">
-        '''        
+        '''
         self.assertEqual("lt_gmpe", detect_input_type(chunk))
 
     def test_detect_input_type_with_exposure(self):
@@ -89,7 +89,7 @@ class DetectInputTypeTestCase(unittest.TestCase):
         <nrml xmlns="http://openquake.org/xmlns/nrml/0.2" xmlns:gml="http://www.opengis.net/gml" gml:id="nrml">
           <exposurePortfolio gml:id="ep">
             <exposureList gml:id="LA01" assetCategory="buildings" lossCategory="economic_loss">
-        '''        
+        '''
         self.assertEqual("exposure", detect_input_type(chunk))
 
     def test_detect_input_type_with_vulnerability(self):
@@ -101,5 +101,5 @@ class DetectInputTypeTestCase(unittest.TestCase):
         <nrml xmlns="http://openquake.org/xmlns/nrml/0.2" xmlns:gml="http://www.opengis.net/gml" gml:id="nrml">
           <vulnerabilityModel>
             <discreteVulnerabilitySet vulnerabilitySetID="HAZUS" assetCategory="buildings" lossCategory="economic_loss">
-        '''        
+        '''
         self.assertEqual("vulnerability", detect_input_type(chunk))
