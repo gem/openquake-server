@@ -23,6 +23,7 @@
 Write hazard/loss map data to a shapefile.
 
   -h | --help       : prints this help string
+  -k | --key K      : database key of the hazard/loss map
   -l | --layer L    : shapefile layer name
   -o | --output O   : path to the resulting shapefile
   -p | --path P     : path to the hazard/loss map file to be processed
@@ -55,12 +56,20 @@ logger.addHandler(ch)
 def create_shapefile_from_hazard_map(config):
     """Reads a hazard map and creates a shapefile from it.
 
-    :param dict config: = A configuratiion `dict` with the following data
-        items: layer, output, path, type
-
+    :param dict config: a configuration `dict` with the following data
+        items:
+            - key (db key of the hazard map file)
+            - layer (shapefile layer name)
+            - output (shapefile path)
+            - path (map file to be processed)
+            - type (map type, hazard or loss)
+    :returns: a float 2-tuple with the minimum and maximum IML value seen
+        or None in case of an empty hazard map.
     """
     assert config["type"] == "hazard", "wrong map type: '%s'" % config["type"]
 
+    # The hazard map has sequences of <gml:pos> tags followed by a an <IML>
+    # tag.
     pos_re = re.compile(
         r"<gml:pos>([-+]?\d+\.\d+)\s+([-+]?\d+\.\d+)</gml:pos>")
     iml_re = re.compile(r"<IML>([-+]?\d+\.\d+)</IML>")
@@ -87,6 +96,8 @@ def create_shapefile_from_hazard_map(config):
     if not data:
         return
 
+    # At this point we have read the locations with their associated
+    # intesity level measure (IML) values.
     driver = ogr.GetDriverByName("ESRI Shapefile")
     assert driver is not None, "failed to instantiate driver"
 
@@ -96,26 +107,58 @@ def create_shapefile_from_hazard_map(config):
     srs = osr.SpatialReference()
     srs.ImportFromEPSG(4326)
 
-    layer = source.CreateLayer("hazard map", srs, ogr.wkbPoint)
+    layer = source.CreateLayer(
+        "%s-hazard-map" % config["layer"], srs, ogr.wkbPoint)
     assert layer is not None, "failed to instantiate layer"
 
     field = ogr.FieldDefn("IML", ogr.OFTReal)
     assert layer.CreateField(field) == 0, "failed to create 'IML' field"
 
+    minimum = 1000000000.0
+    maximum = -1000000000.0
     for pos, iml in data:
+        iml = float(iml)
         feature = ogr.Feature(layer.GetLayerDefn())
-        feature.SetField("IML", float(iml))
+        feature.SetField("IML", iml)
+        if iml < minimum:
+            minimum = iml
+        if iml > maximum:
+            maximum = iml
+
+        # Set the geometry.
         point = ogr.Geometry(ogr.wkbPoint)
         point.SetPoint_2D(0, float(pos[0]), float(pos[1]))
         feature.SetGeometry(point)
+
         assert layer.CreateFeature(feature) == 0, \
             "Failed to create feature, %s || %s" % (pos, iml)
         feature.Destroy()
 
+    assert minimum <= maximum, "Internal error, IML out of range?"
+    return (minimum, maximum)
+
 
 def create_shapefile_from_loss_map(config):
+    """Reads a loss map and creates a shapefile from it.
+
+    For locations with multiple assets, the average of the assets' mean
+    values will be written to the shapefile.
+
+    :param dict config: a configuration `dict` with the following data
+        items:
+            - key (db key of the hazard map file)
+            - layer (shapefile layer name)
+            - output (shapefile path)
+            - path (map file to be processed)
+            - type (map type, hazard or loss)
+    :returns: a float 2-tuple with the minimum and maximum mean value seen
+        or None in case of an empty loss map.
+    """
     assert config["type"] == "loss", "wrong map type: '%s'" % config["type"]
 
+    # We will iterate over all <LMNode> tags and
+    #   - first look for a <gml:pos> tag
+    #   - then look for a sequence of <loss> tags (one per asset)
     lmnode_re = re.compile('(<LMNode.+?/LMNode>)+', re.DOTALL)
     pos_re = re.compile(
         '<site>.+pos>([^>]+)</[^>]*pos>.+/[^>]*site>', re.DOTALL)
@@ -134,10 +177,14 @@ def create_shapefile_from_loss_map(config):
     fh.close()
 
     for lmnode in lmnode_re.findall(xml):
-      match = pos_re.search(lmnode)
-      pos = match.group(1).split()
-      losses = [loss[1:] for loss in loss_re.findall(lmnode)]
-      data.append((pos, losses))
+        # We matched a full <LMNode> including its children.
+        # Look for the position first.
+        match = pos_re.search(lmnode)
+        # Split longitude/latitude.
+        pos = match.group(1).split()
+        # This will capture assetRef, mean and stdDev for each <loss> tag.
+        losses = [loss[1:] for loss in loss_re.findall(lmnode)]
+        data.append((pos, losses))
 
     logger.debug("Losses found: %s" % len(data))
     logger.debug(pprint.pformat(data))
@@ -154,27 +201,41 @@ def create_shapefile_from_loss_map(config):
     srs = osr.SpatialReference()
     srs.ImportFromEPSG(4326)
 
-    layer = source.CreateLayer("loss map", srs, ogr.wkbPoint)
+    layer = source.CreateLayer(
+        "%s-loss-map" % config["layer"], srs, ogr.wkbPoint)
     assert layer is not None, "failed to instantiate layer"
 
     field = ogr.FieldDefn("mean", ogr.OFTReal)
     assert layer.CreateField(field) == 0, "failed to create 'mean' field"
 
+    # This will be used to pick the mean value from a (assetRef, mean, stdDev)
+    # 3-tuple.
     mean_getter = operator.itemgetter(1)
+    minimum = 1000000000.0
+    maximum = -1000000000.0
     for pos, losses in data:
         feature = ogr.Feature(layer.GetLayerDefn())
 
         # Get the 'mean' values for all the losses a this position.
         means = [float(mean_getter(loss)) for loss in losses]
-        feature.SetField("mean", sum(means)/len(means))
+        meanmean = sum(means)/len(means)
+        feature.SetField("mean", meanmean)
+        if meanmean < minimum:
+            minimum = meanmean
+        if meanmean > maximum:
+            maximum = meanmean
 
         # Set the geometry.
         point = ogr.Geometry(ogr.wkbPoint)
         point.SetPoint_2D(0, float(pos[0]), float(pos[1]))
         feature.SetGeometry(point)
+
         assert layer.CreateFeature(feature) == 0, \
             "Failed to create feature, %s || %s" % (pos, losses)
         feature.Destroy()
+
+    assert minimum <= maximum, "Internal error, loss mean out of range?"
+    return (minimum, maximum)
 
 
 def main(cargs):
@@ -183,15 +244,15 @@ def main(cargs):
         """Remove leading dashes, return last portion of string remaining."""
         return arg.split('-')[-1]
 
-    mandatory_args = ["path"]
-    config = dict(layer="", output="", path="", type="hazard")
+    mandatory_args = ["key", "path"]
+    config = dict(key="", layer="", output="", path="", type="hazard")
     longopts = ["%s" % k if isinstance(v, bool) else "%s=" % k
                 for k, v in config.iteritems()] + ["help"]
     # Translation between short/long command line arguments.
-    s2l = dict(l="layer", o="output", p="path", t="type")
+    s2l = dict(k="key", l="layer", o="output", p="path", t="type")
 
     try:
-        opts, _ = getopt.getopt(cargs[1:], "hl:o:p:t:", longopts)
+        opts, _ = getopt.getopt(cargs[1:], "hk:l:o:p:t:", longopts)
     except getopt.GetoptError, e:
         # User supplied unknown argument(?); print help and exit.
         print e
@@ -235,21 +296,33 @@ def main(cargs):
         "'%s' is not readable" % config["path"]
 
     if not config["output"]:
-        # Throw away the extension.
-        basename = ".".join(config["path"].split(".")[:-1])
-        config["output"] = "%s.shp" % basename
-
-    outdir = os.path.dirname(config["output"])
-    assert os.access(outdir, os.W_OK), "'%s' is not writable" % outdir
+        dirname, filename = os.path.split(config["path"])
+        config["output"] = "%s/%s" % (dirname, config["key"])
+        os.mkdir(config["output"])
+        os.chmod(config["output"], 0777)
+        basename, _ = os.path.splitext(filename)
+        config["layer"] = "%s-%s" % (config["key"], basename)
+    else:
+        if os.path.isfile(config["output"]):
+            outdir = os.path.dirname(config["output"])
+        else:
+            outdir = config["output"]
+        assert os.access(outdir, os.W_OK), "'%s' is not writable" % outdir
 
     logger.info("config = %s" % pprint.pformat(config))
+
+    pprint.pprint(config)
+    minmax = None
     if config["type"] == "hazard":
-        create_shapefile_from_hazard_map(config)
+        minmax = create_shapefile_from_hazard_map(config)
     elif  config["type"] == "loss":
-        create_shapefile_from_loss_map(config)
+        minmax = create_shapefile_from_loss_map(config)
     else:
         print "unknown map type: '%s'" % config["type"]
         sys.exit(104)
+
+    if minmax:
+        print "RESULT: %s" % str(minmax)
 
 
 if __name__ == '__main__':
