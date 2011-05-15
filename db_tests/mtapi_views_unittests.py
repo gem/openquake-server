@@ -24,6 +24,7 @@ database related unit tests for the geonode/mtapi/views.py module.
 
 
 import os
+import pprint
 import stat
 import unittest
 
