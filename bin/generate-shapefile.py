@@ -71,7 +71,7 @@ def create_shapefile_from_hazard_map(config):
     """
     assert config["type"] == "hazard", "wrong map type: '%s'" % config["type"]
 
-    # The hazard map has sequences of <gml:pos> tags followed by a an <IML>
+    # The hazard map is a sequence of <gml:pos> tags followed by a an <IML>
     # tag.
     pos_re = re.compile(
         r"<gml:pos>([-+]?\d+\.\d+)\s+([-+]?\d+\.\d+)</gml:pos>")
