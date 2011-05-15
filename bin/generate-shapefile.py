@@ -242,6 +242,8 @@ def create_shapefile_from_loss_map(config):
 
 
 def main(cargs):
+    # TODO: al-maisan, Sun, 15 May 2011 19:34:34 +0200: package the command
+    # line argument processing code below into a utility function.
     """Run the NRML loader."""
     def strip_dashes(arg):
         """Remove leading dashes, return last portion of string remaining."""
@@ -291,7 +293,6 @@ def main(cargs):
             print "The '%s' parameter must be specified." % mandatory_arg
             print __doc__
             sys.exit(103)
-
 
     assert os.path.isfile(config["path"]), \
         "'%s' is not a file" % config["path"]
