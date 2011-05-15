@@ -20,7 +20,8 @@
 
 
 """
-Write hazard/loss map data to a shapefile.
+Write hazard/loss map data to a shapefile. If all goes well the tool will
+print the minimum and maximum value(*) seen to the standard output.
 
   -h | --help       : prints this help string
   -k | --key K      : database key of the hazard/loss map
@@ -28,6 +29,8 @@ Write hazard/loss map data to a shapefile.
   -o | --output O   : path to the resulting shapefile
   -p | --path P     : path to the hazard/loss map file to be processed
   -t | --type T     : map type: may be one of hazard/loss
+
+(*) IML and loss mean for hazard and loss maps respectively.
 """
 
 import getopt
