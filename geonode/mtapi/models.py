@@ -122,7 +122,7 @@ class OqParams(models.Model):
     """This corresponds to the uiapi.oq_params table."""
     JOB_TYPE_CHOICES = (
         (u"classical", u"Classical PSHA calculation"),
-        (u"probabilistic", u"Probabilistic calculation"),
+        (u"event_based", u"Event-based calculation"),
         (u"deterministic", u"Deterministic calculation"),
     )
     job_type = models.TextField(choices=JOB_TYPE_CHOICES)
@@ -162,8 +162,7 @@ class OqParams(models.Model):
         null=True, verbose_name="Ground motion correlation flag")
 
     last_update = models.DateTimeField(editable=False, default=datetime.utcnow)
-    region = models.PolygonField()
-
+    region = models.PolygonField(srid=4326)
     class Meta:
         db_table = 'uiapi\".\"oq_params'
 
@@ -175,7 +174,7 @@ class OqJob(models.Model):
     path = models.TextField(unique=True)
     JOB_TYPE_CHOICES = (
         (u"classical", u"Classical PSHA calculation"),
-        (u"probabilistic", u"Probabilistic calculation"),
+        (u"event_based", u"Event-based calculation"),
         (u"deterministic", u"Deterministic calculation"),
     )
     job_type = models.TextField(choices=JOB_TYPE_CHOICES)
