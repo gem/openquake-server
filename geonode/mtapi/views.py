@@ -26,6 +26,7 @@ for details.
 
 import os
 import pprint
+import re
 import simplejson
 import subprocess
 import tempfile
@@ -183,13 +184,17 @@ def detect_input_type(chunk):
     :returns: one of the following strings:
         "source", "vulnerability", "exposure", "ltree" or "unknown"
     """
-    tags = ("<sourceModel", "<vulnerabilityModel", "<exposurePortfolio",
-            "<logicTreeSet")
-    types = ("source", "vulnerability", "exposure", "ltree")
+    gmpe_re = re.compile('<logicTreeBranchSet[^>]+uncertaintyType="gmpeModel"')
+    tags = ("<sourceModel", "<vulnerabilityModel", "<exposurePortfolio")
+    types = ("source", "vulnerability", "exposure")
     type_dict = dict(zip(tags, types))
     for key, value in type_dict.iteritems():
         if chunk.find(key) >= 0:
             return value
+    if gmpe_re.search(chunk):
+        return "lt_gmpe"
+    if chunk.find("<logicTreeBranchSet") >= 0:
+        return "lt_source"
     return "unknown"
 
 
