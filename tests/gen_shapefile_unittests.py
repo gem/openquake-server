@@ -96,7 +96,7 @@ class FindMinMaxTestCase(unittest.TestCase):
         except Exception, e:
             self.assertEqual("Empty data set", e.args[0])
         else:
-            unittest.TestCase.fail(msg="No exception raised!")
+            self.fail(msg="No exception raised!")
 
 
 class ExtractHazardmapDataTestCase(unittest.TestCase):
@@ -189,7 +189,7 @@ class ExtractPositionTestCase(unittest.TestCase):
             self.assertEqual("Wrong spatial reference system: 'epsg:4326' "
                              "for position -121.8 37.5", e.args[0])
         else:
-            unittest.TestCase.fail(msg="No exception raised!")
+            self.fail(msg="No exception raised!")
 
 
 class TagExtractorTestCase(unittest.TestCase):
