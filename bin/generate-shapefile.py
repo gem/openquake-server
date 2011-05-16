@@ -85,6 +85,23 @@ def extract_position(xml, expected_srid="epsg:4326"):
     return (pos.split())
 
 
+def tag_extractor(tag_name, path):
+    """A generator that extracts tags with the given name from a xml file.
+
+    :param string tag_name: the name of the tags to extract
+    :param string path: the path of the xml file from which to extract the
+        desired tags
+    :returns: a string with the desired tag (including any children)
+    """
+    fh = open(path, "r")
+    xml = fh.read()
+    fh.close()
+    # Please note that the regex below must be non-greedy ('.+?')
+    tag_re = re.compile('(<%s.+?/%s>)+' % (tag_name, tag_name), re.DOTALL)
+    for tag in tag_re.findall(xml):
+        yield tag
+
+
 def create_shapefile_from_hazard_map(config):
     """Reads a hazard map and creates a shapefile from it.
 
@@ -103,18 +120,13 @@ def create_shapefile_from_hazard_map(config):
     # We will iterate over all <HMNode> tags and
     #   - first look for a <gml:pos> tag
     #   - then look for a <IML> tag
-    hmnode_re = re.compile('(<HMNode.+?/HMNode>)+', re.DOTALL)
     iml_re = re.compile(r"<IML>([-+]?\d+\.\d+)</IML>")
 
     data = []
     pos = None
     iml = None
 
-    fh = open(config["path"], "r")
-    xml = fh.read()
-    fh.close()
-
-    for hmnode in hmnode_re.findall(xml):
+    for hmnode in tag_extractor("HMNode", config["path"]):
         # We matched a full <HMNode> including its children.
         # <HMNode gml:id="n_2">
         #   <HMSite>
@@ -201,7 +213,6 @@ def create_shapefile_from_loss_map(config):
     # We will iterate over all <LMNode> tags and
     #   - first look for a <gml:pos> tag
     #   - then look for a sequence of <loss> tags (one per asset)
-    lmnode_re = re.compile('(<LMNode.+?/LMNode>)+', re.DOTALL)
     loss_re = re.compile('''
      (<loss[^>]+assetRef="([^">]+)"[^>]*>    # assetRef attribute
       [^>]+mean>([^>]+)</[^>]*mean>
@@ -216,7 +227,7 @@ def create_shapefile_from_loss_map(config):
     xml = fh.read()
     fh.close()
 
-    for lmnode in lmnode_re.findall(xml):
+    for lmnode in tag_extractor("LMNode", config["path"]):
         # We matched a full <LMNode> including its children.
         # <LMNode gml:id="lmn_3">
         #   <site>
