@@ -56,6 +56,35 @@ ch.setFormatter(formatter)
 logger.addHandler(ch)
 
 
+# This parses
+#    <gml:Point srsName="epsg:4326">
+#     <gml:pos>-121.8 37.9</gml:pos>
+#    </gml:Point>
+POSITION_RE = re.compile('''
+ (Point[^>]+srsName="([^">]+)"[^>]*>    # srsName attribute
+  [^>]+pos>([^>]+)</[^>]*pos>
+  [^>]*/[^>]*Point>)+
+''', (re.DOTALL|re.VERBOSE))
+
+
+def extract_position(xml, expected_srid="epsg:4326"):
+    """Extract position data from a chunk of XML.
+
+    :param string xml: a chunk of XML text
+    :param string expected_srid: the expected spatial reference system ID
+    :returns: a (longitude, latitude) tuple
+    :raises Exception: when the spatial reference system ID found is different
+        from the `expected_srid`.
+    """
+    match = POSITION_RE.search(xml)
+    srid, pos = match.groups()[1:]
+    # TODO: al-maisan, Mon, 16 May 2011 06:52:01 +0200, transform
+    # geometries with a srid other than epsg:4326
+    if srid != expected_srid:
+        raise Exception("Wrong spatial reference system: '%s'" % srid)
+    return (pos.split())
+
+
 def create_shapefile_from_hazard_map(config):
     """Reads a hazard map and creates a shapefile from it.
 
@@ -71,10 +100,10 @@ def create_shapefile_from_hazard_map(config):
     """
     assert config["type"] == "hazard", "wrong map type: '%s'" % config["type"]
 
-    # The hazard map is a sequence of <gml:pos> tags followed by a an <IML>
-    # tag.
-    pos_re = re.compile(
-        r"<gml:pos>([-+]?\d+\.\d+)\s+([-+]?\d+\.\d+)</gml:pos>")
+    # We will iterate over all <HMNode> tags and
+    #   - first look for a <gml:pos> tag
+    #   - then look for a <IML> tag
+    hmnode_re = re.compile('(<HMNode.+?/HMNode>)+', re.DOTALL)
     iml_re = re.compile(r"<IML>([-+]?\d+\.\d+)</IML>")
 
     data = []
@@ -82,17 +111,27 @@ def create_shapefile_from_hazard_map(config):
     iml = None
 
     fh = open(config["path"], "r")
-    for line in fh:
-        match = pos_re.search(line)
-        if match:
-            pos = match.groups()
-            continue
-        match = iml_re.search(line)
-        if match:
-            assert pos, "No position for IML"
-            data.append((pos,  match.group(1)))
-            continue
+    xml = fh.read()
     fh.close()
+
+    for hmnode in hmnode_re.findall(xml):
+        # We matched a full <HMNode> including its children.
+        # <HMNode gml:id="n_2">
+        #   <HMSite>
+        #     <gml:Point srsName="epsg:4326">
+        #       <gml:pos>-122.0 37.5</gml:pos>
+        #     </gml:Point>
+        #     <vs30>760.0</vs30>
+        #   </HMSite>
+        #   <IML>1.19244541041</IML>
+        # </HMNode>
+
+        # Look for the position first.
+        pos = extract_position(hmnode)
+        match = iml_re.search(hmnode)
+        assert match, "No IML for position: %s" % str(pos)
+        data.append((pos, match.group(1)))
+
     logger.debug("IMLs found: %s" % len(data))
     logger.debug(pprint.pformat(data))
 
@@ -163,11 +202,6 @@ def create_shapefile_from_loss_map(config):
     #   - first look for a <gml:pos> tag
     #   - then look for a sequence of <loss> tags (one per asset)
     lmnode_re = re.compile('(<LMNode.+?/LMNode>)+', re.DOTALL)
-    pos_re = re.compile('''
-     (Point[^>]+srsName="([^">]+)"[^>]*>    # srsName attribute
-      [^>]+pos>([^>]+)</[^>]*pos>
-      [^>]*/[^>]*Point>)+
-    ''', (re.DOTALL|re.VERBOSE))
     loss_re = re.compile('''
      (<loss[^>]+assetRef="([^">]+)"[^>]*>    # assetRef attribute
       [^>]+mean>([^>]+)</[^>]*mean>
@@ -184,19 +218,27 @@ def create_shapefile_from_loss_map(config):
 
     for lmnode in lmnode_re.findall(xml):
         # We matched a full <LMNode> including its children.
+        # <LMNode gml:id="lmn_3">
+        #   <site>
+        #     <gml:Point srsName="epsg:4326">
+        #       <gml:pos>-118.245388 34.055984</gml:pos>
+        #     </gml:Point>
+        #   </site>
+        #   <loss xmlns:ns6="http://openquake.org/xmlns/nrml/0.2" ns6:assetRef="219">
+        #     <ns6:mean>59.1595800341</ns6:mean>
+        #     <ns6:stdDev>53.5693102791</ns6:stdDev>
+        #   </loss>
+        #   <loss xmlns:ns7="http://openquake.org/xmlns/nrml/0.2" ns7:assetRef="220">
+        #     <ns7:mean>104.689400653</ns7:mean>
+        #     <ns7:stdDev>65.9931553211</ns7:stdDev>
+        #   </loss>
+        # </LMNode>
+
         # Look for the position first.
-        match = pos_re.search(lmnode)
-        srid, pos = match.groups()[1:]
-
-        # TODO: al-maisan, Mon, 16 May 2011 06:52:01 +0200, transform
-        # geometries with a srid other than epsg:4326
-        if srid != "epsg:4326":
-            raise Exception("Wrong spatial reference system: '%s'" % srid)
-
-        # Split longitude/latitude.
-        pos = pos.split()
+        pos = extract_position(lmnode)
         # This will capture assetRef, mean and stdDev for each <loss> tag.
         losses = [loss[1:] for loss in loss_re.findall(lmnode)]
+        assert losses, "No losses for position: %s" % str(pos)
         data.append((pos, losses))
 
     logger.debug("Losses found: %s" % len(data))
