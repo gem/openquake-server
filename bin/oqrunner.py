@@ -27,17 +27,20 @@ former with the geonode server.
   -h | --help       : prints this help string
        --host H     : database host machine name [default: localhost]
   -d | --db D       : database to use [default: openquake]
-  -u | --uploadid u : database key of the associated upload record
+  -j | --jobid J    : database key of the associated oq_job record
   -U | --user U     : database user to use [default: oq_pshai_etl]
   -W | --password W : password for the database user
 
 """
+
 
 import getopt
 import logging
 import os
 import pprint
 import sys
+
+from geonode.mtapi.models import OqJob
 
 
 logger = logging.getLogger('oqrunner')
@@ -52,6 +55,40 @@ ch.setFormatter(formatter)
 logger.addHandler(ch)
 
 
+def create_input_file_dir(config):
+    """Create a directory for the engine's input files.
+
+    The corresponding :py:class:`geonode.mtapi.models.OqJob` instance will be
+    updated with the path created.
+
+    :param dict config: a dictionary with the following configuration data:
+        - host (the database host)
+        - db (the database name)
+        - jobid (the database key of the associated oq_job record)
+        - user (the database user)
+        - password (the database user password)
+    :returns: the path of the input files directory for the engine run.
+    """
+    job = OqJob.objects.find(id=config["jobid"])
+    path = os.path.join(job.oq_params.upload.path, str(job.id))
+    os.mkdir(path, 0777)
+
+
+def run_engine(config):
+    """Run the OpenQuake engine.
+
+    This involves:
+        - creating a directory EIFD for the engine's input files
+        - generating the config.gem file in EIFD
+        - symlinking all the input files (uploaded by the user) in EIFD
+        - run the engine
+        - generate a shapefile for each hazard/loss map once the engine
+          finishes and register these shapefiles with the geonode server
+        - create a database record for each hazard/loss map and capture the
+          associated shapefile.
+    """
+
+
 # TODO: al-maisan, Sun, Mon, 16 May 2011 17:12:06 +0200
 # Package the command line argument processing code below into a utility
 # function.
@@ -61,16 +98,16 @@ def main(cargs):
         """Remove leading dashes, return last portion of string remaining."""
         return arg.split('-')[-1]
 
-    mandatory_args = ["password", "uploadid", "user"]
+    mandatory_args = ["password", "jobid", "user"]
     config = dict(db="openquake", host="localhost", user=None, password=None,
-                  uploadid=None)
+                  jobid=None)
     longopts = ["%s" % k if isinstance(v, bool) else "%s=" % k
                 for k, v in config.iteritems()] + ["help"]
     # Translation between short/long command line arguments.
-    s2l = dict(d="db", U="user", W="password", u="uploadid")
+    s2l = dict(d="db", U="user", W="password", j="jobid")
 
     try:
-        opts, _ = getopt.getopt(cargs[1:], "hd:U:W:u:", longopts)
+        opts, _ = getopt.getopt(cargs[1:], "hd:U:W:j:", longopts)
     except getopt.GetoptError, e:
         # User supplied unknown argument(?); print help and exit.
         print e
