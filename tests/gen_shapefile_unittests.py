@@ -120,7 +120,7 @@ class ExtractPositionTestCase(unittest.TestCase):
             self.assertEqual("Wrong spatial reference system: 'epsg:4326' "
                              "for position -121.8 37.5", e.args[0])
         else:
-            raise Exception("No exception raised!")
+            unittest.TestCase.fail(msg="No exception raised!")
 
 
 class TagExtractorTestCase(unittest.TestCase):
