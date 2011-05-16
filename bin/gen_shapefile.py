@@ -150,6 +150,22 @@ def extract_hazardmap_data(config):
     return data
 
 
+def find_min_max(data, accessor):
+    """Return the (min. max) values given the data and the accessor function.
+
+    The values of interest will be produced by applying the `accessor` to each
+    datum in the `data` sequence.
+
+    :param data: a sequence of data items
+    :param accessor: a function to be used to extract the values of interest
+    :returns: a (minimum, maximum) tuple for the values of interest.
+    """
+    values = [accessor(datum) for datum in data]
+    if not values:
+        raise Exception("Empty data set")
+    return (min(values), max(values))
+
+
 def create_shapefile_from_hazard_map(config):
     """Reads a hazard map and creates a shapefile from it.
 
@@ -187,16 +203,10 @@ def create_shapefile_from_hazard_map(config):
     field = ogr.FieldDefn("IML", ogr.OFTReal)
     assert layer.CreateField(field) == 0, "failed to create 'IML' field"
 
-    minimum = 1000000000.0
-    maximum = -1000000000.0
     for pos, iml in data:
         iml = float(iml)
         feature = ogr.Feature(layer.GetLayerDefn())
         feature.SetField("IML", iml)
-        if iml < minimum:
-            minimum = iml
-        if iml > maximum:
-            maximum = iml
 
         # Set the geometry.
         point = ogr.Geometry(ogr.wkbPoint)
@@ -207,8 +217,7 @@ def create_shapefile_from_hazard_map(config):
             "Failed to create feature, %s || %s" % (pos, iml)
         feature.Destroy()
 
-    assert minimum <= maximum, "Internal error, IML out of range?"
-    return (minimum, maximum)
+    return find_min_max(data, operator.itemgetter(1))
 
 
 def extract_lossmap_data(config):
@@ -311,20 +320,14 @@ def create_shapefile_from_loss_map(config):
 
     # This will be used to pick the mean value from a (assetRef, mean, stdDev)
     # 3-tuple.
-    mean_getter = operator.itemgetter(1)
-    minimum = 1000000000.0
-    maximum = -1000000000.0
+    item2_getter = operator.itemgetter(1)
     for pos, losses in data:
         feature = ogr.Feature(layer.GetLayerDefn())
 
         # Get the 'mean' values for all the losses a this position.
-        means = [float(mean_getter(loss)) for loss in losses]
+        means = [float(item2_getter(loss)) for loss in losses]
         meanmean = sum(means)/len(means)
         feature.SetField("mean", meanmean)
-        if meanmean < minimum:
-            minimum = meanmean
-        if meanmean > maximum:
-            maximum = meanmean
 
         # Set the geometry.
         point = ogr.Geometry(ogr.wkbPoint)
@@ -335,8 +338,7 @@ def create_shapefile_from_loss_map(config):
             "Failed to create feature, %s || %s" % (pos, losses)
         feature.Destroy()
 
-    assert minimum <= maximum, "Internal error, loss mean out of range?"
-    return (minimum, maximum)
+    return find_min_max([item2_getter(datum) for datum in data], item2_getter)
 
 
 def main(cargs):

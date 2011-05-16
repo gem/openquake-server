@@ -23,11 +23,40 @@ Unit tests for the bin/generate_shapefile.py tool.
 """
 
 
+import operator
 import unittest
+
 
 from bin.gen_shapefile import (
     extract_hazardmap_data, extract_lossmap_data, extract_position,
-    tag_extractor)
+    find_min_max, tag_extractor)
+
+
+class FindMinMaxTestCase(unittest.TestCase):
+    """Tests the behaviour of generate_shapefile.find_min_max()."""
+
+    def test_find_min_max(self):
+        """
+        The minimum and maximum are found correctly.
+        """
+        data = [
+            (['-121.8', '37.9'], '1.23518683436'),
+            (['-122.0', '37.5'], '1.19244541041'),
+            (['-122.1', '38.0'], '1.1905288226')]
+
+        self.assertEqual(('1.1905288226', '1.23518683436'),
+                         find_min_max(data, operator.itemgetter(1)))
+
+    def test_find_min_max_with_empty_data(self):
+        """
+        An `Exception` is raised in case of empty data.
+        """
+        try:
+            find_min_max([], lambda x: x)
+        except Exception, e:
+            self.assertEqual("Empty data set", e.args[0])
+        else:
+            unittest.TestCase.fail(msg="No exception raised!")
 
 
 class ExtractHazardmapDataTestCase(unittest.TestCase):
