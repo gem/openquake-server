@@ -28,16 +28,44 @@ import unittest
 
 
 from bin.gen_shapefile import (
-    extract_hazardmap_data, extract_lossmap_data, extract_position,
-    find_min_max, tag_extractor)
+    calculate_loss_data, extract_hazardmap_data, extract_lossmap_data,
+    extract_position, find_min_max, tag_extractor)
+
+
+class CalculateLossDataTestCase(unittest.TestCase):
+    """Tests the behaviour of generate_shapefile.calculate_loss_data()."""
+
+    def test_calculate_loss_data(self):
+        """
+        Mean values are summed up for all assets at a certain location.
+        """
+        data = [
+        (['-118.229726', '34.050622'],
+         [('0', '1.71451736293', '2.00606841051'),
+          ('1', '14.3314083523', '11.9001178481'),
+          ('2', '0.00341983323202', '0.0218042708753')]),
+        (['-118.241243', '34.061557'],
+         [('104', '260.1793321', '298.536543258'),
+          ('105', '205.54063128', '182.363531209'),
+          ('106', '163.603304574', '222.371828022')]),
+        (['-118.245388', '34.055984'],
+         [('219', '59.1595800341', '53.5693102791'),
+          ('220', '104.689400653', '65.9931553211'),
+          ('221', '82.1438713787', '156.848140719')])]
+        expected_data = [
+            (['-118.229726', '34.050622'], 16.04934554846202),
+            (['-118.241243', '34.061557'], 629.323267954),
+            (['-118.245388', '34.055984'], 245.9928520658)]
+
+        self.assertEqual(expected_data, calculate_loss_data(data))
 
 
 class FindMinMaxTestCase(unittest.TestCase):
     """Tests the behaviour of generate_shapefile.find_min_max()."""
 
-    def test_find_min_max(self):
+    def test_find_min_max_for_hazard_maps(self):
         """
-        The minimum and maximum are found correctly.
+        Hazard map minimum and maximum values are found correctly.
         """
         data = [
             (['-121.8', '37.9'], '1.23518683436'),
@@ -45,6 +73,18 @@ class FindMinMaxTestCase(unittest.TestCase):
             (['-122.1', '38.0'], '1.1905288226')]
 
         self.assertEqual(('1.1905288226', '1.23518683436'),
+                         find_min_max(data, operator.itemgetter(1)))
+
+    def test_find_min_max_for_loss_maps(self):
+        """
+        Hazard map minimum and maximum values are found correctly.
+        """
+        data = [
+            (['-118.229726', '34.050622'], 16.04934554846202),
+            (['-118.241243', '34.061557'], 629.323267954),
+            (['-118.245388', '34.055984'], 245.9928520658)]
+
+        self.assertEqual((16.04934554846202, 629.323267954),
                          find_min_max(data, operator.itemgetter(1)))
 
     def test_find_min_max_with_empty_data(self):

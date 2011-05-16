@@ -280,6 +280,39 @@ def extract_lossmap_data(config):
     return data
 
 
+def calculate_loss_data(lossdata):
+    """
+    Takes the data extracted from the loss map, sums up the asset loss means
+    for a location.
+
+    :param lossdata: a data structure as follows:
+        [
+          (['-118.229726', '34.050622'],
+            [('0', '1.71451736293', '2.00606841051'),
+             ('1', '14.3314083523', '11.9001178481'),
+             ('2', '0.00341983323202', '0.0218042708753')]),
+          ...
+        ]
+        which is a position followed by a (assetRef, mean, stdDev) triple for
+        all the assets.
+    :returns: a data structure as follows:
+        [
+           (['-118.229726', '34.050622'], 16.04934554846202),
+          ...
+        ]
+        which is a position followed by the sum of the mean loss of all the
+        assets at that position.
+    """
+    results = []
+    item2_getter = operator.itemgetter(1)
+    for pos, losses in lossdata:
+        # Get the 'mean' values for all the losses a this position.
+        means = [float(item2_getter(loss)) for loss in losses]
+        meanmean = sum(means)
+        results.append((pos, meanmean))
+    return results
+
+
 def create_shapefile_from_loss_map(config):
     """Reads a loss map and creates a shapefile from it.
 
@@ -296,11 +329,15 @@ def create_shapefile_from_loss_map(config):
     :returns: a float 2-tuple with the minimum and maximum mean value seen
         or None in case of an empty loss map.
     """
+    # TODO, al-maisan, Mon, 16 May 2011 13:47:08 +0200, merge
+    # create_shapefile_from_hazard_map() and create_shapefile_from_loss_map().
     assert config["type"] == "loss", "wrong map type: '%s'" % config["type"]
 
     data = extract_lossmap_data(config)
     if not data:
         return
+
+    data = calculate_loss_data(data)
 
     driver = ogr.GetDriverByName("ESRI Shapefile")
     assert driver is not None, "failed to instantiate driver"
@@ -318,16 +355,9 @@ def create_shapefile_from_loss_map(config):
     field = ogr.FieldDefn("mean", ogr.OFTReal)
     assert layer.CreateField(field) == 0, "failed to create 'mean' field"
 
-    # This will be used to pick the mean value from a (assetRef, mean, stdDev)
-    # 3-tuple.
-    item2_getter = operator.itemgetter(1)
-    for pos, losses in data:
+    for pos, loss in data:
         feature = ogr.Feature(layer.GetLayerDefn())
-
-        # Get the 'mean' values for all the losses a this position.
-        means = [float(item2_getter(loss)) for loss in losses]
-        meanmean = sum(means)/len(means)
-        feature.SetField("mean", meanmean)
+        feature.SetField("mean", loss)
 
         # Set the geometry.
         point = ogr.Geometry(ogr.wkbPoint)
@@ -335,10 +365,10 @@ def create_shapefile_from_loss_map(config):
         feature.SetGeometry(point)
 
         assert layer.CreateFeature(feature) == 0, \
-            "Failed to create feature, %s || %s" % (pos, losses)
+            "Failed to create feature, %s || %s" % (pos, loss)
         feature.Destroy()
 
-    return find_min_max([item2_getter(datum) for datum in data], item2_getter)
+    return find_min_max(data, operator.itemgetter(1))
 
 
 def main(cargs):
