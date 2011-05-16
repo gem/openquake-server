@@ -26,7 +26,7 @@ from geonode.mtapi import models
 
 
 CLASSICAL_DEFAULTS = {
-    'general': {},  # there are no default params in general
+    'general': {},  # classical has no defaults in 'general'
     'HAZARD': {
         'HAZARD_CALCULATION_MODE': 'Classical',
         'SOURCE_MODEL_LT_RANDOM_SEED': 23,
@@ -71,7 +71,7 @@ CLASSICAL_DEFAULTS = {
         'LOSS_RATIO_MAP': 'loss_ratio_map.tiff',
         'RISK_CELL_SIZE': 0.0005,
         'AGGREGATE_LOSS_CURVE': 1}}
-CLASSICAL_INPUT_FILE_MAP = {
+CLASSICAL_INPUT = {
     'HAZARD': {
         'SOURCE_MODEL_LOGIC_TREE_FILE': 'lt_source',
         'GMPE_LOGIC_TREE_FILE': 'lt_gmpe'},
@@ -129,12 +129,16 @@ def polygon_to_coord_string(polygon):
 class JobConfigWriter(object):
 
     CONFIG_FILE_NAME = 'config.gem'
-    PARAMS_MAP = {
+    DEFAULT_PARAMS_MAP = {
         'classical': CLASSICAL_DEFAULTS,
         'event_based': None,
         'deterministic': None}
-    INPUTS_MAP = {
-        'classical': CLASSICAL_INPUT_FILE_MAP,
+    INPUT_PARAMS_MAP = {
+        'classical': CLASSICAL_INPUT,
+        'event_based': None,
+        'deterministic': None}
+    USER_PARAMS_MAP = {
+        'classical': {'foo': 'bar'},
         'event_based': None,
         'deterministic': None}
 
@@ -153,7 +157,8 @@ class JobConfigWriter(object):
         # These two will be assigned values once job data is read from the
         # database (when 'write' is called)
         self.default_params = None
-        self.inputs_map = None
+        self.input_params = None
+        self.user_params = None
         self.output_path = None
         self.output_fh = None
 
@@ -189,12 +194,16 @@ class JobConfigWriter(object):
 
         oq_job, oq_params, upload = load_job_params_upload()
 
+        # Set the default, input, and user-speficied param maps for this job
+        # type.
         self.default_params = \
-            self.PARAMS_MAP.get(oq_params.job_type, None)
-        self.inputs_map = \
-            self.INPUTS_MAP.get(oq_params.job_type, None)
-        
-        if not all([self.default_params, self.inputs_map]):
+            self.DEFAULT_PARAMS_MAP.get(oq_params.job_type, None)
+        self.input_params = \
+            self.INPUT_PARAMS_MAP.get(oq_params.job_type, None)
+        self.user_params = self.USER_PARAMS_MAP.get(oq_params.job_type, None)
+
+        # explicit failure if something is wrong
+        if not all([self.default_params, self.input_params, self.user_params]):
             error = "Unsupported calculation mode: %s" % oq_params.job_type
             raise ValueError(error)
 
@@ -203,32 +212,14 @@ class JobConfigWriter(object):
             upload.path, str(oq_job.id), self.CONFIG_FILE_NAME)
         self.output_fh = open(self.output_path, 'w')
 
-        # first, write the default params
-        for section in self.default_params.keys():
-            self.cfg_parser.add_section(section)
+        # first, write the default params for this job type
+        self._write_default_params()
 
-            section_dict = self.default_params[section]
+        # now write params associated with input files for the job upload
+        self._write_input_params(upload)
 
-            for key, val in section_dict.items():
-                self.cfg_parser.set(section, key, val)
-
-        # then write the user-specified params
-
-        # write the config items assocated with inputs
-        for section in ('HAZARD', 'RISK'):
-            section_dict = self.inputs_map[section]
-
-            for key, input_type in section_dict.items():
-                # FIXME (LB): I cannot for the life of me figure out why
-                # I have to specify upload=upload.id, rather than upload_id=upload.id,
-                # which is the case with all of the other models.
-                # For some reason, this works. WTF?
-                input_file = models.Input.objects.using(utils.dbn()).filter(
-                    upload=upload.id, input_type=input_type)[0]
-
-                file_name = os.path.basename(input_file.path)
-                self.cfg_parser.set(section, key, file_name)
-            
+        # now write the user-specified params
+        self._write_input_params(oq_params)
         if oq_params.job_type == 'classical':
             self._write_classical_user_params(oq_params)
         elif oq_param.job_type == 'event_based':
@@ -242,6 +233,59 @@ class JobConfigWriter(object):
         self.cfg_parser.write(self.output_fh)
 
         return self.output_path
+
+    def _write_default_params(self):
+        """
+        Given a job type, write the default parameters to the config file. It
+        assumed that self.default_params is set prior to this method being
+        called.
+        """
+        for section in self.default_params.keys():
+            if not self.cfg_parser.has_section(section):
+                self.cfg_parser.add_section(section)
+
+            section_dict = self.default_params[section]
+
+            for key, val in section_dict.items():
+                self.cfg_parser.set(section, key, val)
+
+    def _write_input_params(self, upload):
+        """
+        Write the parameters associated with input files. It is assumed that
+        self.input_params is set prior to this method being called.
+
+        For example, if we have the input file 'vulnerability.xml' which
+        a vulnerability model, we would write the following to the config file:
+            VULNERABILITY = vulnerability.xml
+
+        :param upload: :py:class:`geonode.mtapi.models.Upload` instance
+        """
+        for section in self.input_params.keys():
+            if not self.cfg_parser.has_section(section):
+                self.cfg_parser.add_section(section)
+
+            section_dict = self.input_params[section]
+
+            for key, input_type in section_dict.items():
+                pass
+            # FIXME (LB): I cannot for the life of me figure out why
+            # I have to specify upload=upload.id, rather than
+            # upload_id=upload.id, which is the case with all of the other
+            # models.
+            # For some reason, this works. WTF?
+            input_file = models.Input.objects.using(utils.dbn()).filter(
+                upload=upload.id, input_type=input_type)[0]
+
+            file_name = os.path.basename(input_file.path)
+            self.cfg_parser.set(section, key, file_name)
+
+    def _write_user_params(self, oqparams):
+        """
+        Write attributes from an OqParams object to the config file. It is
+        assumed that self.TODO is set prior to this method being called.
+
+        :param oqparams: :py:class:`geonode.mtapi.models.OqParams` instance
+        """
 
     def _write_classical_user_params(self, oqp):
         """

@@ -49,7 +49,7 @@ class OqUser(models.Model):
     user_name = models.TextField()
     full_name = models.TextField()
     organization = models.ForeignKey(Organization)
-    data_is_open = models.BooleanField()
+    data_is_open = models.BooleanField(default=True)
     last_update = models.DateTimeField(editable=False, default=datetime.utcnow)
 
     def __str__(self):
@@ -63,6 +63,7 @@ class OqUser(models.Model):
 class Upload(models.Model):
     """This corresponds to the uiapi.upload table."""
     owner = models.ForeignKey(OqUser)
+    description = models.TextField(default="")
     path = models.TextField(unique=True)
     UPLOAD_STATUS_CHOICES = (
         (u"pending", u"Files saved to disk, upload/input records "
@@ -72,7 +73,7 @@ class Upload(models.Model):
         (u"succeeded", u"All uploaded files processed"),
     )
     status = models.TextField(choices=UPLOAD_STATUS_CHOICES, default="pending")
-    job_pid = models.PositiveIntegerField()
+    job_pid = models.PositiveIntegerField(default=0)
     last_update = models.DateTimeField(editable=False, default=datetime.utcnow)
 
     def __str__(self):
@@ -88,7 +89,7 @@ class Input(models.Model):
     upload = models.ForeignKey(Upload)
     path = models.TextField(unique=True)
     INPUT_TYPE_CHOICES = (
-        (u"unknown", u"Source model file"),
+        (u"unknown", u"Unknown input file type"),
         (u"source", u"Source model file"),
         (u"lt_source", u"Source model logic tree"),
         (u"lt_gmpe", u"GMPE logic tree"),
@@ -96,7 +97,7 @@ class Input(models.Model):
         (u"vulnerability", u"Vulnerability file"),
     )
     input_type = models.TextField(choices=INPUT_TYPE_CHOICES)
-    size = models.PositiveIntegerField()
+    size = models.PositiveIntegerField(default=0)
     last_update = models.DateTimeField(editable=False, default=datetime.utcnow)
 
     def __str__(self):
@@ -144,8 +145,8 @@ class OqParams(models.Model):
     period = models.FloatField(null=True)
     TRUNCATION_TYPE_CHOICES = (
         (u"none", u"None"),
-        (u"1-sided", u"One-sided"),
-        (u"2-sided", u"Two-sided"),
+        (u"onesided", u"One-sided"),
+        (u"twosided", u"Two-sided"),
     )
     truncation_type = models.TextField(choices=TRUNCATION_TYPE_CHOICES)
     truncation_level = models.FloatField()
@@ -170,6 +171,7 @@ class OqJob(models.Model):
     """This corresponds to the uiapi.oq_job table."""
     owner = models.ForeignKey(OqUser)
     description = models.TextField()
+    path = models.TextField(unique=True)
     JOB_TYPE_CHOICES = (
         (u"classical", u"Classical PSHA calculation"),
         (u"event_based", u"Event-based calculation"),
@@ -184,9 +186,37 @@ class OqJob(models.Model):
     )
     status = models.TextField(choices=JOB_STATUS_CHOICES, default="pending")
     duration = models.PositiveIntegerField(default=0)
-    job_pid = models.PositiveIntegerField()
+    job_pid = models.PositiveIntegerField(default=0)
     oq_params = models.ForeignKey(OqParams)
     last_update = models.DateTimeField(editable=False, default=datetime.utcnow)
 
     class Meta:
         db_table = 'uiapi\".\"oq_job'
+
+
+class Output(models.Model):
+    """This corresponds to the uiapi.output table."""
+    owner = models.ForeignKey(OqUser)
+    oq_job = models.ForeignKey(OqJob)
+    path = models.TextField(unique=True)
+    OUTPUT_TYPE_CHOICES = (
+        (u"unknown", u"Unknown output file type"),
+        (u"hazard_curve", u"Hazard curve"),
+        (u"hazard_map", u"Hazard map"),
+        (u"loss_curve", u"Loss curve"),
+        (u"loss_map", u"Loss map"),
+    )
+    output_type = models.TextField(choices=OUTPUT_TYPE_CHOICES)
+    size = models.PositiveIntegerField(default=0)
+    shapefile_path = models.TextField(null=True)
+    shapefile_url = models.TextField(null=True)
+    min_value = models.FloatField(null=True)
+    max_value = models.FloatField(null=True)
+    last_update = models.DateTimeField(editable=False, default=datetime.utcnow)
+
+    def __str__(self):
+        return smart_str(
+            ":output: %s, %s, %s" % (self.output_type, self.path, self.size))
+
+    class Meta:
+        db_table = 'uiapi\".\"output'

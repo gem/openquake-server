@@ -1,0 +1,37 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<nrml xmlns:gml="http://www.opengis.net/gml" xmlns="http://openquake.org/xmlns/nrml/0.2" gml:id="nrml">
+  <hazardResult gml:id="hr">
+    <config>
+      <hazardProcessing investigationTimeSpan="50.0"/>
+    </config>
+    <hazardMap gml:id="hm" poE="0.1" IMT="PGA" statistics="quantile" quantileValue="0.25">
+      <HMNode gml:id="n_1">
+        <HMSite>
+          <gml:Point srsName="epsg:4326">
+            <gml:pos>-121.8 37.9</gml:pos>
+          </gml:Point>
+          <vs30>760.0</vs30>
+        </HMSite>
+        <IML>1.23518683436</IML>
+      </HMNode>
+      <HMNode gml:id="n_2">
+        <HMSite>
+          <gml:Point srsName="epsg:4326">
+            <gml:pos>-122.0 37.5</gml:pos>
+          </gml:Point>
+          <vs30>760.0</vs30>
+        </HMSite>
+        <IML>1.19244541041</IML>
+      </HMNode>
+      <HMNode gml:id="n_3">
+        <HMSite>
+          <gml:Point srsName="epsg:4326">
+            <gml:pos>-122.1 38.0</gml:pos>
+          </gml:Point>
+          <vs30>760.0</vs30>
+        </HMSite>
+        <IML>1.1905288226</IML>
+      </HMNode>
+    </hazardMap>
+  </hazardResult>
+</nrml>
