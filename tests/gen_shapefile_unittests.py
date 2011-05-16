@@ -35,7 +35,7 @@ class ExtractHazardmapDataTestCase(unittest.TestCase):
 
     def test_extract_hazardmap_data(self):
         """
-        Hazard map dat is extracted correctly.
+        Hazard map data is extracted correctly.
         """
         config = {
             "key": "78", "layer": "78-hazardmap-0.01-quantile-0.25",
@@ -55,7 +55,7 @@ class ExtractLossmapDataTestCase(unittest.TestCase):
 
     def test_extract_lossmap_data(self):
         """
-        Loss map dat is extracted correctly.
+        Loss map data is extracted correctly.
         """
         config = {
             "key": "77", "layer": "77-lossmap-0.01-quantile-0.25",
