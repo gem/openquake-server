@@ -81,7 +81,9 @@ def extract_position(xml, expected_srid="epsg:4326"):
     # TODO: al-maisan, Mon, 16 May 2011 06:52:01 +0200, transform
     # geometries with a srid other than epsg:4326
     if srid != expected_srid:
-        raise Exception("Wrong spatial reference system: '%s'" % srid)
+        raise Exception(
+            "Wrong spatial reference system: '%s' for position %s"
+            % (srid, pos))
     return (pos.split())
 
 
@@ -222,10 +224,6 @@ def create_shapefile_from_loss_map(config):
 
     data = []
     pos = None
-
-    fh = open(config["path"], "r")
-    xml = fh.read()
-    fh.close()
 
     for lmnode in tag_extractor("LMNode", config["path"]):
         # We matched a full <LMNode> including its children.
