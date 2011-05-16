@@ -25,7 +25,57 @@ Unit tests for the bin/generate_shapefile.py tool.
 
 import unittest
 
-from bin.generate_shapefile import extract_position, tag_extractor
+from bin.generate_shapefile import (
+    extract_hazardmap_data, extract_lossmap_data, extract_position,
+    tag_extractor)
+
+
+class ExtractHazardmapDataTestCase(unittest.TestCase):
+    """Tests the behaviour of generate_shapefile.extract_hazardmap_data()."""
+
+    def test_extract_hazardmap_data(self):
+        """
+        Hazard map dat is extracted correctly.
+        """
+        config = {
+            "key": "78", "layer": "78-hazardmap-0.01-quantile-0.25",
+            "output": "tests/78",
+            "path": "tests/hazardmap-0.1-quantile-0.25.xml",
+            "type": "hazard"}
+        expected_data = [
+            (['-121.8', '37.9'], '1.23518683436'),
+            (['-122.0', '37.5'], '1.19244541041'),
+            (['-122.1', '38.0'], '1.1905288226')]
+
+        self.assertEqual(expected_data, extract_hazardmap_data(config))
+
+
+class ExtractLossmapDataTestCase(unittest.TestCase):
+    """Tests the behaviour of generate_shapefile.extract_lossmap_data()."""
+
+    def test_extract_lossmap_data(self):
+        """
+        Loss map dat is extracted correctly.
+        """
+        config = {
+            "key": "77", "layer": "77-lossmap-0.01-quantile-0.25",
+            "output": "tests/77", "path": "tests/loss-map-0fcfdbc7.xml",
+            "type": "loss"}
+        expected_data = [
+        (['-118.229726', '34.050622'],
+         [('0', '1.71451736293', '2.00606841051'),
+          ('1', '14.3314083523', '11.9001178481'),
+          ('2', '0.00341983323202', '0.0218042708753')]),
+        (['-118.241243', '34.061557'],
+         [('104', '260.1793321', '298.536543258'),
+          ('105', '205.54063128', '182.363531209'),
+          ('106', '163.603304574', '222.371828022')]),
+        (['-118.245388', '34.055984'],
+         [('219', '59.1595800341', '53.5693102791'),
+          ('220', '104.689400653', '65.9931553211'),
+          ('221', '82.1438713787', '156.848140719')])]
+
+        self.assertEqual(expected_data, extract_lossmap_data(config))
 
 
 class ExtractPositionTestCase(unittest.TestCase):

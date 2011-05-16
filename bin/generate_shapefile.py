@@ -44,7 +44,7 @@ import re
 import sys
 
 
-logger = logging.getLogger('nrml_loader')
+logger = logging.getLogger('gen_shapefile')
 logger.setLevel(logging.DEBUG)
 ch = logging.StreamHandler()
 ch.setLevel(logging.ERROR)
@@ -104,8 +104,10 @@ def tag_extractor(tag_name, path):
         yield tag
 
 
-def create_shapefile_from_hazard_map(config):
-    """Reads a hazard map and creates a shapefile from it.
+def extract_hazardmap_data(config):
+    """Reads a hazard map and extracts positions and IMLs.
+
+    IML = intensity measure level
 
     :param dict config: a configuration `dict` with the following data
         items:
@@ -114,11 +116,8 @@ def create_shapefile_from_hazard_map(config):
             - output (shapefile path)
             - path (map file to be processed)
             - type (map type, hazard or loss)
-    :returns: a float 2-tuple with the minimum and maximum IML value seen
-        or None in case of an empty hazard map.
+    :returns: a potentially empty sequence of ([lon, lat], IML) 2-tuples.
     """
-    assert config["type"] == "hazard", "wrong map type: '%s'" % config["type"]
-
     # We will iterate over all <HMNode> tags and
     #   - first look for a <gml:pos> tag
     #   - then look for a <IML> tag
@@ -126,7 +125,6 @@ def create_shapefile_from_hazard_map(config):
 
     data = []
     pos = None
-    iml = None
 
     for hmnode in tag_extractor("HMNode", config["path"]):
         # We matched a full <HMNode> including its children.
@@ -149,6 +147,25 @@ def create_shapefile_from_hazard_map(config):
     logger.debug("IMLs found: %s" % len(data))
     logger.debug(pprint.pformat(data))
 
+    return data
+
+
+def create_shapefile_from_hazard_map(config):
+    """Reads a hazard map and creates a shapefile from it.
+
+    :param dict config: a configuration `dict` with the following data
+        items:
+            - key (db key of the hazard map file)
+            - layer (shapefile layer name)
+            - output (shapefile path)
+            - path (map file to be processed)
+            - type (map type, hazard or loss)
+    :returns: a float 2-tuple with the minimum and maximum IML value seen
+        or None in case of an empty hazard map.
+    """
+    assert config["type"] == "hazard", "wrong map type: '%s'" % config["type"]
+
+    data = extract_hazardmap_data(config)
     if not data:
         return
 
@@ -194,11 +211,11 @@ def create_shapefile_from_hazard_map(config):
     return (minimum, maximum)
 
 
-def create_shapefile_from_loss_map(config):
-    """Reads a loss map and creates a shapefile from it.
+def extract_lossmap_data(config):
+    """Reads a loss map and extracts positions and loss map data.
 
-    For locations with multiple assets, the average of the assets' mean
-    values will be written to the shapefile.
+    The loss map data consists of an asset reference (assetRef), a mean loss
+    value (mean) and a standard deviation (stdDev).
 
     :param dict config: a configuration `dict` with the following data
         items:
@@ -207,11 +224,9 @@ def create_shapefile_from_loss_map(config):
             - output (shapefile path)
             - path (map file to be processed)
             - type (map type, hazard or loss)
-    :returns: a float 2-tuple with the minimum and maximum mean value seen
-        or None in case of an empty loss map.
+    :returns: a potentially empty sequence of ([lon, lat], lossdata) 2-tuples
+        where lossdata is a sequence of (assetRef, mean, stdDev) triples.
     """
-    assert config["type"] == "loss", "wrong map type: '%s'" % config["type"]
-
     # We will iterate over all <LMNode> tags and
     #   - first look for a <gml:pos> tag
     #   - then look for a sequence of <loss> tags (one per asset)
@@ -253,6 +268,28 @@ def create_shapefile_from_loss_map(config):
     logger.debug("Losses found: %s" % len(data))
     logger.debug(pprint.pformat(data))
 
+    return data
+
+
+def create_shapefile_from_loss_map(config):
+    """Reads a loss map and creates a shapefile from it.
+
+    For locations with multiple assets, the average of the assets' mean
+    values will be written to the shapefile.
+
+    :param dict config: a configuration `dict` with the following data
+        items:
+            - key (db key of the hazard map file)
+            - layer (shapefile layer name)
+            - output (shapefile path)
+            - path (map file to be processed)
+            - type (map type, hazard or loss)
+    :returns: a float 2-tuple with the minimum and maximum mean value seen
+        or None in case of an empty loss map.
+    """
+    assert config["type"] == "loss", "wrong map type: '%s'" % config["type"]
+
+    data = extract_lossmap_data(config)
     if not data:
         return
 
