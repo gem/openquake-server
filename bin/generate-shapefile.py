@@ -163,8 +163,11 @@ def create_shapefile_from_loss_map(config):
     #   - first look for a <gml:pos> tag
     #   - then look for a sequence of <loss> tags (one per asset)
     lmnode_re = re.compile('(<LMNode.+?/LMNode>)+', re.DOTALL)
-    pos_re = re.compile(
-        '<site>.+pos>([^>]+)</[^>]*pos>.+/[^>]*site>', re.DOTALL)
+    pos_re = re.compile('''
+     (Point[^>]+srsName="([^">]+)"[^>]*>    # srsName attribute
+      [^>]+pos>([^>]+)</[^>]*pos>
+      [^>]*/[^>]*Point>)+
+    ''', (re.DOTALL|re.VERBOSE))
     loss_re = re.compile('''
      (<loss[^>]+assetRef="([^">]+)"[^>]*>    # assetRef attribute
       [^>]+mean>([^>]+)</[^>]*mean>
@@ -183,8 +186,15 @@ def create_shapefile_from_loss_map(config):
         # We matched a full <LMNode> including its children.
         # Look for the position first.
         match = pos_re.search(lmnode)
+        srid, pos = match.groups()[1:]
+
+        # TODO: al-maisan, Mon, 16 May 2011 06:52:01 +0200, transform
+        # geometries with a srid other than epsg:4326
+        if srid != "epsg:4326":
+            raise Exception("Wrong spatial reference system: '%s'" % srid)
+
         # Split longitude/latitude.
-        pos = match.group(1).split()
+        pos = pos.split()
         # This will capture assetRef, mean and stdDev for each <loss> tag.
         losses = [loss[1:] for loss in loss_re.findall(lmnode)]
         data.append((pos, losses))
