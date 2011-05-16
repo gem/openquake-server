@@ -25,7 +25,7 @@ Unit tests for the bin/generate_shapefile.py tool.
 
 import unittest
 
-from bin.generate_shapefile import (
+from bin.gen_shapefile import (
     extract_hazardmap_data, extract_lossmap_data, extract_position,
     tag_extractor)
 
