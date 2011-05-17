@@ -46,7 +46,7 @@ INTENSITY_MEASURE_LEVELS = 0.005, 0.007, 0.0098, 0.0137, 0.0192, 0.0269, 0.0376,
 # (None, 1 Sided, 2 Sided)
 GMPE_TRUNCATION_TYPE = 2 Sided
 # (1,2,3,...)
-TRUNCATION_LEVEL = 3
+TRUNCATION_LEVEL = 3.0
 # (Total, Inter-Event, Intra-Event, None (zero), Total (Mag Dependent), Total (PGA Dependent), Intra-Event (Mag Dependent))
 STANDARD_DEVIATION_TYPE = Total
 # (m/s)

@@ -18,6 +18,11 @@
 # <http://www.gnu.org/licenses/lgpl-3.0.txt> for a copy of the LGPLv3 License.
 
 
+"""
+This module provides utilities for generating OpenQuake job config files.
+"""
+
+
 import os
 
 from ConfigParser import ConfigParser
@@ -63,7 +68,7 @@ CLASSICAL_DEFAULTS = {
         'SUBDUCTION_RUPTURE_FLOATING_TYPE': 'Along strike and down dip',
         'QUANTILE_LEVELS': '0.25 0.50 0.75',
         'COMPUTE_MEAN_HAZARD_CURVE': 'true',
-        'STANDARD_DEVIATION_TYPE': 'Total'},  # FIXME (LB): this needs to be specified in the db, not in defaults!!!!!
+        'STANDARD_DEVIATION_TYPE': 'Total'},
     'RISK': {
         'RISK_CALCULATION_MODE': 'Classical PSHA',
         'LOSS_CURVES_OUTPUT_PREFIX': 'classical-demo',
@@ -78,17 +83,7 @@ CLASSICAL_INPUT = {
     'RISK': {
         'EXPOSURE': 'exposure',
         'VULNERABILITY': 'vulnerability'}}
-CLASSICAL_PARAM_TRNSLTN = {
-    'average': 'Average Horizontal',
-    'gmroti50': 'Average Horizontal (GMRotI50)',
-    'pga': 'PGA',
-    'sa': 'SA',
-    'pgv': 'PGV',
-    'pgd': 'PGD',
-    'none': 'None',
-    '1-sided': '1 Sided',
-    '2-sided': '2 Sided',
-    }
+
 
 def polygon_to_coord_string(polygon):
     """
@@ -103,7 +98,7 @@ def polygon_to_coord_string(polygon):
         '38.0, -122.2, 38.0, -121.7, 37.5, -121.7, 37.5, -122.2'
     """
     # get a list of the lon,lat pairs
-    # like so: 
+    # like so:
     # [(-122.2, 38.0),
     #  (-121.7, 37.5),
     #  (-122.2, 37.5),
@@ -126,7 +121,99 @@ def polygon_to_coord_string(polygon):
     return coord_str
 
 
+def float_list_to_str(float_list, delimiter):
+    """
+    Convert a list of floats to a string, each number separated by the
+    specified delimiter.
+
+    :returns: A string representation the list of floats joined with the
+        specified string. For example, given a float_list of `[0.1, 0.2, 0.3]`
+        and a delimiter of '#|', the return value will be::
+        '0.1#|0.2#|0.3'
+    """
+    return delimiter.join([str(x) for x in float_list])
+
+
+def enum_translate(value):
+    """
+    Translate a DB enum value to a legal value for the config file.
+
+    For example, the COMPONENT param can have a value of 'Average Horizontal'
+    or 'Average Horizontal (GMRotI50)'. In the database, these value are
+    represented as 'average' and 'gmroti50', respectively.
+
+    These enumerations are defined and maintained in the various classes in
+    :py:module:`geonode.mtapi.models`.
+
+    :param value: DB representation of a config value
+    :type value: str
+
+    :returns: config file representation of the config enum, or None if no
+        match is found
+    """
+    enum_map = {
+        'average': 'Average Horizontal',
+        'gmroti50': 'Average Horizontal (GMRotI50)',
+        'pga': 'PGA',
+        'sa': 'SA',
+        'pgv': 'PGV',
+        'pgd': 'PGD',
+        'none': 'None',
+        'onesided': '1 Sided',
+        'twosided': '2 Sided'}
+
+    return enum_map.get(value, None)
+
+
+def get_classical_user_params(oqparams):
+    """
+    Get a dict of the params specified by the user from the UI.
+
+    :param oqparams: :py:class:`geonode.mtapi.models.OqParams` instance
+
+    :returns: Dict keyed by config file section name. Each value will be
+    a dict of config param/value pairs. Example::
+        {'general': {
+            'REGION_GRID_SPACING': 0.1,
+            ... },
+         'HAZARD': {'MINIMUM_MAGNITUDE': 5.0,
+            ... },
+         'RISK': {'CONDITIONAL_LOSS_POE': '0.01 0.10'}}
+    """
+    # A bit of translation is needed to convert the db 'enum' values for some
+    # attributes to legal values for a config file.
+
+    poes_str = float_list_to_str(oqparams.poes, ' ')
+
+    params = {
+        'general': {
+            'REGION_GRID_SPACING': oqparams.region_grid_spacing,
+            'REGION_VERTEX': polygon_to_coord_string(oqparams.region)},
+        'HAZARD': {
+            'MINIMUM_MAGNITUDE': oqparams.min_magnitude,
+            'INVESTIGATION_TIME': oqparams.investigation_time,
+            'COMPONENT': enum_translate(oqparams.component),
+            'INTENSITY_MEASURE_TYPE': enum_translate(oqparams.imt),
+            'GMPE_TRUNCATION_TYPE': enum_translate(oqparams.truncation_type),
+            'TRUNCATION_LEVEL': oqparams.truncation_level,
+            'REFERENCE_VS30_VALUE': oqparams.reference_vs30_value,
+            'INTENSITY_MEASURE_LEVELS': float_list_to_str(oqparams.imls, ', '),
+            'POES_HAZARD_MAPS': poes_str,
+            'NUMBER_OF_LOGIC_TREE_SAMPLES': oqparams.realizations},
+        'RISK': {
+            'CONDITIONAL_LOSS_POE': poes_str}}
+
+    return params
+
+
 class JobConfigWriter(object):
+    """
+    The class provides functionality for generating an OpenQuake job config
+    file by reading job information from the OpenQuake DB.
+
+    This class makes use of the :py:module:`ConfigParser` to structure and
+    populate the output file.
+    """
 
     CONFIG_FILE_NAME = 'config.gem'
     DEFAULT_PARAMS_MAP = {
@@ -138,13 +225,12 @@ class JobConfigWriter(object):
         'event_based': None,
         'deterministic': None}
     USER_PARAMS_MAP = {
-        'classical': {'foo': 'bar'},
+        'classical': get_classical_user_params,
         'event_based': None,
         'deterministic': None}
 
     def __init__(self, job_id):
         """
-        
         :param job_id: ID of a job stored in the uiapi.oq_job table for which
             we want to generate a job config file.
         :type job_id: int
@@ -154,174 +240,150 @@ class JobConfigWriter(object):
         # this will be used to build the config file
         self.cfg_parser = ConfigParser()
 
-        # These two will be assigned values once job data is read from the
-        # database (when 'write' is called)
-        self.default_params = None
-        self.input_params = None
-        self.user_params = None
         self.output_path = None
         self.output_fh = None
 
-    def write(self):
+    def serialize(self):
         """
         Write all parameters to the specified config file.
 
-        In order for the write to complete, you must call :py:meth:`close` to
-        flush and close the output file handle.
+        In order for the serialization to complete, you must call
+        :py:meth:`close` to flush and close the output file handle.
 
         :returns: path of the output file
         """
 
         def load_job_params_upload():
             """
-            Load the relevent oq_job, oq_params, and upload records from the
+            Load the relevent oqjob, oqparams, and upload records from the
             db.
 
             :returns: 3-tuple of:
                 (:py:class:`geonode.mtapi.models.OqJob`,
                  :py:class:`geonode.mtapi.models.OqParams`,
                  :py:class:`geonode.mtapi.models.Upload`)
-            """ 
-            # get the relevant oq_job, oq_params, and upload records
-            oq_job = models.OqJob.objects.using(
+            """
+            oqjob = models.OqJob.objects.using(
                 utils.dbn()).filter(id=self.job_id)[0]
-            oq_params = models.OqParams.objects.using(
-                utils.dbn()).filter(id=oq_job.oq_params_id)[0]
+
+            oqparams = models.OqParams.objects.using(
+                utils.dbn()).filter(id=oqjob.oq_params_id)[0]
+
             upload = models.Upload.objects.using(
-                utils.dbn()).filter(id=oq_params.upload_id)[0]
+                utils.dbn()).filter(id=oqparams.upload_id)[0]
 
-            return oq_job, oq_params, upload
+            return oqjob, oqparams, upload
 
-        oq_job, oq_params, upload = load_job_params_upload()
+        oqjob, oqparams, upload = load_job_params_upload()
 
         # Set the default, input, and user-speficied param maps for this job
         # type.
-        self.default_params = \
-            self.DEFAULT_PARAMS_MAP.get(oq_params.job_type, None)
-        self.input_params = \
-            self.INPUT_PARAMS_MAP.get(oq_params.job_type, None)
-        self.user_params = self.USER_PARAMS_MAP.get(oq_params.job_type, None)
+        default_params = \
+            self.DEFAULT_PARAMS_MAP.get(oqparams.job_type, None)
+        input_params = \
+            self.INPUT_PARAMS_MAP.get(oqparams.job_type, None)
 
-        # explicit failure if something is wrong
-        if not all([self.default_params, self.input_params, self.user_params]):
-            error = "Unsupported calculation mode: %s" % oq_params.job_type
+        # We'll need to call specific function to extract user-specified
+        # parameters from the OqParams object.
+        # Each calculation mode requires slightly different parameters, so
+        # we'll use different functions to extract what we need.
+        user_params_fn = \
+            self.USER_PARAMS_MAP.get(oqparams.job_type, None)
+
+        # explicit failure if something is wrong, such as an expected job type
+        if not all([default_params, input_params, user_params_fn]):
+            error = "Unsupported calculation mode: %s" % oqparams.job_type
             raise ValueError(error)
+
+        user_params = user_params_fn(oqparams)
 
         # prepare the output file
         self.output_path = os.path.join(
-            upload.path, str(oq_job.id), self.CONFIG_FILE_NAME)
+            upload.path, str(oqjob.id), self.CONFIG_FILE_NAME)
         self.output_fh = open(self.output_path, 'w')
 
         # first, write the default params for this job type
-        self._write_default_params()
+        self.write_params(default_params)
+
+        # then write the params specified by the user
+        # (read from the OqParams object)
+        self.write_params(user_params)
 
         # now write params associated with input files for the job upload
-        self._write_input_params(upload)
-
-        # now write the user-specified params
-        self._write_input_params(oq_params)
-        if oq_params.job_type == 'classical':
-            self._write_classical_user_params(oq_params)
-        elif oq_param.job_type == 'event_based':
-            pass
-        elif oq_params.job_type == 'deterministic':
-            pass
-        else:
-            raise ValueError("Unknown calculation mode %s" % oq_params.job_type)
-
-        # finally, write the the output file handle
-        self.cfg_parser.write(self.output_fh)
+        self._write_input_params(upload, input_params)
 
         return self.output_path
 
-    def _write_default_params(self):
+    def write_params(self, params):
         """
-        Given a job type, write the default parameters to the config file. It
-        assumed that self.default_params is set prior to this method being
-        called.
+        Given a dict of section names and param/value pairs, write them to the
+        output config file. If a section does not yet exist, it will be
+        created.
+
+        Note: :py:method:`close` must be called to complete the serialization
+        to the output file.
+
+        Note: All parameter values will be cast as strings before they are
+        written.
+
+        :param params: A dict of params with the following structure::
+            {'general': {
+                'REGION_GRID_SPACING': 0.1,
+                ... },
+             'HAZARD': {'MINIMUM_MAGNITUDE': 5.0,
+                ... },
+             'RISK': {'CONDITIONAL_LOSS_POE': '0.01 0.10'}}
+
         """
-        for section in self.default_params.keys():
+        for section in params.keys():
             if not self.cfg_parser.has_section(section):
                 self.cfg_parser.add_section(section)
 
-            section_dict = self.default_params[section]
+            for key, val in params[section].items():
+                self.cfg_parser.set(section, key, str(val))
 
-            for key, val in section_dict.items():
-                self.cfg_parser.set(section, key, val)
-
-    def _write_input_params(self, upload):
+    def _write_input_params(self, upload, input_params):
         """
-        Write the parameters associated with input files. It is assumed that
-        self.input_params is set prior to this method being called.
+        Read input file information from the OpenQuake DB (given a
+        'uiapi.upload' record) and write the parameters associated with the
+        input files to the config file.
 
         For example, if we have the input file 'vulnerability.xml' which
-        a vulnerability model, we would write the following to the config file:
+        represents a vulnerability model, we would write the following to the
+        config file:
             VULNERABILITY = vulnerability.xml
 
+        Note: This method can potentially perform several database transactions
+        to retrieve the necessary data from the `uiapi.input` table.
+
         :param upload: :py:class:`geonode.mtapi.models.Upload` instance
+        :param input_params: A dict (organized by config file sections)
+            containing param/'input type' pairs. (The 'input type' corresponds
+            to the value of the 'uiapi.input.input_type' column in the
+            OpenQuake DB.) Example::
+                {'HAZARD': {
+                    'SOURCE_MODEL_LOGIC_TREE_FILE': 'lt_source',
+                    'GMPE_LOGIC_TREE_FILE': 'lt_gmpe'},
+                 'RISK': {
+                    'EXPOSURE': 'exposure',
+                    'VULNERABILITY': 'vulnerability'}}
         """
-        for section in self.input_params.keys():
+        for section in input_params.keys():
             if not self.cfg_parser.has_section(section):
                 self.cfg_parser.add_section(section)
 
-            section_dict = self.input_params[section]
+            for key, input_type in input_params[section].items():
+                input_file = models.Input.objects.using(utils.dbn()).filter(
+                    upload=upload.id, input_type=input_type)[0]
 
-            for key, input_type in section_dict.items():
-                pass
-            # FIXME (LB): I cannot for the life of me figure out why
-            # I have to specify upload=upload.id, rather than
-            # upload_id=upload.id, which is the case with all of the other
-            # models.
-            # For some reason, this works. WTF?
-            input_file = models.Input.objects.using(utils.dbn()).filter(
-                upload=upload.id, input_type=input_type)[0]
-
-            file_name = os.path.basename(input_file.path)
-            self.cfg_parser.set(section, key, file_name)
-
-    def _write_user_params(self, oqparams):
-        """
-        Write attributes from an OqParams object to the config file. It is
-        assumed that self.TODO is set prior to this method being called.
-
-        :param oqparams: :py:class:`geonode.mtapi.models.OqParams` instance
-        """
-
-    def _write_classical_user_params(self, oqp):
-        """
-        Write the params specified by the user/ui.
-
-        TODO(LB): This is super ugly and hack-ish. It's just the first take
-        so I can get it working. I'll clean this up later, I promise.
-        """
-        sec = 'general'
-        cp = self.cfg_parser
-        cp.set(sec, 'REGION_GRID_SPACING', oqp.region_grid_spacing)
-        cp.set(sec, 'REGION_VERTEX', polygon_to_coord_string(oqp.region))
-
-        sec = 'HAZARD'
-        cp.set(sec, 'MINIMUM_MAGNITUDE', oqp.min_magnitude)
-        cp.set(sec, 'INVESTIGATION_TIME', oqp.investigation_time)
-        cp.set(sec, 'COMPONENT', CLASSICAL_PARAM_TRNSLTN[oqp.component])
-        cp.set(sec, 'INTENSITY_MEASURE_TYPE', CLASSICAL_PARAM_TRNSLTN[oqp.imt])
-        cp.set(sec, 'GMPE_TRUNCATION_TYPE', CLASSICAL_PARAM_TRNSLTN[oqp.truncation_type])
-        cp.set(sec, 'TRUNCATION_LEVEL', int(oqp.truncation_level))  # FIXME: need to change this to an int in the db
-        cp.set(sec, 'REFERENCE_VS30_VALUE', oqp.reference_vs30_value)
-
-        # TODO: make this a module-level util function
-        float_list_to_str = lambda flt_list, sep: sep.join([str(x) for x in flt_list])
-
-        cp.set(sec, 'INTENSITY_MEASURE_LEVELS', float_list_to_str(oqp.imls, ', '))
-        cp.set(sec, 'POES_HAZARD_MAPS', float_list_to_str(oqp.poes, ' '))
-        cp.set(sec, 'NUMBER_OF_LOGIC_TREE_SAMPLES', oqp.realizations)
-
-        sec = 'RISK'
-        # this one is the same as POES_HAZARD_MAPS
-        cp.set(sec, 'CONDITIONAL_LOSS_POE', float_list_to_str(oqp.poes, ' '))
+                file_name = os.path.basename(input_file.path)
+                self.cfg_parser.set(section, key, file_name)
 
     def close(self):
         """
-        Close the output file handle.
+        Close the output file handle. This is necessary to flush the buffer
+        and actually write the file.
         """
         if self.output_fh is not None:
+            self.cfg_parser.write(self.output_fh)
             self.output_fh.close()

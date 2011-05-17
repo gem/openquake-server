@@ -45,7 +45,7 @@ TEST_PARAMS = {
     'INVESTIGATION_TIME': 50.0,
     'COMPONENT': 'gmroti50',
     'INTENSITY_MEASURE_TYPE': 'pga',
-    'GMPE_TRUNCATION_TYPE': '2-sided',
+    'GMPE_TRUNCATION_TYPE': 'twosided',
     'TRUNCATION_LEVEL': '3',
     'REFERENCE_VS30_VALUE': '760.0',
     'INTENSITY_MEASURE_LEVELS': [0.005, 0.007, 0.0098, 0.0137, 0.0192,
@@ -59,11 +59,17 @@ TEST_PARAMS = {
 EXPECTED_OUTPUT_FILE = "data/expected-config.gem"
 
 # Upload dir
-upload_dir_path = lambda upload_uuid: os.path.join(TEST_OUTPUT_BASE_PATH, upload_uuid)
+upload_dir_path = lambda upload_uuid: os.path.join(
+    TEST_OUTPUT_BASE_PATH, upload_uuid)
+
 # A file in the input dir
-upload_file_path = lambda upload_uuid, file: os.path.join(upload_dir_path(upload_uuid), file)
+upload_file_path = lambda upload_uuid, file: os.path.join(
+    upload_dir_path(upload_uuid), file)
+
 # Job folder within the upload dir
-job_dir_path = lambda upload_uuid, job_id: os.path.join(upload_dir_path(upload_uuid), job_id)
+job_dir_path = lambda upload_uuid, job_id: os.path.join(
+    upload_dir_path(upload_uuid), job_id)
+
 
 def create_inputs(upload_uuid):
     """
@@ -85,7 +91,8 @@ def create_inputs(upload_uuid):
         path=vuln_path,
         input_type='vulnerability')
 
-    src_ltree_path = upload_file_path(upload_uuid, 'source-model-logic-tree.xml')
+    src_ltree_path = upload_file_path(
+        upload_uuid, 'source-model-logic-tree.xml')
     src_ltree = mt_models.Input(
         owner_id=TEST_OWNER_ID,
         path=src_ltree_path,
@@ -115,7 +122,6 @@ def create_inputs(upload_uuid):
     return inputs
 
 
-
 class JobConfigWriterClassicalTestCase(unittest.TestCase):
     """
     """
@@ -123,7 +129,7 @@ class JobConfigWriterClassicalTestCase(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         """
-        One-time setup for test data. 
+        One-time setup for test data.
         """
 
         cls.upload_uuid = str(uuid.uuid4())
@@ -154,7 +160,7 @@ class JobConfigWriterClassicalTestCase(unittest.TestCase):
             description='Test job for upload %s' % cls.upload_uuid,
             job_pid=TEST_JOB_PID,
             job_type='classical')
-            
+
         cls.upload = \
             mt_models.Upload(
                 owner_id=TEST_OWNER_ID,
@@ -173,7 +179,14 @@ class JobConfigWriterClassicalTestCase(unittest.TestCase):
         cls.oqjob.oq_params_id = cls.oqparams.id
         cls.oqjob.save(using=utils.dbn())
 
-        # create the job folder underneath the upload folder
+        # now that we have a oq_job.id, set the job path to upload_path/job_id:
+        cls.oqjob.path = os.path.join(cls.upload.path, str(cls.oqjob.id))
+        # update the oq_job record
+        cls.oqjob.save(using=utils.dbn())
+
+        # Create the job folder underneath the upload folder.
+        # The folder structure needs to be in place before the config writer
+        # goes to work.
         cls.job_dir = os.path.join(cls.upload_dir, str(cls.oqjob.id))
         os.mkdir(cls.job_dir)
 
@@ -182,17 +195,46 @@ class JobConfigWriterClassicalTestCase(unittest.TestCase):
             item.upload_id = cls.upload.id
             item.save(using=utils.dbn())
 
+    def test_write_params(self):
+        """
+        Exercise the write_params functionality. Basically, we create a
+        JobConfigWriter, call `write_params`, and verify that the params were
+        written to the ConfigParser object of the JobConfigWriter.
+        """
+
+        fake_job_id = 1234
+        test_params = {
+            'general': {'REGION_GRID_SPACING': 0.1},
+            'HAZARD': {'MINIMUM_MAGNITUDE': 5.0},
+            'RISK': {'CONDITIONAL_LOSS_POE': '0.01 0.10'}}
+        cfg_writer = config_writer.JobConfigWriter(fake_job_id)
+
+        cfg_writer.write_params(test_params)
+
+        cfg_parser = cfg_writer.cfg_parser
+
+        for section in test_params.keys():
+            self.assertTrue(cfg_parser.has_section(section))
+
+            for k, v in test_params[section].items():
+                # we expected the str equivalent of whatever the value is
+                self.assertEqual(str(v), cfg_parser.get(section, k))
+
     def test_classical_config_file_generation(self):
+        """
+        This is somewhat of a 'blackbox' test. We have an existing 'expected'
+        config file; given our sample data (which this test suite has loaded
+        into the database), we simply generate a config file and compare it to
+        the expected file.
+        """
         out_path = os.path.join(self.job_dir, 'config.gem')
-        expected_config = tests.test_data_path('expected_config.gem') 
+        expected_config = tests.test_data_path('expected_config.gem')
 
         cfg_writer = config_writer.JobConfigWriter(self.oqjob.id)
 
-        path_to_new_cfg_file = cfg_writer.write()
+        path_to_new_cfg_file = cfg_writer.serialize()
 
         # check that the result directory is what we specified
-        print out_path
-        print path_to_new_cfg_file
         self.assertEqual(
             os.path.abspath(out_path),
             os.path.abspath(path_to_new_cfg_file))
@@ -221,14 +263,51 @@ class JobConfigWriterClassicalTestCase(unittest.TestCase):
                 exp = exp_items[ctr]
                 act = actual_items[ctr]
                 self.assertEqual(exp, act)
-            # self.assertEqual(exp_items, actual_items)
 
             exp_fh.close()
             act_fh.close()
-    
+
+
+class ConfigWriterUtilsTestCase(unittest.TestCase):
+    """
+    Exercises the module-level utility functions of
+    :py:module:`oqrunner.config_writer`.
+    """
     def test_polygon_to_coord_string(self):
         expected_str = '38.0, -122.2, 38.0, -121.7, 37.5, -121.7, 37.5, -122.2'
-        polygon = TEST_PARAMS['REGION_VERTEX'] 
+        polygon = TEST_PARAMS['REGION_VERTEX']
 
         actual_str = config_writer.polygon_to_coord_string(polygon)
         self.assertEqual(expected_str, actual_str)
+
+    def test_float_list_to_str(self):
+        floats = [0.1, 0.3, -0.666666, 3.14159, -2.17828]
+        delimiter = '~! '
+
+        expected = '0.1~! 0.3~! -0.666666~! 3.14159~! -2.17828'
+        self.assertEqual(expected, config_writer.float_list_to_str(
+            floats, delimiter))
+
+    def test_enum_translate(self):
+        """
+        Some config values which are stored in the database need to be
+        translated into a legal form for the config file.
+
+        For example, 'pga' in the DB needs to be 'PGA' in the config file.
+
+        TODO(LB): This test kind of sucks, to be honest. It's better than
+        nothing, but should probably be revisited later (especially if we need
+        to add more translation options). There's no real 'functionality' here,
+        just data mapping.
+        """
+
+        in_list = [
+            'average', 'gmroti50', 'pga', 'sa', 'pgv',
+            'pgd', 'none', 'onesided', 'twosided']
+        out_list = [
+            'Average Horizontal', 'Average Horizontal (GMRotI50)',
+            'PGA', 'SA', 'PGV', 'PGD', 'None', '1 Sided', '2 Sided']
+
+        for ctr, in_item in enumerate(in_list):
+            self.assertEqual(
+                config_writer.enum_translate(in_item), out_list[ctr])
