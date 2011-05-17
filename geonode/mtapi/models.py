@@ -171,7 +171,7 @@ class OqJob(models.Model):
     """This corresponds to the uiapi.oq_job table."""
     owner = models.ForeignKey(OqUser)
     description = models.TextField()
-    path = models.TextField(unique=True)
+    path = models.TextField(unique=True, null=True)
     JOB_TYPE_CHOICES = (
         (u"classical", u"Classical PSHA calculation"),
         (u"event_based", u"Event-based calculation"),
