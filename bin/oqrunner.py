@@ -40,6 +40,7 @@ import os
 import pprint
 import sys
 
+from geonode.mtapi import utils
 from geonode.mtapi.models import OqJob
 
 
@@ -67,11 +68,14 @@ def create_input_file_dir(config):
         - jobid (the database key of the associated oq_job record)
         - user (the database user)
         - password (the database user password)
-    :returns: the path of the input files directory for the engine run.
+    :returns: the :py:class:`geonode.mtapi.models.OqJob` instance
     """
-    job = OqJob.objects.find(id=config["jobid"])
-    path = os.path.join(job.oq_params.upload.path, str(job.id))
-    os.mkdir(path, 0777)
+    [job] = OqJob.objects.using(utils.dbn()).filter(id=config["jobid"])
+    job.path = os.path.join(job.oq_params.upload.path, str(job.id))
+    os.mkdir(job.path)
+    os.chmod(job.path, 0777)
+    job.save(using=utils.dbn())
+    return job
 
 
 def run_engine(config):
