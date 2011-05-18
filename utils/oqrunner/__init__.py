@@ -18,8 +18,6 @@
 # <http://www.gnu.org/licenses/lgpl-3.0.txt> for a copy of the LGPLv3 License.
 
 
-import os
-
-TEST_DATA_BASE_PATH = "tests/data"
-
-test_data_path = lambda file: os.path.join(TEST_DATA_BASE_PATH, file)
+"""
+This package includes utilities and classes for running the OpenQuake engine.
+"""
