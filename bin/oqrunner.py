@@ -42,6 +42,7 @@ import sys
 
 from geonode.mtapi import utils
 from geonode.mtapi.models import OqJob
+#from utils import oqrunner
 
 
 logger = logging.getLogger('oqrunner')
@@ -78,6 +79,24 @@ def create_input_file_dir(config):
     return job
 
 
+def prepare_inputs(config, job):
+    """Prepare a config.gem file and symbolic links to the other input files.
+
+    :param dict config: a dictionary with the following configuration data:
+        - host (the database host)
+        - db (the database name)
+        - jobid (the database key of the associated oq_job record)
+        - user (the database user)
+        - password (the database user password)
+    """
+    #config_writer = oqrunner.JobConfigWriter(job.id)
+    #config_writer.serialize()
+    inputs = job.oq_params.upload.input_set.all()
+    for input in inputs:
+       basename = os.path.basename(input)
+       os.symlink(input.path, os.path.join(job.path, basename))
+
+
 def run_engine(config):
     """Run the OpenQuake engine.
 
@@ -85,10 +104,10 @@ def run_engine(config):
         - creating a directory EIFD for the engine's input files
         - generating the config.gem file in EIFD
         - symlinking all the input files (uploaded by the user) in EIFD
-        - run the engine
-        - generate a shapefile for each hazard/loss map once the engine
+        - running the engine
+        - generating a shapefile for each hazard/loss map once the engine
           finishes and register these shapefiles with the geonode server
-        - create a database record for each hazard/loss map and capture the
+        - creating a database record for each hazard/loss map and capture the
           associated shapefile.
     """
 

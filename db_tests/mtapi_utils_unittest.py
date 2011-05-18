@@ -19,7 +19,7 @@
 
 
 """
-database related unit tests for the geonode/mtapi/views.py module.
+database related unit tests for the geonode/mtapi/utils.py module.
 """
 
 

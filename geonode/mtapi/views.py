@@ -29,13 +29,12 @@ import pprint
 import re
 import simplejson
 import subprocess
-import tempfile
 
 from django.http import HttpResponse, Http404
 from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
 
-from geonode.mtapi.models import OqUser, Upload, Input
+from geonode.mtapi.models import Upload, Input
 from geonode.mtapi import utils
 
 
@@ -102,7 +101,7 @@ def input_upload(request):
     """
     print("request.FILES: %s\n" % pprint.pformat(request.FILES))
     if request.method == "POST":
-        upload = prepare_upload()
+        upload = utils.prepare_upload()
         for uploaded_file in request.FILES.getlist('input_files'):
             handle_uploaded_file(upload, uploaded_file)
         load_source_files(upload)
@@ -134,20 +133,6 @@ def prepare_result(upload, status=None):
             result['files'] = files
 
     return simplejson.dumps(result)
-
-
-def prepare_upload():
-    """Create a directory for the files, return `Upload` object.
-
-    :returns: the :py:class:`geonode.mtapi.models.Upload` instance
-        associated with this upload.
-    """
-    user = OqUser.objects.using(utils.dbn()).filter(user_name="openquake")[0]
-    path = tempfile.mkdtemp(dir=settings.OQ_UPLOAD_DIR)
-    os.chmod(path, 0777)
-    upload = Upload(owner=user, path=path, status="pending", job_pid=0)
-    upload.save(using=utils.dbn())
-    return upload
 
 
 def handle_uploaded_file(upload, uploaded_file):
