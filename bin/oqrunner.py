@@ -42,6 +42,7 @@ import subprocess
 import sys
 
 from django.conf import settings
+from geonode.mtapi import utils
 from geonode.mtapi.models import OqJob
 from utils.oqrunner import config_writer
 
@@ -102,12 +103,10 @@ def run_engine(job):
     cmds = [os.path.join(settings.OQ_ENGINE_DIR, "bin/openquake")]
     cmds.append("--config_file")
     cmds.append(os.path.join(job.path, "config.gem"))
-    p = subprocess.Popen(
-        cmds, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    out, err = p.communicate()
-    if p.returncode != 0:
+    code, out, err = utils.run_cmd(cmds, ignore_exit_code=True)
+    if code != 0:
         logging.error(err)
-    return (p.returncode, out, err)
+    return (code, out, err)
 
 
 def run_calculation(config):

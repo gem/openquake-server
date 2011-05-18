@@ -23,13 +23,46 @@ database related unit tests for the bin/oqrunner.py module.
 """
 
 
+import mock
 import os
 import stat
 import unittest
 
-from bin.oqrunner import create_input_file_dir, prepare_inputs
+from django.conf import settings
 
+from bin.oqrunner import create_input_file_dir, prepare_inputs, run_engine
 from db_tests.helpers import DbTestMixin
+
+
+class RunEngineTestCase(unittest.TestCase, DbTestMixin):
+    """Tests the behaviour of oqrunner.run_engine()."""
+
+    def setUp(self):
+        self.job = self.setup_classic_job()
+
+    def tearDown(self):
+        self.teardown_job(self.job)
+
+    def test_run_engine(self):
+        """
+        run_engine() passes the correct commands to run_cmd().
+        """
+        with mock.patch('geonode.mtapi.utils.run_cmd') as mock_func:
+            # Make all the calls pass.
+            mock_func.return_value = (-42, "__out__", "__err__")
+
+            # Run the actual function that is to be tested.
+            results = run_engine(self.job)
+            # run_engine() is passing through the run_cmd() return value.
+            self.assertEqual(mock_func.return_value, results)
+            # run_cmd() was called once.
+            self.assertEqual(1, mock_func.call_count)
+            # The arguments passed to run_cmd() are as follows:
+            expected = (
+                (["%s/bin/openquake" % settings.OQ_ENGINE_DIR, "--config_file",
+                  "%s/config.gem" % self.job.path],),
+                {"ignore_exit_code": True})
+            self.assertEqual(expected, mock_func.call_args)
 
 
 class PrepareInputsTestCase(unittest.TestCase, DbTestMixin):
