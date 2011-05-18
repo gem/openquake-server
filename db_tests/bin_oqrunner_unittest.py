@@ -24,51 +24,61 @@ database related unit tests for the bin/oqrunner.py module.
 
 
 import os
-import shutil
 import stat
-import tempfile
 import unittest
 
-from geonode.mtapi import utils
-from geonode.mtapi.models import OqJob, OqParams, OqUser, Upload
-from bin.oqrunner import create_input_file_dir
+from bin.oqrunner import create_input_file_dir, prepare_inputs
+
+from db_tests.helpers import DbTestMixin
 
 
-class CreateInputFileDirTestCase(unittest.TestCase):
+class PrepareInputsTestCase(unittest.TestCase, DbTestMixin):
+    """Tests the behaviour of oqrunner.prepare_inputs()."""
+
+    def setUp(self):
+        self.job = self.setup_classic_job()
+
+    def tearDown(self):
+        self.teardown_job(self.job)
+
+    def test_prepare_inputs_sets_up_a_config_file(self):
+        """
+        The job's input directory has a config.gem file that's readable to us.
+        """
+        config = {
+            'db': 'openquake', 'host': 'localhost', 'jobid': self.job.id,
+            'password': 'xxx', 'user': 'oq_uiapi_writer'}
+
+        prepare_inputs(config, self.job)
+        config_path = os.path.join(self.job.path, "config.gem")
+        self.assertTrue(os.path.isfile(config_path))
+        self.assertTrue(os.access(config_path, os.R_OK))
+
+    def test_prepare_inputs_sets_up_symlinks(self):
+        """
+        The job's input directory has symbolic links to
+        all the input files in the corresponding upload file set.
+        """
+        config = {
+            'db': 'openquake', 'host': 'localhost', 'jobid': self.job.id,
+            'password': 'xxx', 'user': 'oq_uiapi_writer'}
+
+        prepare_inputs(config, self.job)
+        for input in self.job.oq_params.upload.input_set.all():
+            input_path = os.path.join(
+                self.job.path, os.path.basename(input.path))
+            self.assertTrue(os.path.islink(input_path))
+            self.assertEqual(input.path, os.path.realpath(input_path))
+
+
+class CreateInputFileDirTestCase(unittest.TestCase, DbTestMixin):
     """Tests the behaviour of oqrunner.create_input_file_dir()."""
 
     def setUp(self):
-        [user] = OqUser.objects.using(
-            utils.dbn()).filter(user_name="openquake")
-        path = tempfile.mkdtemp()
-        os.chmod(path, 0777)
-        upload = Upload(owner=user, path=path, status="succeeded", job_pid=10)
-        upload.save(using=utils.dbn())
-        oqp = OqParams()
-        oqp.job_type = "classical"
-        oqp.upload = upload
-        oqp.region_grid_spacing = 0.25
-        oqp.min_magnitude = 7.6
-        oqp.investigation_time = 50.0
-        oqp.component = "average"
-        oqp.imt = "pga"
-        oqp.truncation_type = "none"
-        oqp.truncation_level = 1.1
-        oqp.reference_vs30_value = 1.2
-        oqp.imls = [1.0, 1.1]
-        oqp.poes = [2.0, 2.1]
-        oqp.realizations = 3
-        from django.contrib.gis.geos import GEOSGeometry
-        oqp.region = GEOSGeometry(
-            'POLYGON(( 10 10, 10 20, 20 20, 20 15, 10 10))')
-        oqp.save(using=utils.dbn())
-        self.job = OqJob(oq_params=oqp, owner=user, job_type="classical")
-        self.job.save(using=utils.dbn())
+        self.job = self.setup_classic_job(create_job_path=False)
 
     def tearDown(self):
-        # Ignore all the rows in the test database. The latter will be
-        # dropped/recreated prior to the next test run.
-        shutil.rmtree(self.job.oq_params.upload.path, ignore_errors=True)
+        self.teardown_job(self.job)
 
     def test_create_input_file_dir(self):
         """

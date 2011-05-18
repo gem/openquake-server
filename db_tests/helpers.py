@@ -72,9 +72,11 @@ class DbTestMixin(object):
             input.delete()
         upload.delete()
 
-    def setup_classic_job(self):
+    def setup_classic_job(self, create_job_path=True):
         """Create a classic job with associated upload and inputs.
 
+        :param bool create_job_path: if set the path for the job will be
+            created and captured in the job record
         :returns: a :py:class:`geonode.mtapi.models.OqJob` instance
         """
         upload = self.setup_upload()
@@ -98,6 +100,11 @@ class DbTestMixin(object):
         oqp.save(using=utils.dbn())
         job = OqJob(oq_params=oqp, owner=upload.owner, job_type="classical")
         job.save(using=utils.dbn())
+        if create_job_path:
+            job.path = os.path.join(upload.path, str(job.id))
+            os.mkdir(job.path)
+            os.chmod(job.path, 0777)
+            job.save(using=utils.dbn())
         return job
 
     def teardown_job(self, job, filesystem_only=True):

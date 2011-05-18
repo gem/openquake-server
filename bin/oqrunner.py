@@ -93,8 +93,8 @@ def prepare_inputs(config, job):
     #config_writer.serialize()
     inputs = job.oq_params.upload.input_set.all()
     for input in inputs:
-       basename = os.path.basename(input)
-       os.symlink(input.path, os.path.join(job.path, basename))
+        basename = os.path.basename(input.path)
+        os.symlink(input.path, os.path.join(job.path, basename))
 
 
 def run_engine(config):
