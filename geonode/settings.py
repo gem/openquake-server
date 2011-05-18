@@ -14,10 +14,8 @@ MANAGERS = ADMINS
 
 DATABASES = {
     'default': {
-        # Add 'postgresql_psycopg2', 'postgresql', 'mysql', 'sqlite3' or
-        # 'oracle'.
         'ENGINE': 'django.contrib.gis.db.backends.postgis',
-        'NAME': 'openquake',
+        'NAME': 'mtapi',
         'USER': 'oq_uiapi_writer',
         'PASSWORD': '_Bloujqueewjack9',
         'HOST': '',
