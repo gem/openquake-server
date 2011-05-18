@@ -25,20 +25,13 @@ Helper classes/functions needed across multiple database related unit tests.
 
 import os
 import shutil
-import stat
-import tempfile
-import unittest
 
 from geonode.mtapi import utils
-from geonode.mtapi.models import Input, OqJob, OqParams, OqUser, Upload
-from bin.oqrunner import create_input_file_dir
+from geonode.mtapi.models import Input, OqJob, OqParams
 
 
-class DbTestBase(unittest.TestCase):
+class DbTestMixin(object):
     """Tests the behaviour of oqrunner.create_input_file_dir()."""
-
-    def __init__(self, *args, **kwargs):
-        super(DbTestBase, self).__init__(*args, **kwargs)
 
     def setup_upload(self):
         """Create an upload with associated inputs.
@@ -56,7 +49,8 @@ class DbTestBase(unittest.TestCase):
         for file, type in files:
             path = os.path.join(upload.path, file)
             open(path, "w+").close()
-            input = Input(path=path, owner=upload.owner, input_type=type)
+            input = Input(path=path, owner=upload.owner, input_type=type,
+                          upload=upload)
             input.save(using=utils.dbn())
         return upload
 
@@ -74,9 +68,9 @@ class DbTestBase(unittest.TestCase):
         shutil.rmtree(upload.path, ignore_errors=True)
         if filesystem_only:
             return
-        for input in upload.using(utils.dbn()).input_set.all():
-            input.delete(using=utils.dbn())
-        upload.delete(using=utils.dbn())
+        for input in upload.input_set.all():
+            input.delete()
+        upload.delete()
 
     def setup_classic_job(self):
         """Create a classic job with associated upload and inputs.
@@ -102,39 +96,25 @@ class DbTestBase(unittest.TestCase):
         oqp.region = GEOSGeometry(
             'POLYGON(( 10 10, 10 20, 20 20, 20 15, 10 10))')
         oqp.save(using=utils.dbn())
-        self.job = OqJob(
-            oq_params=oqp, owner=upload.owner, job_type="classical")
-        self.job.save(using=utils.dbn())
+        job = OqJob(oq_params=oqp, owner=upload.owner, job_type="classical")
+        job.save(using=utils.dbn())
+        return job
 
-    def teardown_job(self, job):
+    def teardown_job(self, job, filesystem_only=True):
         """
         Tear down the file system (and potentially db) artefacts for the
         given job.
 
-        :param upload: the :py:class:`geonode.mtapi.models.Upload` instance
+        :param job: the :py:class:`geonode.mtapi.models.OqJob` instance
             in question
-        :param bool filesystem_only: if set the upload/input database records
-            will be left intact. This saves time and the test db will be
-            dropped/recreated prior to the next db test suite run anyway.
+        :param bool filesystem_only: if set the oq_job/oq_param/upload/input
+            database records will be left intact. This saves time and the test
+            db will be dropped/recreated prior to the next db test suite run
+            anyway.
         """
-        # Ignore all the rows in the test database. The latter will be
-        # dropped/recreated prior to the next test run.
-        shutil.rmtree(self.job.oq_params.upload.path, ignore_errors=True)
-
-    def test_create_input_file_dir(self):
-        """
-        An <upload_path>/<jobid> directory will be created with 0777
-        permissions.
-        """
-        config = {
-            'db': 'openquake', 'host': 'localhost', 'jobid': self.job.id,
-            'password': 'xxx', 'user': 'oq_uiapi_writer'}
-
-        job = create_input_file_dir(config)
-        info = os.stat(job.path)
-        self.assertTrue(stat.S_ISDIR(info.st_mode))
-        self.assertEqual("0777", oct(stat.S_IMODE(info.st_mode)))
-        self.assertEqual(
-            os.path.join(job.oq_params.upload.path, str(job.id)),
-            job.path)
-
+        oqp = job.oq_params
+        self.teardown_upload(oqp.upload, filesystem_only=filesystem_only)
+        if filesystem_only:
+            return
+        job.delete()
+        oqp.delete()
