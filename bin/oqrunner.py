@@ -42,7 +42,6 @@ import subprocess
 import sys
 
 from django.conf import settings
-from geonode.mtapi import utils
 from geonode.mtapi.models import OqJob
 from utils.oqrunner import config_writer
 
