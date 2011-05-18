@@ -34,28 +34,28 @@ from bin.oqrunner import create_input_file_dir, prepare_inputs, run_engine
 from db_tests.helpers import DbTestMixin
 
 
-class RunEngineTestCase(unittest.TestCase, DbTestMixin):
-    """Tests the behaviour of oqrunner.run_engine()."""
+#class RunEngineTestCase(unittest.TestCase, DbTestMixin):
+#    """Tests the behaviour of oqrunner.run_engine()."""
 
-    def setUp(self):
-        self.job = self.setup_classic_job()
+#    def setUp(self):
+#        self.job = self.setup_classic_job()
 
-    def tearDown(self):
-        self.teardown_job(self.job)
+#    def tearDown(self):
+#        self.teardown_job(self.job)
 
-    def test_run_engine(self):
-        """
-        The correct parameters are passed to subprocess.Popen
-        """
-        popen_mock = mock.MagicMock()
-        popen_mock.return_value = mock.MagicMock()
-        popen_mock.return_value.communicate[0] = ("", "")
-        popen_mock.return_value.communicate[1] = ("", "")
-        with mock.patch("subprocess.Popen", popen_mock):
-            p = subprocess.Popen("a b c".split())
-            self.assertEqual([], p.call_args)
+#    def test_run_engine(self):
+#        """
+#        The correct parameters are passed to subprocess.Popen
+#        """
+#        popen_mock = mock.MagicMock()
+#        popen_mock.return_value = mock.MagicMock()
+#        popen_mock.return_value.communicate[0] = ("", "")
+#        popen_mock.return_value.communicate[1] = ("", "")
+#        with mock.patch("subprocess.Popen", popen_mock):
+#            p = subprocess.Popen("a b c".split())
+#            self.assertEqual([], p.call_args)
 
-            import pdb; pdb.set_trace()
+#            import pdb; pdb.set_trace()
 
 
 class PrepareInputsTestCase(unittest.TestCase, DbTestMixin):
@@ -71,11 +71,7 @@ class PrepareInputsTestCase(unittest.TestCase, DbTestMixin):
         """
         The job's input directory has a config.gem file that's readable to us.
         """
-        config = {
-            'db': 'openquake', 'host': 'localhost', 'jobid': self.job.id,
-            'password': 'xxx', 'user': 'oq_uiapi_writer'}
-
-        prepare_inputs(config, self.job)
+        prepare_inputs(self.job)
         config_path = os.path.join(self.job.path, "config.gem")
         self.assertTrue(os.path.isfile(config_path))
         self.assertTrue(os.access(config_path, os.R_OK))
@@ -85,11 +81,7 @@ class PrepareInputsTestCase(unittest.TestCase, DbTestMixin):
         The job's input directory has symbolic links to
         all the input files in the corresponding upload file set.
         """
-        config = {
-            'db': 'openquake', 'host': 'localhost', 'jobid': self.job.id,
-            'password': 'xxx', 'user': 'oq_uiapi_writer'}
-
-        prepare_inputs(config, self.job)
+        prepare_inputs(self.job)
         for input in self.job.oq_params.upload.input_set.all():
             input_path = os.path.join(
                 self.job.path, os.path.basename(input.path))

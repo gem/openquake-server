@@ -44,7 +44,7 @@ import sys
 from django.conf import settings
 from geonode.mtapi import utils
 from geonode.mtapi.models import OqJob
-#from utils import oqrunner
+from utils.oqrunner import config_writer
 
 
 logger = logging.getLogger('oqrunner')
@@ -86,8 +86,8 @@ def prepare_inputs(job):
 
     :param job: the :py:class:`geonode.mtapi.models.OqJob` instance in question
     """
-    #config_writer = oqrunner.JobConfigWriter(job.id)
-    #config_writer.serialize()
+    cw = config_writer.JobConfigWriter(job.id)
+    cw.serialize()
     inputs = job.oq_params.upload.input_set.all()
     for input in inputs:
         basename = os.path.basename(input.path)
