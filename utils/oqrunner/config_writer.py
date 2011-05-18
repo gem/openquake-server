@@ -257,14 +257,11 @@ class JobConfigWriter(object):
                  :py:class:`geonode.mtapi.models.OqParams`,
                  :py:class:`geonode.mtapi.models.Upload`)
             """
-            oqjob = models.OqJob.objects.using(
-                utils.dbn()).filter(id=self.job_id)[0]
+            oqjob = models.OqJob.objects.filter(id=self.job_id)[0]
 
-            oqparams = models.OqParams.objects.using(
-                utils.dbn()).filter(id=oqjob.oq_params_id)[0]
+            oqparams = models.OqParams.objects.filter(id=oqjob.oq_params_id)[0]
 
-            upload = models.Upload.objects.using(
-                utils.dbn()).filter(id=oqparams.upload_id)[0]
+            upload = models.Upload.objects.filter(id=oqparams.upload_id)[0]
 
             return oqjob, oqparams, upload
 

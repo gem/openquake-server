@@ -73,11 +73,11 @@ def create_input_file_dir(config):
         - password (the database user password)
     :returns: the :py:class:`geonode.mtapi.models.OqJob` instance
     """
-    [job] = OqJob.objects.using(utils.dbn()).filter(id=config["jobid"])
+    [job] = OqJob.objects.filter(id=config["jobid"])
     job.path = os.path.join(job.oq_params.upload.path, str(job.id))
     os.mkdir(job.path)
     os.chmod(job.path, 0777)
-    job.save(using=utils.dbn())
+    job.save()
     return job
 
 

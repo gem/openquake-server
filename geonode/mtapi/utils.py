@@ -32,7 +32,10 @@ from geonode.mtapi.models import OqUser, Upload
 
 def dbn():
     """The name of the database to use."""
-    return os.environ.get("OQ_MTAPI_DB", "openquake")
+    return dict(
+        NAME=os.environ.get("OQ_MTAPI_DB", "openquake"),
+        USER=os.environ.get("OQ_MTAPI_USER", "oq_uiapi_writer"),
+        PASSWORD=os.environ.get("OQ_MTAPI_PASSWORD"))
 
 
 def prepare_upload(root=None):
@@ -41,12 +44,12 @@ def prepare_upload(root=None):
     :returns: the :py:class:`geonode.mtapi.models.Upload` instance
         associated with this upload.
     """
-    user = OqUser.objects.using(dbn()).filter(user_name="openquake")[0]
+    user = OqUser.objects.filter(user_name="openquake")[0]
     root = root if root else settings.OQ_UPLOAD_DIR
     path = tempfile.mkdtemp(dir=root)
     os.chmod(path, 0777)
     upload = Upload(owner=user, path=path, status="pending", job_pid=0)
-    upload.save(using=dbn())
+    upload.save()
     return upload
 
 

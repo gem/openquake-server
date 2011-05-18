@@ -62,7 +62,7 @@ def input_upload_result(request, upload_id):
     """
     print("upload_id: %s" % upload_id)
     if request.method == "GET":
-        [upload] = Upload.objects.using(utils.dbn()).filter(id=int(upload_id))
+        [upload] = Upload.objects.filter(id=int(upload_id))
         if upload.status == "running":
             processor_is_alive = utils.is_process_running(
                 upload.job_pid, settings.NRML_RUNNER_PATH)
@@ -71,7 +71,7 @@ def input_upload_result(request, upload_id):
                 raise Http404
             else:
                 upload.status = "failed"
-                upload.save(using=utils.dbn())
+                upload.save()
                 result = prepare_result(upload)
                 print "Upload processing failed, process not found.."
                 return HttpResponse(result, status=500, mimetype="text/html")
@@ -126,7 +126,7 @@ def prepare_result(upload, status=None):
     result = dict(status=status, msg=msg, id=upload.id)
     if upload.status == "succeeded":
         files = []
-        srcs = upload.input_set.using(utils.dbn()).filter(input_type="source")
+        srcs = upload.input_set.filter(input_type="source")
         for src in srcs:
             files.append(dict(id=src.id, name=os.path.basename(src.path)))
         if files:
@@ -157,7 +157,7 @@ def handle_uploaded_file(upload, uploaded_file):
     destination.close()
     source = Input(upload=upload, owner=upload.owner, size=size, path=path,
                    input_type=input_type)
-    source.save(using=utils.dbn())
+    source.save()
     print(source)
     return source
 
@@ -206,7 +206,7 @@ def load_source_files(upload):
     pid = subprocess.Popen(args, env=env).pid
     upload.status = "running"
     upload.job_pid = pid
-    upload.save(using=utils.dbn())
+    upload.save()
     print "pid = %s" % pid
     return pid
 

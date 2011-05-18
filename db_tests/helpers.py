@@ -52,7 +52,7 @@ class DbTestMixin(object):
             open(path, "w+").close()
             input = Input(path=path, owner=upload.owner, input_type=type,
                           upload=upload)
-            input.save(using=utils.dbn())
+            input.save()
         return upload
 
     def teardown_upload(self, upload, filesystem_only=True):
@@ -99,14 +99,14 @@ class DbTestMixin(object):
         from django.contrib.gis.geos import GEOSGeometry
         oqp.region = GEOSGeometry(
             'POLYGON(( 10 10, 10 20, 20 20, 20 15, 10 10))')
-        oqp.save(using=utils.dbn())
+        oqp.save()
         job = OqJob(oq_params=oqp, owner=upload.owner, job_type="classical")
-        job.save(using=utils.dbn())
+        job.save()
         if create_job_path:
             job.path = os.path.join(upload.path, str(job.id))
             os.mkdir(job.path)
             os.chmod(job.path, 0777)
-            job.save(using=utils.dbn())
+            job.save()
         return job
 
     def teardown_job(self, job, filesystem_only=True):

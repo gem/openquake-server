@@ -101,9 +101,9 @@ def load_sources(config):
     """
     error_occurred = False
     # There should be only one Upload record with the given ID.
-    [upload] = Upload.objects.using(utils.dbn()).filter(id=config["uploadid"])
+    [upload] = Upload.objects.filter(id=config["uploadid"])
     criteria = dict(upload=upload.id, input_type="source")
-    sources = Input.objects.using(utils.dbn()).filter(**criteria)
+    sources = Input.objects.filter(**criteria)
     logger.info("number of sources: %s" % len(sources))
     for source in sources:
         error_occurred = not load_source(config, source.path, source.id)
