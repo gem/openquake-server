@@ -41,9 +41,12 @@ DATABASES = {
 
 # PLEASE NOTE: do *not* ever use any of the password above in production !!
 
-
-OQ_UPLOAD_DIR = "/usr/openquake/spool"
-OQ_USER_DIR = "/usr/openquake/%s"
+import os
+OQ_ROOT = "/usr/openquake"
+OQ_UPLOAD_DIR = os.path.join(OQ_ROOT, "spool")
+OQ_ENGINE_DIR = os.path.join(OQ_ROOT, "engine")
+OQ_APIAPP_DIR = os.path.join(OQ_ROOT, "apiapp")
+OQ_USER_DIR = os.path.join(OQ_ROOT, "%s")
 
 # Local time zone for this installation. Choices can be found here:
 # http://en.wikipedia.org/wiki/List_of_tz_zones_by_name

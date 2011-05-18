@@ -38,8 +38,10 @@ import getopt
 import logging
 import os
 import pprint
+import subprocess
 import sys
 
+from django.conf import settings
 from geonode.mtapi import utils
 from geonode.mtapi.models import OqJob
 #from utils import oqrunner
@@ -79,15 +81,10 @@ def create_input_file_dir(config):
     return job
 
 
-def prepare_inputs(config, job):
+def prepare_inputs(job):
     """Prepare a config.gem file and symbolic links to the other input files.
 
-    :param dict config: a dictionary with the following configuration data:
-        - host (the database host)
-        - db (the database name)
-        - jobid (the database key of the associated oq_job record)
-        - user (the database user)
-        - password (the database user password)
+    :param job: the :py:class:`geonode.mtapi.models.OqJob` instance in question
     """
     #config_writer = oqrunner.JobConfigWriter(job.id)
     #config_writer.serialize()
@@ -97,8 +94,27 @@ def prepare_inputs(config, job):
         os.symlink(input.path, os.path.join(job.path, basename))
 
 
-def run_engine(config):
-    """Run the OpenQuake engine.
+def run_engine(job):
+    """Run the OpenQuake engine and wait for it to terminate.
+
+    :param job: the :py:class:`geonode.mtapi.models.OqJob` instance in question
+    :returns: a triple (exit code, stdout, stderr) with engine's execution
+        outcome
+    """
+    cmds = [os.path.join(settings.OQ_ENGINE_DIR, "bin/openquake")]
+    cmds.append("--config_file")
+    cmds.append(os.path.join(job.path, "config.gem"))
+    p = subprocess.Popen(
+        cmds, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    import pdb; pdb.set_trace()
+    out, err = p.communicate()
+    if p.returncode != 0:
+        logging.error(err)
+    return (p.returncode, out, err)
+
+
+def run_calculation(config):
+    """Start the OpenQuake engine in order to perform a claculation.
 
     This involves:
         - creating a directory EIFD for the engine's input files

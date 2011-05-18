@@ -23,13 +23,39 @@ database related unit tests for the bin/oqrunner.py module.
 """
 
 
+import mock
 import os
 import stat
+import subprocess
 import unittest
 
-from bin.oqrunner import create_input_file_dir, prepare_inputs
+from bin.oqrunner import create_input_file_dir, prepare_inputs, run_engine
 
 from db_tests.helpers import DbTestMixin
+
+
+class RunEngineTestCase(unittest.TestCase, DbTestMixin):
+    """Tests the behaviour of oqrunner.run_engine()."""
+
+    def setUp(self):
+        self.job = self.setup_classic_job()
+
+    def tearDown(self):
+        self.teardown_job(self.job)
+
+    def test_run_engine(self):
+        """
+        The correct parameters are passed to subprocess.Popen
+        """
+        popen_mock = mock.MagicMock()
+        popen_mock.return_value = mock.MagicMock()
+        popen_mock.return_value.communicate[0] = ("", "")
+        popen_mock.return_value.communicate[1] = ("", "")
+        with mock.patch("subprocess.Popen", popen_mock):
+            p = subprocess.Popen("a b c".split())
+            self.assertEqual([], p.call_args)
+
+            import pdb; pdb.set_trace()
 
 
 class PrepareInputsTestCase(unittest.TestCase, DbTestMixin):
