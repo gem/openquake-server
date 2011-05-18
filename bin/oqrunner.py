@@ -126,6 +126,13 @@ def run_calculation(config):
     """
 
 
+def process_results(job):
+    """Generates a shapefile for each hazard/loss map.
+
+    :param job: the :py:class:`geonode.mtapi.models.OqJob` instance in question
+    """
+
+
 # TODO: al-maisan, Sun, Mon, 16 May 2011 17:12:06 +0200
 # Package the command line argument processing code below into a utility
 # function.

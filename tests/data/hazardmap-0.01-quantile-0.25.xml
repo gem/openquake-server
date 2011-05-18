@@ -1,0 +1,334 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<nrml xmlns:gml="http://www.opengis.net/gml" xmlns="http://openquake.org/xmlns/nrml/0.2" gml:id="nrml">
+  <hazardResult gml:id="hr">
+    <config>
+      <hazardProcessing investigationTimeSpan="50.0"/>
+    </config>
+    <hazardMap gml:id="hm" poE="0.01" IMT="PGA" statistics="quantile" quantileValue="0.25">
+      <HMNode gml:id="n_1">
+        <HMSite>
+          <gml:Point srsName="epsg:4326">
+            <gml:pos>-121.8 37.9</gml:pos>
+          </gml:Point>
+          <vs30>760.0</vs30>
+        </HMSite>
+        <IML>1.95760904991</IML>
+      </HMNode>
+      <HMNode gml:id="n_2">
+        <HMSite>
+          <gml:Point srsName="epsg:4326">
+            <gml:pos>-122.0 37.5</gml:pos>
+          </gml:Point>
+          <vs30>760.0</vs30>
+        </HMSite>
+        <IML>1.90353844815</IML>
+      </HMNode>
+      <HMNode gml:id="n_3">
+        <HMSite>
+          <gml:Point srsName="epsg:4326">
+            <gml:pos>-122.1 38.0</gml:pos>
+          </gml:Point>
+          <vs30>760.0</vs30>
+        </HMSite>
+        <IML>1.9016084306</IML>
+      </HMNode>
+      <HMNode gml:id="n_4">
+        <HMSite>
+          <gml:Point srsName="epsg:4326">
+            <gml:pos>-121.9 37.6</gml:pos>
+          </gml:Point>
+          <vs30>760.0</vs30>
+        </HMSite>
+        <IML>1.90315609921</IML>
+      </HMNode>
+      <HMNode gml:id="n_5">
+        <HMSite>
+          <gml:Point srsName="epsg:4326">
+            <gml:pos>-121.7 37.7</gml:pos>
+          </gml:Point>
+          <vs30>760.0</vs30>
+        </HMSite>
+        <IML>1.90277193188</IML>
+      </HMNode>
+      <HMNode gml:id="n_6">
+        <HMSite>
+          <gml:Point srsName="epsg:4326">
+            <gml:pos>-122.2 37.7</gml:pos>
+          </gml:Point>
+          <vs30>760.0</vs30>
+        </HMSite>
+        <IML>1.90277193188</IML>
+      </HMNode>
+      <HMNode gml:id="n_7">
+        <HMSite>
+          <gml:Point srsName="epsg:4326">
+            <gml:pos>-122.0 37.8</gml:pos>
+          </gml:Point>
+          <vs30>760.0</vs30>
+        </HMSite>
+        <IML>1.9023859373</IML>
+      </HMNode>
+      <HMNode gml:id="n_8">
+        <HMSite>
+          <gml:Point srsName="epsg:4326">
+            <gml:pos>-121.9 37.9</gml:pos>
+          </gml:Point>
+          <vs30>760.0</vs30>
+        </HMSite>
+        <IML>1.95014122778</IML>
+      </HMNode>
+      <HMNode gml:id="n_9">
+        <HMSite>
+          <gml:Point srsName="epsg:4326">
+            <gml:pos>-122.1 37.5</gml:pos>
+          </gml:Point>
+          <vs30>760.0</vs30>
+        </HMSite>
+        <IML>1.90353844815</IML>
+      </HMNode>
+      <HMNode gml:id="n_10">
+        <HMSite>
+          <gml:Point srsName="epsg:4326">
+            <gml:pos>-121.7 38.0</gml:pos>
+          </gml:Point>
+          <vs30>760.0</vs30>
+        </HMSite>
+        <IML>1.9016084306</IML>
+      </HMNode>
+      <HMNode gml:id="n_11">
+        <HMSite>
+          <gml:Point srsName="epsg:4326">
+            <gml:pos>-122.2 38.0</gml:pos>
+          </gml:Point>
+          <vs30>760.0</vs30>
+        </HMSite>
+        <IML>1.9016084306</IML>
+      </HMNode>
+      <HMNode gml:id="n_12">
+        <HMSite>
+          <gml:Point srsName="epsg:4326">
+            <gml:pos>-121.8 37.7</gml:pos>
+          </gml:Point>
+          <vs30>760.0</vs30>
+        </HMSite>
+        <IML>1.90277193188</IML>
+      </HMNode>
+      <HMNode gml:id="n_13">
+        <HMSite>
+          <gml:Point srsName="epsg:4326">
+            <gml:pos>-122.1 37.8</gml:pos>
+          </gml:Point>
+          <vs30>760.0</vs30>
+        </HMSite>
+        <IML>1.9023859373</IML>
+      </HMNode>
+      <HMNode gml:id="n_14">
+        <HMSite>
+          <gml:Point srsName="epsg:4326">
+            <gml:pos>-121.7 37.5</gml:pos>
+          </gml:Point>
+          <vs30>760.0</vs30>
+        </HMSite>
+        <IML>1.90353844815</IML>
+      </HMNode>
+      <HMNode gml:id="n_15">
+        <HMSite>
+          <gml:Point srsName="epsg:4326">
+            <gml:pos>-122.2 37.5</gml:pos>
+          </gml:Point>
+          <vs30>760.0</vs30>
+        </HMSite>
+        <IML>1.90353844815</IML>
+      </HMNode>
+      <HMNode gml:id="n_16">
+        <HMSite>
+          <gml:Point srsName="epsg:4326">
+            <gml:pos>-121.8 38.0</gml:pos>
+          </gml:Point>
+          <vs30>760.0</vs30>
+        </HMSite>
+        <IML>1.9016084306</IML>
+      </HMNode>
+      <HMNode gml:id="n_17">
+        <HMSite>
+          <gml:Point srsName="epsg:4326">
+            <gml:pos>-122.0 37.6</gml:pos>
+          </gml:Point>
+          <vs30>760.0</vs30>
+        </HMSite>
+        <IML>1.90315609921</IML>
+      </HMNode>
+      <HMNode gml:id="n_18">
+        <HMSite>
+          <gml:Point srsName="epsg:4326">
+            <gml:pos>-121.9 37.7</gml:pos>
+          </gml:Point>
+          <vs30>760.0</vs30>
+        </HMSite>
+        <IML>1.90277193188</IML>
+      </HMNode>
+      <HMNode gml:id="n_19">
+        <HMSite>
+          <gml:Point srsName="epsg:4326">
+            <gml:pos>-121.7 37.8</gml:pos>
+          </gml:Point>
+          <vs30>760.0</vs30>
+        </HMSite>
+        <IML>1.90803060182</IML>
+      </HMNode>
+      <HMNode gml:id="n_20">
+        <HMSite>
+          <gml:Point srsName="epsg:4326">
+            <gml:pos>-122.2 37.8</gml:pos>
+          </gml:Point>
+          <vs30>760.0</vs30>
+        </HMSite>
+        <IML>1.9023859373</IML>
+      </HMNode>
+      <HMNode gml:id="n_21">
+        <HMSite>
+          <gml:Point srsName="epsg:4326">
+            <gml:pos>-122.0 37.9</gml:pos>
+          </gml:Point>
+          <vs30>760.0</vs30>
+        </HMSite>
+        <IML>1.90208310112</IML>
+      </HMNode>
+      <HMNode gml:id="n_22">
+        <HMSite>
+          <gml:Point srsName="epsg:4326">
+            <gml:pos>-121.8 37.5</gml:pos>
+          </gml:Point>
+          <vs30>760.0</vs30>
+        </HMSite>
+        <IML>1.90353844815</IML>
+      </HMNode>
+      <HMNode gml:id="n_23">
+        <HMSite>
+          <gml:Point srsName="epsg:4326">
+            <gml:pos>-121.9 38.0</gml:pos>
+          </gml:Point>
+          <vs30>760.0</vs30>
+        </HMSite>
+        <IML>1.9175726061</IML>
+      </HMNode>
+      <HMNode gml:id="n_24">
+        <HMSite>
+          <gml:Point srsName="epsg:4326">
+            <gml:pos>-122.1 37.6</gml:pos>
+          </gml:Point>
+          <vs30>760.0</vs30>
+        </HMSite>
+        <IML>1.90315609921</IML>
+      </HMNode>
+      <HMNode gml:id="n_25">
+        <HMSite>
+          <gml:Point srsName="epsg:4326">
+            <gml:pos>-121.8 37.8</gml:pos>
+          </gml:Point>
+          <vs30>760.0</vs30>
+        </HMSite>
+        <IML>1.90855575362</IML>
+      </HMNode>
+      <HMNode gml:id="n_26">
+        <HMSite>
+          <gml:Point srsName="epsg:4326">
+            <gml:pos>-122.1 37.9</gml:pos>
+          </gml:Point>
+          <vs30>760.0</vs30>
+        </HMSite>
+        <IML>1.90199810654</IML>
+      </HMNode>
+      <HMNode gml:id="n_27">
+        <HMSite>
+          <gml:Point srsName="epsg:4326">
+            <gml:pos>-121.9 37.5</gml:pos>
+          </gml:Point>
+          <vs30>760.0</vs30>
+        </HMSite>
+        <IML>1.90353844815</IML>
+      </HMNode>
+      <HMNode gml:id="n_28">
+        <HMSite>
+          <gml:Point srsName="epsg:4326">
+            <gml:pos>-121.7 37.6</gml:pos>
+          </gml:Point>
+          <vs30>760.0</vs30>
+        </HMSite>
+        <IML>1.90315609921</IML>
+      </HMNode>
+      <HMNode gml:id="n_29">
+        <HMSite>
+          <gml:Point srsName="epsg:4326">
+            <gml:pos>-122.2 37.6</gml:pos>
+          </gml:Point>
+          <vs30>760.0</vs30>
+        </HMSite>
+        <IML>1.90315609921</IML>
+      </HMNode>
+      <HMNode gml:id="n_30">
+        <HMSite>
+          <gml:Point srsName="epsg:4326">
+            <gml:pos>-122.0 37.7</gml:pos>
+          </gml:Point>
+          <vs30>760.0</vs30>
+        </HMSite>
+        <IML>1.90277193188</IML>
+      </HMNode>
+      <HMNode gml:id="n_31">
+        <HMSite>
+          <gml:Point srsName="epsg:4326">
+            <gml:pos>-121.9 37.8</gml:pos>
+          </gml:Point>
+          <vs30>760.0</vs30>
+        </HMSite>
+        <IML>1.9023859373</IML>
+      </HMNode>
+      <HMNode gml:id="n_32">
+        <HMSite>
+          <gml:Point srsName="epsg:4326">
+            <gml:pos>-121.7 37.9</gml:pos>
+          </gml:Point>
+          <vs30>760.0</vs30>
+        </HMSite>
+        <IML>1.90310951201</IML>
+      </HMNode>
+      <HMNode gml:id="n_33">
+        <HMSite>
+          <gml:Point srsName="epsg:4326">
+            <gml:pos>-122.2 37.9</gml:pos>
+          </gml:Point>
+          <vs30>760.0</vs30>
+        </HMSite>
+        <IML>1.90199810654</IML>
+      </HMNode>
+      <HMNode gml:id="n_34">
+        <HMSite>
+          <gml:Point srsName="epsg:4326">
+            <gml:pos>-122.0 38.0</gml:pos>
+          </gml:Point>
+          <vs30>760.0</vs30>
+        </HMSite>
+        <IML>1.90162842669</IML>
+      </HMNode>
+      <HMNode gml:id="n_35">
+        <HMSite>
+          <gml:Point srsName="epsg:4326">
+            <gml:pos>-121.8 37.6</gml:pos>
+          </gml:Point>
+          <vs30>760.0</vs30>
+        </HMSite>
+        <IML>1.90315609921</IML>
+      </HMNode>
+      <HMNode gml:id="n_36">
+        <HMSite>
+          <gml:Point srsName="epsg:4326">
+            <gml:pos>-122.1 37.7</gml:pos>
+          </gml:Point>
+          <vs30>760.0</vs30>
+        </HMSite>
+        <IML>1.90277193188</IML>
+      </HMNode>
+    </hazardMap>
+  </hazardResult>
+</nrml>
