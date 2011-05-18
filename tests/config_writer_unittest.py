@@ -28,7 +28,7 @@ from ConfigParser import ConfigParser
 from django.contrib.gis import geos
 from geonode.mtapi import models as mt_models
 from geonode.mtapi import utils
-from oqrunner import config_writer
+from utils.oqrunner import config_writer
 
 
 TEST_OWNER_ID = 1
@@ -124,6 +124,8 @@ def create_inputs(upload_uuid):
 
 class JobConfigWriterClassicalTestCase(unittest.TestCase):
     """
+    This suite of tests exercises the generation of config.gem files for
+    'Classical' calculations.
     """
 
     @classmethod
@@ -155,8 +157,6 @@ class JobConfigWriterClassicalTestCase(unittest.TestCase):
 
         cls.oqjob = mt_models.OqJob(
             owner_id=TEST_OWNER_ID,
-            # Use a UUID here since this field needs to be unique;
-            # makes the testing environment a little more 'forgiving'
             description='Test job for upload %s' % cls.upload_uuid,
             job_pid=TEST_JOB_PID,
             job_type='classical')
@@ -197,8 +197,8 @@ class JobConfigWriterClassicalTestCase(unittest.TestCase):
 
     def test_write_params(self):
         """
-        Exercise the write_params functionality. Basically, we create a
-        JobConfigWriter, call `write_params`, and verify that the params were
+        Exercise the private _write_params method. Basically, create a
+        JobConfigWriter, call `_write_params`, and verify that the params were
         written to the ConfigParser object of the JobConfigWriter.
         """
 
@@ -209,7 +209,7 @@ class JobConfigWriterClassicalTestCase(unittest.TestCase):
             'RISK': {'CONDITIONAL_LOSS_POE': '0.01 0.10'}}
         cfg_writer = config_writer.JobConfigWriter(fake_job_id)
 
-        cfg_writer.write_params(test_params)
+        cfg_writer._write_params(test_params)
 
         cfg_parser = cfg_writer.cfg_parser
 
@@ -238,9 +238,6 @@ class JobConfigWriterClassicalTestCase(unittest.TestCase):
         self.assertEqual(
             os.path.abspath(out_path),
             os.path.abspath(path_to_new_cfg_file))
-
-        # close the config writer to flush & write
-        cfg_writer.close()
 
         # now compare the new file with the expected file
         exp_parser = ConfigParser()

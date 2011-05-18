@@ -240,8 +240,6 @@ class JobConfigWriter(object):
         # this will be used to build the config file
         self.cfg_parser = ConfigParser()
 
-        self.output_path = None
-
     def serialize(self):
         """
         Write all parameters to the specified config file.
@@ -295,20 +293,20 @@ class JobConfigWriter(object):
 
         # prepare the output file
         output_path = os.path.join(oqjob.path, self.CONFIG_FILE_NAME)
-        output_fh = open(self.output_path, 'w')
+        output_fh = open(output_path, 'w')
 
         # first, write the default params for this job type
-        self.write_params(default_params)
+        self._write_params(default_params)
 
         # then write the params specified by the user
         # (read from the OqParams object)
-        self.write_params(user_params)
+        self._write_params(user_params)
 
         # now write params associated with input files for the job upload
         self._write_input_params(upload, input_params)
 
         # write and close
-        cfg_parser.write(self.output_fh)
+        self.cfg_parser.write(output_fh)
         output_fh.close()
 
         return output_path
