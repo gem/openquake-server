@@ -171,18 +171,18 @@ class JobConfigWriterClassicalTestCase(unittest.TestCase):
         # once some of the pieces are saved, we'll need to set ids
         # of subsequent records to resolve foreign key dependencies
 
-        cls.upload.save(using=utils.dbn())
+        cls.upload.save()
 
         cls.oqparams.upload_id = cls.upload.id
-        cls.oqparams.save(using=utils.dbn())
+        cls.oqparams.save()
 
         cls.oqjob.oq_params_id = cls.oqparams.id
-        cls.oqjob.save(using=utils.dbn())
+        cls.oqjob.save()
 
         # now that we have a oq_job.id, set the job path to upload_path/job_id:
         cls.oqjob.path = os.path.join(cls.upload.path, str(cls.oqjob.id))
         # update the oq_job record
-        cls.oqjob.save(using=utils.dbn())
+        cls.oqjob.save()
 
         # Create the job folder underneath the upload folder.
         # The folder structure needs to be in place before the config writer
@@ -193,7 +193,7 @@ class JobConfigWriterClassicalTestCase(unittest.TestCase):
         cls.inputs = create_inputs(cls.upload_uuid)
         for item in cls.inputs:
             item.upload_id = cls.upload.id
-            item.save(using=utils.dbn())
+            item.save()
 
     def test_write_params(self):
         """

@@ -29,7 +29,7 @@ from geonode.mtapi.views import detect_input_type
 
 
 class DetectInputTypeTestCase(unittest.TestCase):
-    """Tests the behaviour of views.prepare_upload()."""
+    """Tests the behaviour of views.detect_input_type()."""
 
     def test_detect_input_type_with_source(self):
         """

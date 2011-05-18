@@ -24,6 +24,33 @@
 
 import os
 import subprocess
+import tempfile
+
+from django.conf import settings
+from geonode.mtapi.models import OqUser, Upload
+
+
+def dbn():
+    """The name of the database to use."""
+    return dict(
+        NAME=os.environ.get("OQ_MTAPI_DB", "openquake"),
+        USER=os.environ.get("OQ_MTAPI_USER", "oq_uiapi_writer"),
+        PASSWORD=os.environ.get("OQ_MTAPI_PASSWORD"))
+
+
+def prepare_upload(root=None):
+    """Create a directory for the files, return `Upload` object.
+
+    :returns: the :py:class:`geonode.mtapi.models.Upload` instance
+        associated with this upload.
+    """
+    user = OqUser.objects.filter(user_name="openquake")[0]
+    root = root if root else settings.OQ_UPLOAD_DIR
+    path = tempfile.mkdtemp(dir=root)
+    os.chmod(path, 0777)
+    upload = Upload(owner=user, path=path, status="pending", job_pid=0)
+    upload.save()
+    return upload
 
 
 def run_cmd(cmds, ignore_exit_code=False, shell=False):
@@ -85,8 +112,3 @@ def is_process_running(pid, name_pattern=None):
             result = True
             break
     return result
-
-
-def dbn():
-    """The name of the database to use."""
-    return os.environ.get("OQ_MTAPI_DB", "openquake")

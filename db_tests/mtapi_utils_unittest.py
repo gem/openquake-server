@@ -19,7 +19,7 @@
 
 
 """
-database related unit tests for the geonode/mtapi/views.py module.
+database related unit tests for the geonode/mtapi/utils.py module.
 """
 
 
@@ -28,7 +28,7 @@ import stat
 import unittest
 
 from geonode.mtapi.models import Upload
-from geonode.mtapi.views import prepare_upload
+from geonode.mtapi.utils import prepare_upload
 
 
 class PrepareUploadTestCase(unittest.TestCase):

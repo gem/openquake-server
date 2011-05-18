@@ -1,3 +1,5 @@
+import os
+
 # Django settings for uiapi project.
 
 DEBUG = True
@@ -14,38 +16,29 @@ MANAGERS = ADMINS
 
 DATABASES = {
     'default': {
-        # Add 'postgresql_psycopg2', 'postgresql', 'mysql', 'sqlite3' or
-        # 'oracle'.
         'ENGINE': 'django.contrib.gis.db.backends.postgis',
-        'NAME': 'openquake',
-        'USER': 'oq_uiapi_writer',
-        'PASSWORD': '_Bloujqueewjack9',
-        'HOST': '',
-        'PORT': '',
-    },
-    'openquake': {
-        'ENGINE': 'django.contrib.gis.db.backends.postgis',
-        'NAME': 'mtapi',
-        'USER': 'oq_uiapi_writer',
-        'PASSWORD': '_Bloujqueewjack9',
-        'HOST': '',
-        'PORT': '',
-    },
-    'openquake_test': {
-        'ENGINE': 'django.contrib.gis.db.backends.postgis',
-        'NAME': 'mtapi_test',
-        'USER': 'oq_uiapi_writer',
-        'PASSWORD': '_Bloujqueewjack9',
         'HOST': '',
         'PORT': '',
     },
 }
 
+
+def dbn():
+    """The name of the db as well as the db user ceredential to use."""
+    return dict(
+        NAME=os.environ.get("OQ_MTAPI_DB", "mtapi"),
+        USER=os.environ.get("OQ_MTAPI_USER", "oq_uiapi_writer"),
+        PASSWORD=os.environ.get("OQ_MTAPI_PASSWORD"))
+
+
+DATABASES["default"].update(dbn())
+
 # PLEASE NOTE: do *not* ever use any of the password above in production !!
 
-
-OQ_UPLOAD_DIR = "/usr/openquake/spool"
-OQ_USER_DIR = "/usr/openquake/%s"
+OQ_ROOT = "/usr/openquake"
+OQ_UPLOAD_DIR = os.path.join(OQ_ROOT, "spool")
+OQ_ENGINE_DIR = os.path.join(OQ_ROOT, "engine")
+OQ_APIAPP_DIR = os.path.join(OQ_ROOT, "apiapp")
 
 # Local time zone for this installation. Choices can be found here:
 # http://en.wikipedia.org/wiki/List_of_tz_zones_by_name
