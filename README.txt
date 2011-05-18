@@ -1,5 +1,27 @@
 This is the OpenQuake django application that will be utilised by the OpenGeo UI.
 
+Dependencies
+------------
+
+ * django
+ * psycopg2
+ * nose (for running tests)
+
+Package Structure
+-----------------
+
+Code for OQ-Server is organized in the following manner:
+
+ * bin
+ * geonode  (code for the OQ-Server Django application; for Django code only!)
+   - mtapi  (mtapi is a Django application for the geonode project)
+ * oqrunner (contains code for running the OpenQuake engine)
+ * tests
+
+
+Running the OQ-Server
+---------------------
+
 You can try the "input_upload" API endpoint as follows:
 
  * terminal window 1:
