@@ -105,7 +105,6 @@ def run_engine(job):
     cmds.append(os.path.join(job.path, "config.gem"))
     p = subprocess.Popen(
         cmds, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    import pdb; pdb.set_trace()
     out, err = p.communicate()
     if p.returncode != 0:
         logging.error(err)
