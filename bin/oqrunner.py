@@ -88,8 +88,7 @@ def prepare_inputs(job):
     """
     cw = config_writer.JobConfigWriter(job.id)
     cw.serialize()
-    inputs = job.oq_params.upload.input_set.all()
-    for input in inputs:
+    for input in job.oq_params.upload.input_set.all():
         basename = os.path.basename(input.path)
         os.symlink(input.path, os.path.join(job.path, basename))
 

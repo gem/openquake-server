@@ -48,6 +48,7 @@ class DbTestMixin(object):
         upload = utils.prepare_upload("/tmp")
         for file, type in files:
             path = os.path.join(upload.path, file)
+            # This is equivalent to what the touch command does.
             open(path, "w+").close()
             input = Input(path=path, owner=upload.owner, input_type=type,
                           upload=upload)
@@ -65,6 +66,7 @@ class DbTestMixin(object):
             will be left intact. This saves time and the test db will be
             dropped/recreated prior to the next db test suite run anyway.
         """
+        # This is like "rm -rf path"
         shutil.rmtree(upload.path, ignore_errors=True)
         if filesystem_only:
             return
