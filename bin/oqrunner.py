@@ -133,6 +133,26 @@ def process_results(job):
     """
 
 
+def detect_output_type(path):
+    """Detect and return the output file type.
+
+    :param string chunk: the first chunk of an uploaded output file.
+    :returns: one of the following strings: "hazard", "loss" or "unknown"
+    """
+    # Read a chunk of the output file.
+    fh = open(path, "r")
+    chunk = fh.read(2048)
+    fh.close()
+
+    tags = ("<lossMap", "<hazardMap")
+    types = ("loss", "hazard")
+    type_dict = dict(zip(tags, types))
+    for key, value in type_dict.iteritems():
+        if chunk.find(key) >= 0:
+            return value
+    return "unknown"
+
+
 # TODO: al-maisan, Sun, Mon, 16 May 2011 17:12:06 +0200
 # Package the command line argument processing code below into a utility
 # function.
