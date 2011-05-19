@@ -97,7 +97,7 @@ class ProcessMapTestCase(unittest.TestCase, DbTestMixin):
         self.assertEqual("loss_map", loss_map.output_type)
         with mock.patch('geonode.mtapi.utils.run_cmd') as mock_func:
             mock_func.return_value = (
-                0, "RESULT: ('/a/b/c', 61.4039544548262, 926.3032629745)", "")
+                0, "RESULT: ('/d/e/f', 61.4039544548262, 926.3032629745)", "")
             process_map(loss_map)
             expected = (
                 (['%s/bin/gen_shapefile.py' % settings.OQ_APIAPP_DIR,
@@ -106,6 +106,51 @@ class ProcessMapTestCase(unittest.TestCase, DbTestMixin):
                   '-t', 'loss'],),
                 {'ignore_exit_code': True})
             self.assertEqual(expected, mock_func.call_args)
+
+    def test_process_map_shapefile_generated_correctly_with_hazard(self):
+        """The db record for the hazard map is updated."""
+        maps = find_maps(self.job)
+        self.assertEqual(2, len(maps))
+        [hazard_map, _] = maps
+        self.assertEqual("hazard_map", hazard_map.output_type)
+        with mock.patch('geonode.mtapi.utils.run_cmd') as mock_func:
+            mock_func.return_value = (
+                0, "RESULT: ('/g/h/i', 17.17, 18.18)", "")
+            process_map(hazard_map)
+            self.assertEqual("/g/h/i", hazard_map.shapefile_path)
+            self.assertEqual(17.17, hazard_map.min_value)
+            self.assertEqual(18.18, hazard_map.max_value)
+
+    def test_process_map_shapefile_generated_correctly_with_loss(self):
+        """The db record for the loss map is updated."""
+        maps = find_maps(self.job)
+        self.assertEqual(2, len(maps))
+        [_, loss_map] = maps
+        self.assertEqual("loss_map", loss_map.output_type)
+        with mock.patch('geonode.mtapi.utils.run_cmd') as mock_func:
+            mock_func.return_value = (
+                0, "RESULT: ('/j/k/l', 19.19, 21.21)", "")
+            process_map(loss_map)
+            self.assertEqual("/j/k/l", loss_map.shapefile_path)
+            self.assertEqual(19.19, loss_map.min_value)
+            self.assertEqual(21.21, loss_map.max_value)
+
+    def test_process_map_with_shapefile_generator_error(self):
+        """
+        If the shapefile generation fails for a map the db record is *not*
+        updated.
+        """
+        maps = find_maps(self.job)
+        self.assertEqual(2, len(maps))
+        [hazard_map, _] = maps
+        self.assertEqual("hazard_map", hazard_map.output_type)
+        with mock.patch('geonode.mtapi.utils.run_cmd') as mock_func:
+            mock_func.return_value = (
+                1, "", "failed to generate shapefile")
+            process_map(hazard_map)
+            self.assertIs(None, hazard_map.shapefile_path)
+            self.assertIs(None, hazard_map.min_value)
+            self.assertIs(None, hazard_map.max_value)
 
 
 class FindMapsTestCase(unittest.TestCase, DbTestMixin):
