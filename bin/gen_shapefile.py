@@ -163,7 +163,7 @@ def find_min_max(data, accessor):
     values = [accessor(datum) for datum in data]
     if not values:
         raise Exception("Empty data set")
-    return (min(values), max(values))
+    return (float(min(values)), float(max(values)))
 
 
 def create_shapefile_from_hazard_map(config):
@@ -196,8 +196,8 @@ def create_shapefile_from_hazard_map(config):
     srs = osr.SpatialReference()
     srs.ImportFromEPSG(4326)
 
-    layer = source.CreateLayer(
-        "%s-hazard-map" % config["layer"], srs, ogr.wkbPoint)
+    layer_name = "%s-hazard-map" % config["layer"]
+    layer = source.CreateLayer(layer_name, srs, ogr.wkbPoint)
     assert layer is not None, "failed to instantiate layer"
 
     field = ogr.FieldDefn("IML", ogr.OFTReal)
@@ -217,7 +217,8 @@ def create_shapefile_from_hazard_map(config):
             "Failed to create feature, %s || %s" % (pos, iml)
         feature.Destroy()
 
-    return find_min_max(data, operator.itemgetter(1))
+    path = os.path.join(config["output"], "%s.shp" % layer_name)
+    return (path,) + find_min_max(data, operator.itemgetter(1))
 
 
 def extract_lossmap_data(config):
@@ -348,8 +349,8 @@ def create_shapefile_from_loss_map(config):
     srs = osr.SpatialReference()
     srs.ImportFromEPSG(4326)
 
-    layer = source.CreateLayer(
-        "%s-loss-map" % config["layer"], srs, ogr.wkbPoint)
+    layer_name = "%s-loss-map" % config["layer"]
+    layer = source.CreateLayer(layer_name, srs, ogr.wkbPoint)
     assert layer is not None, "failed to instantiate layer"
 
     field = ogr.FieldDefn("mean", ogr.OFTReal)
@@ -368,7 +369,8 @@ def create_shapefile_from_loss_map(config):
             "Failed to create feature, %s || %s" % (pos, loss)
         feature.Destroy()
 
-    return find_min_max(data, operator.itemgetter(1))
+    path = os.path.join(config["output"], "%s.shp" % layer_name)
+    return (path,) + find_min_max(data, operator.itemgetter(1))
 
 
 def main(cargs):
@@ -456,7 +458,7 @@ def main(cargs):
         sys.exit(104)
 
     if minmax:
-        print "RESULT: %s" % str(tuple(float(value) for value in minmax))
+        print "RESULT: %s" % str(minmax)
 
 
 if __name__ == '__main__':

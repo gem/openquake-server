@@ -156,6 +156,10 @@ def process_map(map):
     # This is what the stdout will look like if all goes well:
     #   "RESULT: ('1.9016084306', '1.95760904991')"
     code, out, err = utils.run_cmd(commands, ignore_exit_code=True)
+    if code == 0:
+        # All went well
+        map.min_value, map.max_value = extract_min_max(out)
+        map.save()
 
 
 def extract_min_max(stdout):
