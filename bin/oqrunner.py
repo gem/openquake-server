@@ -153,31 +153,30 @@ def process_map(map):
     commands.append(map.path)
     commands.append("-t")
     commands.append("hazard" if map.output_type == "hazard_map" else "loss")
-    # This is what the stdout will look like if all goes well:
-    #   "RESULT: ('1.9016084306', '1.95760904991')"
     code, out, err = utils.run_cmd(commands, ignore_exit_code=True)
     if code == 0:
         # All went well
-        map.min_value, map.max_value = extract_min_max(out)
+        map.shapefile_path, map.min_value, map.max_value = extract_results(out)
         map.save()
 
 
-def extract_min_max(stdout):
+def extract_results(stdout):
     """Extract the minimum/maximum value from the shapefile generator's
     standard output.
 
     This is what the stdout will look like in case of success:
-      "RESULT: (1.9016084306, 1.95760904991)"
+      "RESULT: ('/path', 1.9016084306, 1.95760904991)"
 
     :param string stdout: the standard output produced by the shapefile
     generator.
-    :returns: a (minimum, maximum) float 2-tuple in case of success or None in
-        case of failure.
+    :returns: a ('/path', minimum, maximum) triple in case of success or None
+        in case of failure.
     """
-    regex = re.compile("RESULT:\s+\(([^,]+),\s+([^)]+)\)")
+    regex = re.compile("RESULT:\s+\('([^']+)',\s+([^,]+),\s+([^)]+)\)")
     match = regex.search(stdout)
     if match:
-        return tuple(float(value) for value in match.groups())
+        path, minimum, maximum = match.groups()
+        return (path, float(minimum), float(maximum))
 
 
 def find_maps(job):
