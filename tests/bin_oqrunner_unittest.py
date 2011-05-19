@@ -28,22 +28,21 @@ import unittest
 from bin.oqrunner import detect_output_type, extract_results
 
 
-class ExtractMinMaxTestCase(unittest.TestCase):
+class ExtractResultsTestCase(unittest.TestCase):
     """Tests the behaviour of oqrunner.extract_results()."""
 
-    def test_extract_min_max(self):
+    def test_extract_results(self):
         """The minimum/maximum values are extracted correctly."""
         sample = "RESULT: ('/path', 16.04934554846202, 629.323267954)"
         path, minimum, maximum = extract_results(sample)
         self.assertTrue(isinstance(path, basestring))
         self.assertEqual("/path", path)
-        self.assertEqual(16.04934554846202, minimum)
         self.assertTrue(isinstance(minimum, float))
         self.assertEqual(16.04934554846202, minimum)
         self.assertTrue(isinstance(maximum, float))
         self.assertEqual(629.323267954, maximum)
 
-    def test_extract_min_max_with_malformed_stdout(self):
+    def test_extract_results_with_malformed_stdout(self):
         """The minimum/maximum values are extracted correctly."""
         sample = "malformed stdout"
         self.assertIs(None, extract_results(sample))
