@@ -23,13 +23,101 @@ database related unit tests for the bin/oqrunner.py module.
 """
 
 
+import glob
 import os
 import stat
 import unittest
 
-from bin.oqrunner import create_input_file_dir, prepare_inputs
+from bin.oqrunner import create_input_file_dir, find_maps, prepare_inputs
 
 from db_tests.helpers import DbTestMixin
+
+
+class FindMapsTestCase(unittest.TestCase, DbTestMixin):
+    """Tests the behaviour of oqrunner.find_maps()."""
+
+    def setUp(self):
+        self.job = self.setup_classic_job()
+        # Prepare the output files.
+        self.output_path = os.path.join(self.job.path, "computed_output")
+        os.mkdir(self.output_path)
+        xml_files = glob.glob("db_tests/data/*.xml")
+        for file in xml_files:
+            basename = os.path.basename(file)
+            os.symlink(os.path.realpath(file),
+                       os.path.join(self.output_path, basename))
+
+    def tearDown(self):
+        self.teardown_job(self.job)
+
+    def test_find_maps(self):
+        """
+        All maps are found.
+        """
+        expected = [
+            '%s/hazardmap-0.01-mean.xml' % self.output_path,
+            '%s/hazardmap-0.01-quantile-0.25.xml' % self.output_path,
+            '%s/hazardmap-0.01-quantile-0.50.xml' % self.output_path,
+            '%s/hazardmap-0.1-mean.xml' % self.output_path,
+            '%s/hazardmap-0.1-quantile-0.25.xml' % self.output_path,
+            '%s/hazardmap-0.1-quantile-0.50.xml' % self.output_path,
+            '%s/loss-map-0fcfdbc7.xml' % self.output_path]
+        found = find_maps(self.job)
+        self.assertEqual(expected,
+                         list(sorted([output.path for output in found])))
+
+    def test_find_maps_and_types(self):
+        """
+        All maps are found, the types are correct.
+        """
+        expected = [
+            ('hazardmap-0.01-mean.xml', "hazard_map"),
+            ('hazardmap-0.01-quantile-0.25.xml', "hazard_map"),
+            ('hazardmap-0.01-quantile-0.50.xml', "hazard_map"),
+            ('hazardmap-0.1-mean.xml', "hazard_map"),
+            ('hazardmap-0.1-quantile-0.25.xml', "hazard_map"),
+            ('hazardmap-0.1-quantile-0.50.xml', "hazard_map"),
+            ('loss-map-0fcfdbc7.xml', "loss_map")]
+        found = find_maps(self.job)
+        self.assertEqual(
+            expected,
+            list(sorted([(os.path.basename(o.path), o.output_type)
+                         for o in found])))
+
+    def test_find_maps_and_job_reference(self):
+        """
+        All maps are found, the db records refer to the correct job.
+        """
+        expected = [
+            ('hazardmap-0.01-mean.xml', self.job),
+            ('hazardmap-0.01-quantile-0.25.xml', self.job),
+            ('hazardmap-0.01-quantile-0.50.xml', self.job),
+            ('hazardmap-0.1-mean.xml', self.job),
+            ('hazardmap-0.1-quantile-0.25.xml', self.job),
+            ('hazardmap-0.1-quantile-0.50.xml', self.job),
+            ('loss-map-0fcfdbc7.xml', self.job)]
+        found = find_maps(self.job)
+        self.assertEqual(
+            expected,
+            list(sorted([(os.path.basename(o.path), o.oq_job)
+                         for o in found])))
+
+    def test_find_maps_and_sizes(self):
+        """
+        All maps are found, the sizes captured in the db records are correct.
+        """
+        expected = [
+            '%s/hazardmap-0.01-mean.xml' % self.output_path,
+            '%s/hazardmap-0.01-quantile-0.25.xml' % self.output_path,
+            '%s/hazardmap-0.01-quantile-0.50.xml' % self.output_path,
+            '%s/hazardmap-0.1-mean.xml' % self.output_path,
+            '%s/hazardmap-0.1-quantile-0.25.xml' % self.output_path,
+            '%s/hazardmap-0.1-quantile-0.50.xml' % self.output_path,
+            '%s/loss-map-0fcfdbc7.xml' % self.output_path]
+        sizes = dict([(f, os.path.getsize(f)) for f in expected])
+        found = find_maps(self.job)
+        for output in found:
+            self.assertEqual(sizes[output.path], output.size)
 
 
 class PrepareInputsTestCase(unittest.TestCase, DbTestMixin):

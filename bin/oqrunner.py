@@ -35,6 +35,7 @@ former with the geonode server.
 
 
 import getopt
+import glob
 import logging
 import os
 import pprint
@@ -43,7 +44,7 @@ import sys
 
 from django.conf import settings
 from geonode.mtapi import utils
-from geonode.mtapi.models import OqJob
+from geonode.mtapi.models import OqJob, Output
 from utils.oqrunner import config_writer
 
 
@@ -131,12 +132,37 @@ def process_results(job):
 
     :param job: the :py:class:`geonode.mtapi.models.OqJob` instance in question
     """
+    maps = find_maps(job)
+
+
+def find_maps(job):
+    """Find all hazard/result maps and store information about these in the db.
+
+    Assumption: the default output path cannot be changed from the web GUI
+    (openquake/default.gem:OUTPUT_DIR = computed_output)
+
+    :param job: the :py:class:`geonode.mtapi.models.OqJob` instance in question
+    :returns: a list of :py:class:`geonode.mtapi.models.Output` instances, one
+        per map.
+    """
+    results = []
+    maps = glob.glob(
+        "%s/*map*.xml" % os.path.join(job.path, "computed_output"))
+    maps = [(path, detect_output_type(path)) for path in maps]
+    # Ignore anything that's not a hazard or loss map.
+    maps = [(path, type) for path, type in maps if type in ("hazard", "loss")]
+    for path, type in maps:
+        output = Output(owner=job.owner, output_type="%s_map" % type,
+                        oq_job=job, path=path, size=os.path.getsize(path))
+        output.save()
+        results.append(output)
+    return results
 
 
 def detect_output_type(path):
     """Detect and return the output file type.
 
-    :param string chunk: the first chunk of an uploaded output file.
+    :param string path: the path of the output file.
     :returns: one of the following strings: "hazard", "loss" or "unknown"
     """
     # Read a chunk of the output file.
