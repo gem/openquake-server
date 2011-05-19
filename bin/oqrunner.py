@@ -123,6 +123,10 @@ def run_calculation(config):
         - creating a database record for each hazard/loss map and capture the
           associated shapefile.
     """
+    job = create_input_file_dir(config)
+    prepare_inputs(job)
+    run_engine(job)
+    process_results(job)
 
 
 def process_results(job):
@@ -277,6 +281,7 @@ def main(cargs):
 
     logger.info("config = %s" % pprint.pformat(config))
     pprint.pprint(config)
+    run_calculation(config)
 
 
 if __name__ == '__main__':
