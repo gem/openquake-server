@@ -27,17 +27,22 @@ import os
 import shutil
 
 from geonode.mtapi import utils
-from geonode.mtapi.models import Input, OqJob, OqParams
+from geonode.mtapi.models import Input, OqJob, OqParams, Upload
 
 
 class DbTestMixin(object):
     """Tests the behaviour of oqrunner.create_input_file_dir()."""
 
-    def setup_upload(self):
+    def setup_upload(self, dbkey=None):
         """Create an upload with associated inputs.
 
+        :param integer dbkey: if set use the upload record with given db key.
         :returns: a :py:class:`geonode.mtapi.models.Upload` instance
         """
+        if dbkey:
+            [upload] = Upload.objects.filter(id=dbkey)
+            return upload
+
         files = [
             ("gmpe_logic_tree.xml", "lt_gmpe"),
             ("small_exposure.xml", "exposure"),
@@ -74,31 +79,35 @@ class DbTestMixin(object):
             input.delete()
         upload.delete()
 
-    def setup_classic_job(self, create_job_path=True):
+    def setup_classic_job(self, create_job_path=True, upload_id=None):
         """Create a classic job with associated upload and inputs.
 
+        :param integer upload_id: if set use upload record with given db key.
         :param bool create_job_path: if set the path for the job will be
             created and captured in the job record
         :returns: a :py:class:`geonode.mtapi.models.OqJob` instance
         """
-        upload = self.setup_upload()
+        upload = self.setup_upload(upload_id)
         oqp = OqParams()
         oqp.job_type = "classical"
         oqp.upload = upload
-        oqp.region_grid_spacing = 0.25
-        oqp.min_magnitude = 7.6
+        oqp.region_grid_spacing = 0.01
+        oqp.min_magnitude = 5.0
         oqp.investigation_time = 50.0
-        oqp.component = "average"
+        oqp.component = "gmroti50"
         oqp.imt = "pga"
-        oqp.truncation_type = "none"
-        oqp.truncation_level = 1.1
-        oqp.reference_vs30_value = 1.2
-        oqp.imls = [1.0, 1.1]
-        oqp.poes = [2.0, 2.1]
-        oqp.realizations = 3
-        from django.contrib.gis.geos import GEOSGeometry
-        oqp.region = GEOSGeometry(
-            'POLYGON(( 10 10, 10 20, 20 20, 20 15, 10 10))')
+        oqp.truncation_type = "twosided"
+        oqp.truncation_level = 3
+        oqp.reference_vs30_value = 760
+        oqp.imls = [
+            0.005, 0.007, 0.0098, 0.0137, 0.0192, 0.0269, 0.0376, 0.0527,
+            0.0738, 0.103, 0.145, 0.203, 0.284, 0.397, 0.556, 0.778]
+        oqp.poes = [0.01, 0.10]
+        oqp.realizations = 1
+        from django.contrib.gis import geos
+        oqp.region = geos.Polygon(
+            ((-122.2, 38.0), (-121.7, 38.0), (-121.7, 37.5),
+             (-122.2, 37.5), (-122.2, 38.0)))
         oqp.save()
         job = OqJob(oq_params=oqp, owner=upload.owner, job_type="classical")
         job.save()

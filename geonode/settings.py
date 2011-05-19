@@ -117,8 +117,9 @@ INSTALLED_APPS = (
     'django.contrib.gis',
     'geonode.mtapi')
 
-NRML_RUNNER_PATH = "/p/work/oqsrv/bin/nrml_runner.py"
+NRML_RUNNER_PATH = "%s/bin/nrml_runner.py" % OQ_APIAPP_DIR
+
 import sys
 NRML_RUNNER_PYTHONPATH = ":".join(
     [seg for seg in sys.path if seg.find("geonode") < 0])
-NRML_RUNNER_PYTHONPATH += ":/p/work/oqsrv"
+NRML_RUNNER_PYTHONPATH += ":%s:%s" % (OQ_ENGINE_DIR, OQ_APIAPP_DIR)

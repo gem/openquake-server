@@ -123,6 +123,10 @@ def run_calculation(config):
         - creating a database record for each hazard/loss map and capture the
           associated shapefile.
     """
+    job = create_input_file_dir(config)
+    prepare_inputs(job)
+    run_engine(job)
+    process_results(job)
 
 
 def process_results(job):
@@ -145,7 +149,7 @@ def process_map(map):
     """
     commands = ["%s/bin/gen_shapefile.py" % settings.OQ_APIAPP_DIR]
     commands.append("-k")
-    commands.append(map.id)
+    commands.append(str(map.id))
     commands.append("-p")
     commands.append(map.path)
     commands.append("-t")
@@ -229,7 +233,7 @@ def main(cargs):
         """Remove leading dashes, return last portion of string remaining."""
         return arg.split('-')[-1]
 
-    mandatory_args = ["password", "jobid", "user"]
+    mandatory_args = ["jobid"]
     config = dict(db="openquake", host="localhost", user=None, password=None,
                   jobid=None)
     longopts = ["%s" % k if isinstance(v, bool) else "%s=" % k
@@ -277,6 +281,7 @@ def main(cargs):
 
     logger.info("config = %s" % pprint.pformat(config))
     pprint.pprint(config)
+    run_calculation(config)
 
 
 if __name__ == '__main__':
