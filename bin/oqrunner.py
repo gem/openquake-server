@@ -37,6 +37,7 @@ former with the geonode server.
 import getopt
 import glob
 import logging
+import re
 import os
 import pprint
 import subprocess
@@ -133,6 +134,46 @@ def process_results(job):
     :param job: the :py:class:`geonode.mtapi.models.OqJob` instance in question
     """
     maps = find_maps(job)
+    for map in maps:
+        process_map(map)
+
+
+def process_map(map):
+    """Creates shapefile from map. Updates the respective db record.
+
+    The minimum/maximum values as well as the shapefile path/URL will be
+    captured in the output's db record.
+
+    :param map: :py:class:`geonode.mtapi.models.Output` instance in question
+    """
+    commands = ["%s/bin/gen_shapefile.py" % settings.OQ_APIAPP_DIR]
+    commands.append("-k")
+    commands.append(map.id)
+    commands.append("-p")
+    commands.append(map.path)
+    commands.append("-t")
+    commands.append("hazard" if map.output_type == "hazard_map" else "loss")
+    # This is what the stdout will look like if all goes well:
+    #   "RESULT: ('1.9016084306', '1.95760904991')"
+    code, out, err = utils.run_cmd(commands, ignore_exit_code=True)
+
+
+def extract_min_max(stdout):
+    """Extract the minimum/maximum value from the shapefile generator's
+    standard output.
+
+    This is what the stdout will look like in case of success:
+      "RESULT: (1.9016084306, 1.95760904991)"
+
+    :param string stdout: the standard output produced by the shapefile
+    generator.
+    :returns: a (minimum, maximum) float 2-tuple in case of success or None in
+        case of failure.
+    """
+    regex = re.compile("RESULT:\s+\(([^,]+),\s+([^)]+)\)")
+    match = regex.search(stdout)
+    if match:
+        return tuple(float(value) for value in match.groups())
 
 
 def find_maps(job):

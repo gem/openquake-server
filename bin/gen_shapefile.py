@@ -456,7 +456,7 @@ def main(cargs):
         sys.exit(104)
 
     if minmax:
-        print "RESULT: %s" % str(minmax)
+        print "RESULT: %s" % str(tuple(float(value) for value in minmax))
 
 
 if __name__ == '__main__':

@@ -25,7 +25,25 @@ Unit tests for the bin/oqrunner.py module.
 
 import unittest
 
-from bin.oqrunner import detect_output_type
+from bin.oqrunner import detect_output_type, extract_min_max
+
+
+class ExtractMinMaxTestCase(unittest.TestCase):
+    """Tests the behaviour of oqrunner.extract_min_max()."""
+
+    def test_extract_min_max(self):
+        """The minimum/maximum values are extracted correctly."""
+        sample = "RESULT: (16.04934554846202, 629.323267954)"
+        minimum, maximum = extract_min_max(sample)
+        self.assertTrue(isinstance(minimum, float))
+        self.assertEqual(16.04934554846202, minimum)
+        self.assertTrue(isinstance(maximum, float))
+        self.assertEqual(629.323267954, maximum)
+
+    def test_extract_min_max_with_malformed_stdout(self):
+        """The minimum/maximum values are extracted correctly."""
+        sample = "malformed stdout"
+        self.assertIs(None, extract_min_max(sample))
 
 
 class DetectOutputTypeTestCase(unittest.TestCase):
