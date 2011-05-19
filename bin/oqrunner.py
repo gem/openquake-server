@@ -35,15 +35,16 @@ former with the geonode server.
 
 
 import getopt
+import glob
 import logging
+import re
 import os
 import pprint
-import subprocess
 import sys
 
 from django.conf import settings
 from geonode.mtapi import utils
-from geonode.mtapi.models import OqJob
+from geonode.mtapi.models import OqJob, Output
 from utils.oqrunner import config_writer
 
 
@@ -122,6 +123,101 @@ def run_calculation(config):
         - creating a database record for each hazard/loss map and capture the
           associated shapefile.
     """
+
+
+def process_results(job):
+    """Generates a shapefile for each hazard/loss map.
+
+    :param job: the :py:class:`geonode.mtapi.models.OqJob` instance in question
+    """
+    maps = find_maps(job)
+    for map in maps:
+        process_map(map)
+
+
+def process_map(map):
+    """Creates shapefile from map. Updates the respective db record.
+
+    The minimum/maximum values as well as the shapefile path/URL will be
+    captured in the output's db record.
+
+    :param map: :py:class:`geonode.mtapi.models.Output` instance in question
+    """
+    commands = ["%s/bin/gen_shapefile.py" % settings.OQ_APIAPP_DIR]
+    commands.append("-k")
+    commands.append(map.id)
+    commands.append("-p")
+    commands.append(map.path)
+    commands.append("-t")
+    commands.append("hazard" if map.output_type == "hazard_map" else "loss")
+    code, out, err = utils.run_cmd(commands, ignore_exit_code=True)
+    if code == 0:
+        # All went well
+        map.shapefile_path, map.min_value, map.max_value = extract_results(out)
+        map.save()
+
+
+def extract_results(stdout):
+    """Extract the minimum/maximum value from the shapefile generator's
+    standard output.
+
+    This is what the stdout will look like in case of success:
+      "RESULT: ('/path', 1.9016084306, 1.95760904991)"
+
+    :param string stdout: the standard output produced by the shapefile
+    generator.
+    :returns: a ('/path', minimum, maximum) triple in case of success or None
+        in case of failure.
+    """
+    regex = re.compile("RESULT:\s+\('([^']+)',\s+([^,]+),\s+([^)]+)\)")
+    match = regex.search(stdout)
+    if match:
+        path, minimum, maximum = match.groups()
+        return (path, float(minimum), float(maximum))
+
+
+def find_maps(job):
+    """Find all hazard/result maps and store information about these in the db.
+
+    Assumption: the default output path cannot be changed from the web GUI
+    (openquake/default.gem:OUTPUT_DIR = computed_output)
+
+    :param job: the :py:class:`geonode.mtapi.models.OqJob` instance in question
+    :returns: a list of :py:class:`geonode.mtapi.models.Output` instances, one
+        per map.
+    """
+    results = []
+    maps = list(sorted(glob.glob(
+        "%s/*map*.xml" % os.path.join(job.path, "computed_output"))))
+    maps = [(path, detect_output_type(path)) for path in maps]
+    # Ignore anything that's not a hazard or loss map.
+    maps = [(path, type) for path, type in maps if type in ("hazard", "loss")]
+    for path, type in maps:
+        output = Output(owner=job.owner, output_type="%s_map" % type,
+                        oq_job=job, path=path, size=os.path.getsize(path))
+        output.save()
+        results.append(output)
+    return results
+
+
+def detect_output_type(path):
+    """Detect and return the output file type.
+
+    :param string path: the path of the output file.
+    :returns: one of the following strings: "hazard", "loss" or "unknown"
+    """
+    # Read a chunk of the output file.
+    fh = open(path, "r")
+    chunk = fh.read(2048)
+    fh.close()
+
+    tags = ("<lossMap", "<hazardMap")
+    types = ("loss", "hazard")
+    type_dict = dict(zip(tags, types))
+    for key, value in type_dict.iteritems():
+        if chunk.find(key) >= 0:
+            return value
+    return "unknown"
 
 
 # TODO: al-maisan, Sun, Mon, 16 May 2011 17:12:06 +0200
