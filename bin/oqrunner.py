@@ -40,7 +40,6 @@ import logging
 import re
 import os
 import pprint
-import subprocess
 import sys
 
 from django.conf import settings

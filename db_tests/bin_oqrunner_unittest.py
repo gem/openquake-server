@@ -47,23 +47,18 @@ class ProcessMapTestCase(unittest.TestCase, DbTestMixin):
         os.mkdir(self.output_path)
         map_files = glob.glob("db_tests/data/*map*.xml")
 
+        hazardmaps = list(sorted(
+            [file for file in map_files
+             if os.path.basename(file).find("hazard") > -1]))
+        assert hazardmaps, "No hazard maps found"
+        lossmaps = list(sorted(
+            [file for file in map_files
+             if os.path.basename(file).find("loss") > -1]))
+        assert lossmaps, "No loss maps found"
+
         # We want one of hazard/loss map each.
-        hazard_map_found = False
-        loss_map_found = False
-        for file in list(sorted(map_files)):
+        for file in [hazardmaps.pop(0), lossmaps.pop(0)]:
             basename = os.path.basename(file)
-            if hazard_map_found and loss_map_found:
-                break
-            if basename.find("hazard") > -1:
-                if hazard_map_found:
-                    continue
-                else:
-                    hazard_map_found = True
-            if basename.find("loss") > -1:
-                if loss_map_found:
-                    continue
-                else:
-                    loss_map_found = True
             os.symlink(os.path.realpath(file),
                        os.path.join(self.output_path, basename))
 
@@ -88,6 +83,27 @@ class ProcessMapTestCase(unittest.TestCase, DbTestMixin):
                   '-k', hazard_map.id,
                   '-p', '%s/computed_output/%s' % (self.job.path, basename),
                   '-t', 'hazard'],),
+                {'ignore_exit_code': True})
+            self.assertEqual(expected, mock_func.call_args)
+
+    def test_process_map_calls_shapefile_gen_correctly_with_loss(self):
+        """
+        The shapefile generator tool is invoked correctly for a loss map.
+        """
+        maps = find_maps(self.job)
+        self.assertEqual(2, len(maps))
+        [_, loss_map] = maps
+        basename = os.path.basename(loss_map.path)
+        self.assertEqual("loss_map", loss_map.output_type)
+        with mock.patch('geonode.mtapi.utils.run_cmd') as mock_func:
+            mock_func.return_value = (
+                0, "RESULT: ('/a/b/c', 61.4039544548262, 926.3032629745)", "")
+            process_map(loss_map)
+            expected = (
+                (['%s/bin/gen_shapefile.py' % settings.OQ_APIAPP_DIR,
+                  '-k', loss_map.id,
+                  '-p', '%s/computed_output/%s' % (self.job.path, basename),
+                  '-t', 'loss'],),
                 {'ignore_exit_code': True})
             self.assertEqual(expected, mock_func.call_args)
 
