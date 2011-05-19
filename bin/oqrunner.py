@@ -233,7 +233,7 @@ def main(cargs):
         """Remove leading dashes, return last portion of string remaining."""
         return arg.split('-')[-1]
 
-    mandatory_args = ["password", "jobid", "user"]
+    mandatory_args = ["jobid"]
     config = dict(db="openquake", host="localhost", user=None, password=None,
                   jobid=None)
     longopts = ["%s" % k if isinstance(v, bool) else "%s=" % k

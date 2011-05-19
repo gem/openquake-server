@@ -194,7 +194,7 @@ def load_source_files(upload):
     :returns: the integer process ID (pid) of the child process that is running
         the NRML loader program.
     """
-    config = settings.DATABASES['openquake']
+    config = settings.DATABASES['default']
     host = config["HOST"] if config["HOST"] else "localhost"
     args = [settings.NRML_RUNNER_PATH, "--db", config["NAME"],
             "-U", config["USER"], "-W", config["PASSWORD"],

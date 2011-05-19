@@ -27,17 +27,22 @@ import os
 import shutil
 
 from geonode.mtapi import utils
-from geonode.mtapi.models import Input, OqJob, OqParams
+from geonode.mtapi.models import Input, OqJob, OqParams, Upload
 
 
 class DbTestMixin(object):
     """Tests the behaviour of oqrunner.create_input_file_dir()."""
 
-    def setup_upload(self):
+    def setup_upload(self, dbkey=None):
         """Create an upload with associated inputs.
 
+        :param integer dbkey: if set use the upload record with given db key.
         :returns: a :py:class:`geonode.mtapi.models.Upload` instance
         """
+        if dbkey:
+            [upload] = Upload.objects.filter(id=dbkey)
+            return upload
+
         files = [
             ("gmpe_logic_tree.xml", "lt_gmpe"),
             ("small_exposure.xml", "exposure"),
@@ -74,14 +79,15 @@ class DbTestMixin(object):
             input.delete()
         upload.delete()
 
-    def setup_classic_job(self, create_job_path=True):
+    def setup_classic_job(self, create_job_path=True, upload_id=None):
         """Create a classic job with associated upload and inputs.
 
+        :param integer upload_id: if set use upload record with given db key.
         :param bool create_job_path: if set the path for the job will be
             created and captured in the job record
         :returns: a :py:class:`geonode.mtapi.models.OqJob` instance
         """
-        upload = self.setup_upload()
+        upload = self.setup_upload(upload_id)
         oqp = OqParams()
         oqp.job_type = "classical"
         oqp.upload = upload
