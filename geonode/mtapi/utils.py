@@ -30,14 +30,6 @@ from django.conf import settings
 from geonode.mtapi.models import OqUser, Upload
 
 
-def dbn():
-    """The name of the database to use."""
-    return dict(
-        NAME=os.environ.get("OQ_MTAPI_DB", "openquake"),
-        USER=os.environ.get("OQ_MTAPI_USER", "oq_uiapi_writer"),
-        PASSWORD=os.environ.get("OQ_MTAPI_PASSWORD"))
-
-
 def prepare_upload(root=None):
     """Create a directory for the files, return `Upload` object.
 
