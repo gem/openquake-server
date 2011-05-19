@@ -80,7 +80,7 @@ class ProcessMapTestCase(unittest.TestCase, DbTestMixin):
             process_map(hazard_map)
             expected = (
                 (['%s/bin/gen_shapefile.py' % settings.OQ_APIAPP_DIR,
-                  '-k', hazard_map.id,
+                  '-k', str(hazard_map.id),
                   '-p', '%s/computed_output/%s' % (self.job.path, basename),
                   '-t', 'hazard'],),
                 {'ignore_exit_code': True})
@@ -101,7 +101,7 @@ class ProcessMapTestCase(unittest.TestCase, DbTestMixin):
             process_map(loss_map)
             expected = (
                 (['%s/bin/gen_shapefile.py' % settings.OQ_APIAPP_DIR,
-                  '-k', loss_map.id,
+                  '-k', str(loss_map.id),
                   '-p', '%s/computed_output/%s' % (self.job.path, basename),
                   '-t', 'loss'],),
                 {'ignore_exit_code': True})

@@ -149,7 +149,7 @@ def process_map(map):
     """
     commands = ["%s/bin/gen_shapefile.py" % settings.OQ_APIAPP_DIR]
     commands.append("-k")
-    commands.append(map.id)
+    commands.append(str(map.id))
     commands.append("-p")
     commands.append(map.path)
     commands.append("-t")
