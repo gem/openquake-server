@@ -24,13 +24,72 @@ database related unit tests for the bin/oqrunner.py module.
 
 
 import glob
+import mock
 import os
 import stat
 import unittest
 
-from bin.oqrunner import create_input_file_dir, find_maps, prepare_inputs
+from django.conf import settings
+
+from bin.oqrunner import (
+    create_input_file_dir, find_maps, prepare_inputs, process_map)
 
 from db_tests.helpers import DbTestMixin
+
+
+class ProcessMapTestCase(unittest.TestCase, DbTestMixin):
+    """Tests the behaviour of oqrunner.process_map()."""
+
+    def setUp(self):
+        self.job = self.setup_classic_job()
+        # Prepare the output files.
+        self.output_path = os.path.join(self.job.path, "computed_output")
+        os.mkdir(self.output_path)
+        map_files = glob.glob("db_tests/data/*map*.xml")
+
+        # We want one of hazard/loss map each.
+        hazard_map_found = False
+        loss_map_found = False
+        for file in list(sorted(map_files)):
+            basename = os.path.basename(file)
+            if hazard_map_found and loss_map_found:
+                break
+            if basename.find("hazard") > -1:
+                if hazard_map_found:
+                    continue
+                else:
+                    hazard_map_found = True
+            if basename.find("loss") > -1:
+                if loss_map_found:
+                    continue
+                else:
+                    loss_map_found = True
+            os.symlink(os.path.realpath(file),
+                       os.path.join(self.output_path, basename))
+
+    def tearDown(self):
+        self.teardown_job(self.job)
+
+    def test_process_map_calls_shapefile_gen_correctly_with_hazard(self):
+        """
+        The shapefile generator tool is invoked correctly for a hazard map.
+        """
+        maps = find_maps(self.job)
+        self.assertEqual(2, len(maps))
+        [hazard_map, _] = maps
+        basename = os.path.basename(hazard_map.path)
+        self.assertEqual("hazard_map", hazard_map.output_type)
+        with mock.patch('geonode.mtapi.utils.run_cmd') as mock_func:
+            mock_func.return_value = (
+                0, "RESULT: ('/a/b/c', 16.04934554846202, 629.323267954)", "")
+            process_map(hazard_map)
+            expected = (
+                (['%s/bin/gen_shapefile.py' % settings.OQ_APIAPP_DIR,
+                  '-k', hazard_map.id,
+                  '-p', '%s/computed_output/%s' % (self.job.path, basename),
+                  '-t', 'hazard'],),
+                {'ignore_exit_code': True})
+            self.assertEqual(expected, mock_func.call_args)
 
 
 class FindMapsTestCase(unittest.TestCase, DbTestMixin):

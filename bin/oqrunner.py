@@ -190,8 +190,8 @@ def find_maps(job):
         per map.
     """
     results = []
-    maps = glob.glob(
-        "%s/*map*.xml" % os.path.join(job.path, "computed_output"))
+    maps = list(sorted(glob.glob(
+        "%s/*map*.xml" % os.path.join(job.path, "computed_output"))))
     maps = [(path, detect_output_type(path)) for path in maps]
     # Ignore anything that's not a hazard or loss map.
     maps = [(path, type) for path, type in maps if type in ("hazard", "loss")]
