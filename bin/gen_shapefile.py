@@ -459,7 +459,7 @@ def main(cargs):
     longopts = ["%s" % k if isinstance(v, bool) else "%s=" % k
                 for k, v in config.iteritems()] + ["help"]
     # Translation between short/long command line arguments.
-    s2l = dict(k="key", l="layer", o="output", p="path", t="type", z=zeroes)
+    s2l = dict(k="key", l="layer", o="output", p="path", t="type", z="zeroes")
 
     try:
         opts, _ = getopt.getopt(cargs[1:], "hk:l:o:p:t:z", longopts)

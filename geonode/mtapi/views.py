@@ -223,7 +223,7 @@ def run_oq_job(request):
     """
     print("request: %s\n" % pprint.pformat(request))
     if request.method == "POST":
-        job = prepare_job(HttpRequest.POST)
+        job = prepare_job(request.POST)
         return HttpResponse(
             {"status": "success", "msg": "Calculation started", "id": 123})
     else:
