@@ -29,6 +29,7 @@ print the minimum and maximum value(*) seen to the standard output.
   -o | --output O   : path to the resulting shapefile
   -p | --path P     : path to the hazard/loss map file to be processed
   -t | --type T     : map type: may be one of hazard/loss
+  -z | --zeroes     : do not discard zero values (linear colour scale)
 
 (*) IML and loss mean for hazard and loss maps respectively.
 """
@@ -205,6 +206,10 @@ def create_shapefile_from_hazard_map(config):
 
     for pos, iml in data:
         iml = float(iml)
+        if not iml and not config["zeroes"]:
+            # Zero values are to be discarded (logarithmic colour scale)
+            continue
+
         feature = ogr.Feature(layer.GetLayerDefn())
         feature.SetField("IML", iml)
 
@@ -357,6 +362,10 @@ def create_shapefile_from_loss_map(config):
     assert layer.CreateField(field) == 0, "failed to create 'mean' field"
 
     for pos, loss in data:
+        if not loss and not config["zeroes"]:
+            # Zero values are to be discarded (logarithmic colour scale)
+            continue
+
         feature = ogr.Feature(layer.GetLayerDefn())
         feature.SetField("mean", loss)
 
@@ -382,14 +391,15 @@ def main(cargs):
         return arg.split('-')[-1]
 
     mandatory_args = ["key", "path"]
-    config = dict(key="", layer="", output="", path="", type="hazard")
+    config = dict(key="", layer="", output="", path="", type="hazard",
+                  zeroes=False)
     longopts = ["%s" % k if isinstance(v, bool) else "%s=" % k
                 for k, v in config.iteritems()] + ["help"]
     # Translation between short/long command line arguments.
-    s2l = dict(k="key", l="layer", o="output", p="path", t="type")
+    s2l = dict(k="key", l="layer", o="output", p="path", t="type", z=zeroes)
 
     try:
-        opts, _ = getopt.getopt(cargs[1:], "hk:l:o:p:t:", longopts)
+        opts, _ = getopt.getopt(cargs[1:], "hk:l:o:p:t:z", longopts)
     except getopt.GetoptError, e:
         # User supplied unknown argument(?); print help and exit.
         print e
