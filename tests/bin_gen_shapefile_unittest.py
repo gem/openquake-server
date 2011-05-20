@@ -19,21 +19,148 @@
 
 
 """
-Unit tests for the bin/generate_shapefile.py tool.
+Unit tests for the bin/gen_shapefile.py tool.
 """
 
 
+import mock
 import operator
+import os
+import tempfile
 import unittest
 
 
 from bin.gen_shapefile import (
     calculate_loss_data, extract_hazardmap_data, extract_lossmap_data,
-    extract_position, find_min_max, tag_extractor)
+    extract_position, find_min_max, create_shapefile, tag_extractor)
+
+
+class CreateShapefileTestCase(unittest.TestCase):
+    """Tests the behaviour of gen_shapefile.create_shapefile()."""
+
+    def setUp(self):
+        _, self.map_file = tempfile.mkstemp()
+
+    def tearDown(self):
+        os.unlink(self.map_file)
+
+    def test_create_shapefile_map_is_not_file(self):
+        """
+        When the passed map file path is not a file an `AssertionError` is
+        raised.
+        """
+        config = dict(key="11", layer="abc", output="def", path="/tmp",
+                      type="hazard")
+        self.assertRaises(AssertionError, create_shapefile, config)
+
+    def test_create_shapefile_map_file_not_readable(self):
+        """
+        When the passed map file path is not a file readble by us an
+        `AssertionError` is raised.
+        """
+        os.chmod(self.map_file, 0000)
+        config = dict(key="11", layer="abc", output="def", path=self.map_file,
+                      type="hazard")
+        self.assertRaises(AssertionError, create_shapefile, config)
+
+    def test_create_shapefile_no_output(self):
+        """
+        If the user does not specify an output it will be "calculated" from the
+        map's path and layer name.
+        """
+        config = dict(key="11", layer="", output="", path=self.map_file,
+                      type="hazard")
+        with mock.patch('bin.gen_shapefile.create_shapefile_from_hazard_map') \
+            as mock_func:
+            mock_func.return_value = ("", 0, 1)
+            create_shapefile(config)
+            basename = os.path.basename(self.map_file)
+            expected_layer = "%s-%s" % (config["key"], basename)
+            self.assertEqual(expected_layer,
+                             mock_func.call_args[0][0]["layer"])
+            dirname = os.path.dirname(self.map_file)
+            self.assertEqual(os.path.join(dirname, "shapefiles"),
+                             mock_func.call_args[0][0]["output"])
+
+    def test_create_shapefile_no_output_with_dots(self):
+        """
+        If the user does not specify an output it will be "calculated" from the
+        map's path and layer name.
+        All dot characters in the layer name will be replaced by dashes.
+        """
+        _, map_file2 = tempfile.mkstemp(prefix="we.love.dots.")
+        config = dict(key="11", layer="", output="", path=map_file2,
+                      type="hazard")
+        with mock.patch('bin.gen_shapefile.create_shapefile_from_hazard_map') \
+            as mock_func:
+            mock_func.return_value = ("", 0, 1)
+            create_shapefile(config)
+            basename = os.path.basename(map_file2)
+            basename, _ = os.path.splitext(basename)
+            expected_layer = (
+                "%s-%s" % (config["key"], basename.replace(".", "-")))
+            self.assertEqual(expected_layer,
+                             mock_func.call_args[0][0]["layer"])
+            dirname = os.path.dirname(self.map_file)
+            self.assertEqual(os.path.join(dirname, "shapefiles"),
+                             mock_func.call_args[0][0]["output"])
+        os.unlink(map_file2)
+
+
+    def test_create_shapefile_with_non_existent_output(self):
+        """
+        When the output path does not exist an `AssertionError` is raised.
+        """
+        config = dict(key="11", layer="abc", output="/def", path="/tmp",
+                      type="hazard")
+        self.assertRaises(AssertionError, create_shapefile, config)
+
+    def test_create_shapefile_with_output_not_file_or_dir(self):
+        """
+        When the output path is neither a directory nor a file an
+        `AssertionError` is raised.
+        """
+        os.symlink(self.map_file, "/tmp/map-sym-link")
+        config = dict(key="11", layer="abc", output="/def",
+                      path="/tmp/map-sym-link", type="hazard")
+        self.assertRaises(AssertionError, create_shapefile, config)
+        os.unlink("/tmp/map-sym-link")
+
+    def test_create_shapefile_with_hazard_map(self):
+        """
+        Make sure the right function is called for hazard maps.
+        """
+        config = dict(key="11", layer="", output="", path=self.map_file,
+                      type="hazard")
+        with mock.patch('bin.gen_shapefile.create_shapefile_from_hazard_map') \
+            as mock_func:
+            mock_func.return_value = ("", 0, 1)
+            create_shapefile(config)
+            self.assertEqual(1, mock_func.call_count)
+
+    def test_create_shapefile_with_loss_map(self):
+        """
+        Make sure the right function is called for loss maps.
+        """
+        config = dict(key="11", layer="", output="", path=self.map_file,
+                      type="loss")
+        with mock.patch('bin.gen_shapefile.create_shapefile_from_loss_map') \
+            as mock_func:
+            mock_func.return_value = ("", 0, 1)
+            create_shapefile(config)
+            self.assertEqual(1, mock_func.call_count)
+
+    def test_create_shapefile_with_unknown_map(self):
+        """
+        An `AssertionError` is raised for unknown map types.
+        """
+        config = dict(key="11", layer="abc", output="/def", path="/tmp",
+                      type="unknown")
+        self.assertRaises(AssertionError, create_shapefile, config)
 
 
 class CalculateLossDataTestCase(unittest.TestCase):
-    """Tests the behaviour of generate_shapefile.calculate_loss_data()."""
+    """Tests the behaviour of gen_shapefile.calculate_loss_data()."""
 
     def test_calculate_loss_data(self):
         """
@@ -61,7 +188,7 @@ class CalculateLossDataTestCase(unittest.TestCase):
 
 
 class FindMinMaxTestCase(unittest.TestCase):
-    """Tests the behaviour of generate_shapefile.find_min_max()."""
+    """Tests the behaviour of gen_shapefile.find_min_max()."""
 
     def test_find_min_max_for_hazard_maps(self):
         """
@@ -100,7 +227,7 @@ class FindMinMaxTestCase(unittest.TestCase):
 
 
 class ExtractHazardmapDataTestCase(unittest.TestCase):
-    """Tests the behaviour of generate_shapefile.extract_hazardmap_data()."""
+    """Tests the behaviour of gen_shapefile.extract_hazardmap_data()."""
 
     def test_extract_hazardmap_data(self):
         """
@@ -120,7 +247,7 @@ class ExtractHazardmapDataTestCase(unittest.TestCase):
 
 
 class ExtractLossmapDataTestCase(unittest.TestCase):
-    """Tests the behaviour of generate_shapefile.extract_lossmap_data()."""
+    """Tests the behaviour of gen_shapefile.extract_lossmap_data()."""
 
     def test_extract_lossmap_data(self):
         """
@@ -148,7 +275,7 @@ class ExtractLossmapDataTestCase(unittest.TestCase):
 
 
 class ExtractPositionTestCase(unittest.TestCase):
-    """Tests the behaviour of generate_shapefile.extract_position()."""
+    """Tests the behaviour of gen_shapefile.extract_position()."""
 
     def test_extract_position_with_expected_srid(self):
         """
@@ -193,7 +320,7 @@ class ExtractPositionTestCase(unittest.TestCase):
 
 
 class TagExtractorTestCase(unittest.TestCase):
-    """Tests the behaviour of generate_shapefile.tag_extractor()."""
+    """Tests the behaviour of gen_shapefile.tag_extractor()."""
 
     def test_tag_extractor_with_hazard_map(self):
         """
