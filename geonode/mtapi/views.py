@@ -30,11 +30,12 @@ import re
 import simplejson
 import subprocess
 
+from django.conf import settings
+from django.contrib.gis.geos import GEOSGeometry
 from django.http import HttpResponse, Http404
 from django.views.decorators.csrf import csrf_exempt
-from django.conf import settings
 
-from geonode.mtapi.models import Upload, Input
+from geonode.mtapi.models import Input, OqJob, OqParams, Upload
 from geonode.mtapi import utils
 
 
@@ -201,7 +202,7 @@ def load_source_files(upload):
             "-u", str(upload.id), "--host", host]
     print("nrml loader args: %s\n" % pprint.pformat(args))
     env = os.environ
-    env["PYTHONPATH"] = settings.NRML_RUNNER_PYTHONPATH
+    env["PYTHONPATH"] = settings.APIAPP_PYTHONPATH
     pprint.pprint(env)
     pid = subprocess.Popen(args, env=env).pid
     upload.status = "running"
@@ -222,7 +223,61 @@ def run_oq_job(request):
     """
     print("request: %s\n" % pprint.pformat(request))
     if request.method == "POST":
+        job = prepare_job(HttpRequest.POST)
         return HttpResponse(
             {"status": "success", "msg": "Calculation started", "id": 123})
     else:
         raise Http404
+
+
+def prepare_job(params):
+    """Create a job with the associated upload and the given parameters.
+
+    :param dict params: the parameters will look as follows:
+        {"model":"openquake.calculationparams",
+         "upload": 23,
+         "fields":
+             {"job_type":"classical",
+              "region_grid_spacing":0.1,
+              "min_magnitude":5,
+              "investigation_time":50,
+              "component":"average",
+              "imt":"pga",
+              "period":1,
+              "truncation_type":"none",
+              "truncation_level":3,
+              "reference_v30_value":800,
+              "imls":[ 0.2,0.02,0.01],
+              "poes":[0.2,0.02,0.01],
+              "realizations":6,
+              "histories":1,
+              "gm_correlated":false,
+              "region":"POLYGON((
+                 16.460737205888 41.257786872643,
+                 16.460898138429 41.257786872643,
+                 16.460898138429 41.257923984376,
+                 16.460737205888 41.257923984376,
+                 16.460737205888 41.257786872643))"}}
+
+        Please see the "hazard_risk_calc" section of
+        https://github.com/gem/openquake/wiki/demo-client-API for details on
+        the parameters.
+
+    :returns: a :py:class:`geonode.mtapi.models.OqJob` instance
+    """
+    [upload] = Upload.objects.filter(id=params["upload"])
+    oqp = OqParams()
+    attr_names =  (
+        "job_type", "region_grid_spacing", "min_magnitude",
+        "investigation_time", "component", "imt", "period", "truncation_type",
+        "truncation_level", "reference_v30_value", "imls", "poes",
+        "realizations", "histories", "gm_correlated")
+
+    for attr_name in attr_names:
+        setattr(oqp, attr_name, params["fields"][attr_name])
+    oqp.region = GEOSGeometry(params["fields"]["region"])
+    oqp.save()
+    job = OqJob(oq_params=oqp, owner=upload.owner,
+                job_type=params["fields"]["job_type"])
+    job.save()
+    return job

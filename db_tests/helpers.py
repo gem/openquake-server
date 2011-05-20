@@ -31,7 +31,7 @@ from geonode.mtapi.models import Input, OqJob, OqParams, Upload
 
 
 class DbTestMixin(object):
-    """Tests the behaviour of oqrunner.create_input_file_dir()."""
+    """Mixin class with various helper methods."""
 
     def setup_upload(self, dbkey=None):
         """Create an upload with associated inputs.

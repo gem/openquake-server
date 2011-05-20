@@ -120,6 +120,6 @@ INSTALLED_APPS = (
 NRML_RUNNER_PATH = "%s/bin/nrml_runner.py" % OQ_APIAPP_DIR
 
 import sys
-NRML_RUNNER_PYTHONPATH = ":".join(
+APIAPP_PYTHONPATH = ":".join(
     [seg for seg in sys.path if seg.find("geonode") < 0])
-NRML_RUNNER_PYTHONPATH += ":%s:%s" % (OQ_ENGINE_DIR, OQ_APIAPP_DIR)
+APIAPP_PYTHONPATH += ":%s:%s" % (OQ_ENGINE_DIR, OQ_APIAPP_DIR)
