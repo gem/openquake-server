@@ -26,7 +26,8 @@ print the minimum and maximum value(*) seen to the standard output.
   -h | --help       : prints this help string
   -k | --key K      : database key of the hazard/loss map
   -l | --layer L    : shapefile layer name
-  -o | --output O   : path to the resulting shapefile
+  -o | --output O   : path to the resulting shapefile, do *not* use dot
+                      characters in shapefile names!
   -p | --path P     : path to the hazard/loss map file to be processed
   -t | --type T     : map type: may be one of hazard/loss
 
@@ -373,6 +374,68 @@ def create_shapefile_from_loss_map(config):
     return (path,) + find_min_max(data, operator.itemgetter(1))
 
 
+def create_shapefile(config):
+    """Create a shapefile for a hazard/loss map as appropriate.
+
+    :param dict config: a configuration `dict` with the following data
+        items:
+            - key (db key of the hazard map file)
+            - layer (shapefile layer name)
+            - output (shapefile path)
+            - path (map file to be processed)
+            - type (map type, hazard or loss)
+    """
+    assert os.path.isfile(config["path"]), \
+        "'%s' is not a file" % config["path"]
+    assert os.access(config["path"], os.R_OK), \
+        "'%s' is not readable" % config["path"]
+
+    if not config["output"]:
+        dirname, filename = os.path.split(config["path"])
+        config["output"] = os.path.join(dirname, "shapefiles")
+
+        try:
+            os.mkdir(config["output"])
+            os.chmod(config["output"], 0777)
+        except OSError, e:
+            if e.errno == 17:
+                # ignore OSError(17, 'File exists')
+                pass
+            else:
+                raise
+
+        basename, _ = os.path.splitext(filename)
+        config["layer"] = "%s-%s" % (config["key"], basename)
+        # Dots in layer names are taken to be file extension delimiters and
+        # problematic for geonode.
+        config["layer"].replace(".", "-")
+    else:
+        assert os.path.exists(config["output"]), \
+            "'%s' does not exist" % config["output"]
+        if os.path.isfile(config["output"]):
+            outdir = os.path.dirname(config["output"])
+        elif os.path.isdir(config["output"]):
+            outdir = config["output"]
+        else:
+            error = ("Output path ('%s') neither file nor directory" %
+                     config["output"])
+            logger.error(error)
+            raise Exception(error)
+        assert os.access(outdir, os.W_OK), "'%s' is not writable" % outdir
+
+    path_and_minmax_values = None
+    if config["type"] == "hazard":
+        path_and_minmax_values = create_shapefile_from_hazard_map(config)
+    elif  config["type"] == "loss":
+        path_and_minmax_values = create_shapefile_from_loss_map(config)
+    else:
+        error = "unknown map type: '%s'" % config["type"]
+        logger.error(error)
+        raise Exception(error)
+
+    return path_and_minmax_values
+
+
 def main(cargs):
     # TODO: al-maisan, Sun, 15 May 2011 19:34:34 +0200: package the command
     # line argument processing code below into a utility function.
@@ -426,39 +489,10 @@ def main(cargs):
             print __doc__
             sys.exit(103)
 
-    assert os.path.isfile(config["path"]), \
-        "'%s' is not a file" % config["path"]
-    assert os.access(config["path"], os.R_OK), \
-        "'%s' is not readable" % config["path"]
+    path_and_minmax_values = create_shapefile(config)
 
-    if not config["output"]:
-        dirname, filename = os.path.split(config["path"])
-        config["output"] = "%s/%s" % (dirname, config["key"])
-        os.mkdir(config["output"])
-        os.chmod(config["output"], 0777)
-        basename, _ = os.path.splitext(filename)
-        config["layer"] = "%s-%s" % (config["key"], basename)
-    else:
-        if os.path.isfile(config["output"]):
-            outdir = os.path.dirname(config["output"])
-        else:
-            outdir = config["output"]
-        assert os.access(outdir, os.W_OK), "'%s' is not writable" % outdir
-
-    logger.info("config = %s" % pprint.pformat(config))
-
-    pprint.pprint(config)
-    minmax = None
-    if config["type"] == "hazard":
-        minmax = create_shapefile_from_hazard_map(config)
-    elif  config["type"] == "loss":
-        minmax = create_shapefile_from_loss_map(config)
-    else:
-        print "unknown map type: '%s'" % config["type"]
-        sys.exit(104)
-
-    if minmax:
-        print "RESULT: %s" % str(minmax)
+    if path_and_minmax_values:
+        print "RESULT: %s" % str(path_and_minmax_values)
 
 
 if __name__ == '__main__':
