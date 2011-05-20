@@ -102,3 +102,44 @@ class PrepareJobTestCase(unittest.TestCase, DbTestMixin):
             attr_name = trans_tab.get(param_name, param_name)
             self.assertEqual(getattr(oqp, attr_name),
                              post_params["fields"][param_name])
+
+    def test_prepare_upload_ignored_params(self):
+        """
+        `prepare_job()` ignores the following parameters: "period",
+        "gm_correlated" and "histories".
+        """
+        upload = self.setup_upload()
+        post_params = {
+            "model":"openquake.calculationparams",
+            "upload": upload.id,
+            "fields":
+               {"job_type": "classical",
+                "region_grid_spacing": 0.1,
+                "min_magnitude": 5,
+                "investigation_time": 50,
+                "component": "average",
+                "imt": "pga",
+                "truncation_type": "none",
+                "truncation_level": 3,
+                "reference_v30_value": 800,
+                "imls": [ 0.2,0.02,0.01],
+                "poes": [0.2,0.02,0.01],
+                "realizations": 6,
+                "period": 1,
+                "histories": 1,
+                "gm_correlated": False,
+                "region": "POLYGON((16.460737205888 41.257786872643, "
+                    "16.460898138429 41.257786872643, 16.460898138429 "
+                    "41.257923984376, 16.460737205888 41.257923984376, "
+                    "16.460737205888 41.257786872643))"}}
+        oqp = prepare_job(post_params).oq_params
+        trans_tab = dict(reference_v30_value="reference_vs30_value")
+        param_names =  (
+            "job_type", "region_grid_spacing", "min_magnitude",
+            "investigation_time", "component", "imt", "truncation_type",
+            "truncation_level", "reference_v30_value", "imls", "poes",
+            "realizations")
+        for param_name in param_names:
+            attr_name = trans_tab.get(param_name, param_name)
+            self.assertEqual(getattr(oqp, attr_name),
+                             post_params["fields"][param_name])

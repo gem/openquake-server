@@ -274,9 +274,16 @@ def prepare_job(params):
         "truncation_level", "reference_v30_value", "imls", "poes",
         "realizations", "histories", "gm_correlated")
 
+    ignore = dict(
+        classical=set(["period", "histories", "gm_correlated"]),
+        deterministic=set(), event_based=set())
+
+    job_type = params["fields"]["job_type"]
+    assert job_type in ("classical", "deterministic", "event_based"), \
+        "invalid job type: '%s'" % job_type
+
     for attr_name in attr_names:
-        if attr_name == "region":
-            # We deal with the region property further below.
+        if attr_name == "region" or attr_name in ignore[job_type]:
             continue
         # Take care of differences in property names.
         property_name = trans_tab.get(attr_name, attr_name)
