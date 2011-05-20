@@ -32,7 +32,7 @@ from geonode.mtapi.utils import prepare_upload
 
 
 class PrepareUploadTestCase(unittest.TestCase):
-    """Tests the behaviour of views.prepare_upload()."""
+    """Tests the behaviour of utils.prepare_upload()."""
 
     def test_prepare_upload(self):
         """

@@ -237,21 +237,21 @@ def prepare_job(params):
         {"model":"openquake.calculationparams",
          "upload": 23,
          "fields":
-             {"job_type":"classical",
-              "region_grid_spacing":0.1,
-              "min_magnitude":5,
-              "investigation_time":50,
-              "component":"average",
-              "imt":"pga",
-              "period":1,
-              "truncation_type":"none",
-              "truncation_level":3,
-              "reference_v30_value":800,
-              "imls":[ 0.2,0.02,0.01],
-              "poes":[0.2,0.02,0.01],
-              "realizations":6,
-              "histories":1,
-              "gm_correlated":false,
+             {"job_type": "classical",
+              "region_grid_spacing": 0.1,
+              "min_magnitude": 5,
+              "investigation_time": 50,
+              "component": "average",
+              "imt": "pga",
+              "period": 1,
+              "truncation_type": "none",
+              "truncation_level": 3,
+              "reference_v30_value": 800,
+              "imls": [0.2,0.02,0.01],
+              "poes": [0.2,0.02,0.01],
+              "realizations": 6,
+              "histories": 1,
+              "gm_correlated": False,
               "region":"POLYGON((
                  16.460737205888 41.257786872643,
                  16.460898138429 41.257786872643,
@@ -266,7 +266,8 @@ def prepare_job(params):
     :returns: a :py:class:`geonode.mtapi.models.OqJob` instance
     """
     [upload] = Upload.objects.filter(id=params["upload"])
-    oqp = OqParams()
+    oqp = OqParams(upload=upload)
+    trans_tab = dict(reference_v30_value="reference_vs30_value")
     attr_names =  (
         "job_type", "region_grid_spacing", "min_magnitude",
         "investigation_time", "component", "imt", "period", "truncation_type",
@@ -274,7 +275,15 @@ def prepare_job(params):
         "realizations", "histories", "gm_correlated")
 
     for attr_name in attr_names:
-        setattr(oqp, attr_name, params["fields"][attr_name])
+        if attr_name == "region":
+            # We deal with the region property further below.
+            continue
+        # Take care of differences in property names.
+        property_name = trans_tab.get(attr_name, attr_name)
+        value = params["fields"].get(attr_name)
+        if value:
+            setattr(oqp, property_name, value)
+
     oqp.region = GEOSGeometry(params["fields"]["region"])
     oqp.save()
     job = OqJob(oq_params=oqp, owner=upload.owner,
