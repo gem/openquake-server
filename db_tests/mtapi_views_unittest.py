@@ -25,6 +25,7 @@ database related unit tests for the geonode/mtapi/views.py module.
 
 import unittest
 
+from geonode.mtapi.models import OqJob
 from geonode.mtapi.views import prepare_job
 
 from db_tests.helpers import DbTestMixin
@@ -36,8 +37,8 @@ class PrepareJobTestCase(unittest.TestCase, DbTestMixin):
     def test_prepare_upload(self):
         """
         `prepare_job` returns a :py:class:`geonode.mtapi.models.OqJob`
-        instance. The latter's `oq_params` property is initialized with the
-        POST parameters from the HTTP request.
+        instance. The latter's `oq_params` property refers to the correct
+        upload record.
         """
         upload = self.setup_upload()
         post_params = {
@@ -61,4 +62,5 @@ class PrepareJobTestCase(unittest.TestCase, DbTestMixin):
                     "41.257923984376, 16.460737205888 41.257923984376, "
                     "16.460737205888 41.257786872643))"}}
         job = prepare_job(post_params)
+        self.assertTrue(isinstance(job, OqJob))
         self.assertEqual(upload, job.oq_params.upload)

@@ -284,7 +284,9 @@ def prepare_job(params):
         if value:
             setattr(oqp, property_name, value)
 
-    oqp.region = GEOSGeometry(params["fields"]["region"])
+    region = params["fields"]["region"]
+    if region:
+        oqp.region = GEOSGeometry(region)
     oqp.save()
     job = OqJob(oq_params=oqp, owner=upload.owner,
                 job_type=params["fields"]["job_type"])
