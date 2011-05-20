@@ -408,7 +408,7 @@ def create_shapefile(config):
         config["layer"] = "%s-%s" % (config["key"], basename)
         # Dots in layer names are taken to be file extension delimiters and
         # problematic for geonode.
-        config["layer"].replace(".", "-")
+        config["layer"] = config["layer"].replace(".", "-")
     else:
         assert os.path.exists(config["output"]), \
             "'%s' does not exist" % config["output"]
