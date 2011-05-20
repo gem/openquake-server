@@ -268,7 +268,7 @@ def prepare_job(params):
     [upload] = Upload.objects.filter(id=params["upload"])
     oqp = OqParams(upload=upload)
     trans_tab = dict(reference_v30_value="reference_vs30_value")
-    attr_names =  (
+    attr_names = (
         "job_type", "region_grid_spacing", "min_magnitude",
         "investigation_time", "component", "imt", "period", "truncation_type",
         "truncation_level", "reference_v30_value", "imls", "poes",

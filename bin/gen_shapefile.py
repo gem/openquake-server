@@ -66,7 +66,7 @@ POSITION_RE = re.compile('''
  (Point[^>]+srsName="([^">]+)"[^>]*>    # srsName attribute
   [^>]+pos>([^>]+)</[^>]*pos>
   [^>]*/[^>]*Point>)+
-''', (re.DOTALL|re.VERBOSE))
+''', (re.DOTALL | re.VERBOSE))
 
 
 def extract_position(xml, expected_srid="epsg:4326"):
@@ -251,7 +251,7 @@ def extract_lossmap_data(config):
       [^>]+mean>([^>]+)</[^>]*mean>
       [^>]+stdDev>([^>]+)</[^>]*stdDev>
       [^>]*/[^>]*loss>)+
-    ''', (re.DOTALL|re.VERBOSE))
+    ''', (re.DOTALL | re.VERBOSE))
 
     data = []
     pos = None
@@ -264,11 +264,13 @@ def extract_lossmap_data(config):
         #       <gml:pos>-118.245388 34.055984</gml:pos>
         #     </gml:Point>
         #   </site>
-        #   <loss xmlns:ns6="http://openquake.org/xmlns/nrml/0.2" ns6:assetRef="219">
+        #   <loss xmlns:ns6="http://openquake.org/xmlns/nrml/0.2"
+        #         ns6:assetRef="219">
         #     <ns6:mean>59.1595800341</ns6:mean>
         #     <ns6:stdDev>53.5693102791</ns6:stdDev>
         #   </loss>
-        #   <loss xmlns:ns7="http://openquake.org/xmlns/nrml/0.2" ns7:assetRef="220">
+        #   <loss xmlns:ns7="http://openquake.org/xmlns/nrml/0.2"
+        #         ns7:assetRef="220">
         #     <ns7:mean>104.689400653</ns7:mean>
         #     <ns7:stdDev>65.9931553211</ns7:stdDev>
         #   </loss>

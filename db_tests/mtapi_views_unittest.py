@@ -42,7 +42,7 @@ class PrepareJobTestCase(unittest.TestCase, DbTestMixin):
         """
         upload = self.setup_upload()
         post_params = {
-            "model":"openquake.calculationparams",
+            "model": "openquake.calculationparams",
             "upload": upload.id,
             "fields":
                {"job_type": "classical",
@@ -54,8 +54,8 @@ class PrepareJobTestCase(unittest.TestCase, DbTestMixin):
                 "truncation_type": "none",
                 "truncation_level": 3,
                 "reference_v30_value": 800,
-                "imls": [ 0.2,0.02,0.01],
-                "poes": [0.2,0.02,0.01],
+                "imls": [0.2, 0.02, 0.01],
+                "poes": [0.2, 0.02, 0.01],
                 "realizations": 6,
                 "region": "POLYGON((16.460737205888 41.257786872643, "
                     "16.460898138429 41.257786872643, 16.460898138429 "
@@ -72,7 +72,7 @@ class PrepareJobTestCase(unittest.TestCase, DbTestMixin):
         """
         upload = self.setup_upload()
         post_params = {
-            "model":"openquake.calculationparams",
+            "model": "openquake.calculationparams",
             "upload": upload.id,
             "fields":
                {"job_type": "classical",
@@ -84,8 +84,8 @@ class PrepareJobTestCase(unittest.TestCase, DbTestMixin):
                 "truncation_type": "none",
                 "truncation_level": 3,
                 "reference_v30_value": 800,
-                "imls": [ 0.2,0.02,0.01],
-                "poes": [0.2,0.02,0.01],
+                "imls": [0.2, 0.02, 0.01],
+                "poes": [0.2, 0.02, 0.01],
                 "realizations": 6,
                 "region": "POLYGON((16.460737205888 41.257786872643, "
                     "16.460898138429 41.257786872643, 16.460898138429 "
@@ -93,7 +93,7 @@ class PrepareJobTestCase(unittest.TestCase, DbTestMixin):
                     "16.460737205888 41.257786872643))"}}
         oqp = prepare_job(post_params).oq_params
         trans_tab = dict(reference_v30_value="reference_vs30_value")
-        param_names =  (
+        param_names = (
             "job_type", "region_grid_spacing", "min_magnitude",
             "investigation_time", "component", "imt", "truncation_type",
             "truncation_level", "reference_v30_value", "imls", "poes",
@@ -110,7 +110,7 @@ class PrepareJobTestCase(unittest.TestCase, DbTestMixin):
         """
         upload = self.setup_upload()
         post_params = {
-            "model":"openquake.calculationparams",
+            "model": "openquake.calculationparams",
             "upload": upload.id,
             "fields":
                {"job_type": "classical",
@@ -122,8 +122,8 @@ class PrepareJobTestCase(unittest.TestCase, DbTestMixin):
                 "truncation_type": "none",
                 "truncation_level": 3,
                 "reference_v30_value": 800,
-                "imls": [ 0.2,0.02,0.01],
-                "poes": [0.2,0.02,0.01],
+                "imls": [0.2, 0.02, 0.01],
+                "poes": [0.2, 0.02, 0.01],
                 "realizations": 6,
                 "period": 1,
                 "histories": 1,
@@ -134,7 +134,7 @@ class PrepareJobTestCase(unittest.TestCase, DbTestMixin):
                     "16.460737205888 41.257786872643))"}}
         oqp = prepare_job(post_params).oq_params
         trans_tab = dict(reference_v30_value="reference_vs30_value")
-        param_names =  (
+        param_names = (
             "job_type", "region_grid_spacing", "min_magnitude",
             "investigation_time", "component", "imt", "truncation_type",
             "truncation_level", "reference_v30_value", "imls", "poes",
