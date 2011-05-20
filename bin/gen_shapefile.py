@@ -390,7 +390,7 @@ def create_shapefile(config):
     assert os.access(config["path"], os.R_OK), \
         "'%s' is not readable" % config["path"]
 
-    if not config["output"]:
+    if not config.get("output"):
         dirname, filename = os.path.split(config["path"])
         config["output"] = os.path.join(dirname, "shapefiles")
 

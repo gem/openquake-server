@@ -158,6 +158,20 @@ class CreateShapefileTestCase(unittest.TestCase):
                       type="unknown")
         self.assertRaises(AssertionError, create_shapefile, config)
 
+    def test_create_shapefile_raises_os_error(self):
+        """
+        If no 'output' parameter is specified, create_shapefile() will try to create
+        an output path based on the 'path' parameter.
+
+        For example: if 'path' is set to '/etc/some-hazard-map.xml', create_shapefile()
+        will attempt to create an output directory called '/etc/shapefiles/'.
+
+        An OSError should be raised if we try to create a shapefile output directory in a
+        directory for which we don't have write access.
+        """
+        config = dict(key="11", layer="abc", path="/etc/hosts", type="hazard")
+        self.assertRaises(OSError, create_shapefile, config)
+
 
 class CalculateLossDataTestCase(unittest.TestCase):
     """Tests the behaviour of gen_shapefile.calculate_loss_data()."""
@@ -199,7 +213,7 @@ class FindMinMaxTestCase(unittest.TestCase):
             (['-122.0', '37.5'], '1.19244541041'),
             (['-122.1', '38.0'], '1.1905288226')]
 
-        self.assertEqual(('1.1905288226', '1.23518683436'),
+        self.assertEqual((1.1905288226, 1.23518683436),
                          find_min_max(data, operator.itemgetter(1)))
 
     def test_find_min_max_for_loss_maps(self):
