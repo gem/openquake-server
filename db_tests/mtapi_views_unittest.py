@@ -64,3 +64,41 @@ class PrepareJobTestCase(unittest.TestCase, DbTestMixin):
         job = prepare_job(post_params)
         self.assertTrue(isinstance(job, OqJob))
         self.assertEqual(upload, job.oq_params.upload)
+
+    def test_prepare_upload_param_values(self):
+        """
+        `prepare_job` returns a :py:class:`geonode.mtapi.models.OqJob`
+        instance. The latter's `oq_params` property is initialized correctly.
+        """
+        upload = self.setup_upload()
+        post_params = {
+            "model":"openquake.calculationparams",
+            "upload": upload.id,
+            "fields":
+               {"job_type": "classical",
+                "region_grid_spacing": 0.1,
+                "min_magnitude": 5,
+                "investigation_time": 50,
+                "component": "average",
+                "imt": "pga",
+                "truncation_type": "none",
+                "truncation_level": 3,
+                "reference_v30_value": 800,
+                "imls": [ 0.2,0.02,0.01],
+                "poes": [0.2,0.02,0.01],
+                "realizations": 6,
+                "region": "POLYGON((16.460737205888 41.257786872643, "
+                    "16.460898138429 41.257786872643, 16.460898138429 "
+                    "41.257923984376, 16.460737205888 41.257923984376, "
+                    "16.460737205888 41.257786872643))"}}
+        oqp = prepare_job(post_params).oq_params
+        trans_tab = dict(reference_v30_value="reference_vs30_value")
+        param_names =  (
+            "job_type", "region_grid_spacing", "min_magnitude",
+            "investigation_time", "component", "imt", "truncation_type",
+            "truncation_level", "reference_v30_value", "imls", "poes",
+            "realizations")
+        for param_name in param_names:
+            attr_name = trans_tab.get(param_name, param_name)
+            self.assertEqual(getattr(oqp, attr_name),
+                             post_params["fields"][param_name])
