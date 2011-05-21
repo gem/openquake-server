@@ -335,7 +335,6 @@ class CreateShapefileTestCase(unittest.TestCase, TestMixin):
                              actual_config["output"])
         os.unlink(map_file2)
 
-
     def test_create_shapefile_with_non_existent_output(self):
         """
         When the output path does not exist an `AssertionError` is raised.
@@ -613,15 +612,18 @@ class TagExtractorTestCase(unittest.TestCase):
             <gml:pos>-118.241243 34.061557</gml:pos>
           </gml:Point>
         </site>
-        <loss xmlns:ns3="http://openquake.org/xmlns/nrml/0.2" ns3:assetRef="104">
+        <loss xmlns:ns3="http://openquake.org/xmlns/nrml/0.2"
+              ns3:assetRef="104">
           <ns3:mean>260.1793321</ns3:mean>
           <ns3:stdDev>298.536543258</ns3:stdDev>
         </loss>
-        <loss xmlns:ns4="http://openquake.org/xmlns/nrml/0.2" ns4:assetRef="105">
+        <loss xmlns:ns4="http://openquake.org/xmlns/nrml/0.2"
+              ns4:assetRef="105">
           <ns4:mean>205.54063128</ns4:mean>
           <ns4:stdDev>182.363531209</ns4:stdDev>
         </loss>
-        <loss xmlns:ns5="http://openquake.org/xmlns/nrml/0.2" ns5:assetRef="106">
+        <loss xmlns:ns5="http://openquake.org/xmlns/nrml/0.2"
+              ns5:assetRef="106">
           <ns5:mean>163.603304574</ns5:mean>
           <ns5:stdDev>222.371828022</ns5:stdDev>
         </loss>
@@ -631,15 +633,18 @@ class TagExtractorTestCase(unittest.TestCase):
             <gml:pos>-118.245388 34.055984</gml:pos>
           </gml:Point>
         </site>
-        <loss xmlns:ns6="http://openquake.org/xmlns/nrml/0.2" ns6:assetRef="219">
+        <loss xmlns:ns6="http://openquake.org/xmlns/nrml/0.2"
+              ns6:assetRef="219">
           <ns6:mean>59.1595800341</ns6:mean>
           <ns6:stdDev>53.5693102791</ns6:stdDev>
         </loss>
-        <loss xmlns:ns7="http://openquake.org/xmlns/nrml/0.2" ns7:assetRef="220">
+        <loss xmlns:ns7="http://openquake.org/xmlns/nrml/0.2"
+              ns7:assetRef="220">
           <ns7:mean>104.689400653</ns7:mean>
           <ns7:stdDev>65.9931553211</ns7:stdDev>
         </loss>
-        <loss xmlns:ns8="http://openquake.org/xmlns/nrml/0.2" ns8:assetRef="221">
+        <loss xmlns:ns8="http://openquake.org/xmlns/nrml/0.2"
+              ns8:assetRef="221">
           <ns8:mean>82.1438713787</ns8:mean>
           <ns8:stdDev>156.848140719</ns8:stdDev>
         </loss>
