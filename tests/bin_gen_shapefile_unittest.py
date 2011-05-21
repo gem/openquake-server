@@ -33,32 +33,147 @@ import unittest
 from bin.gen_shapefile import (
     calculate_loss_data, extract_hazardmap_data, extract_lossmap_data,
     extract_position, find_min_max, create_shapefile,
-    create_shapefile_from_hazard_map, tag_extractor)
+    create_shapefile_from_hazard_map, create_shapefile_from_loss_map,
+    tag_extractor)
 
 from tests.helpers import TestMixin
+
+
+def patch_ogr():
+    """
+    Patch the ogr functions used in the shapefile generator functions.
+    We don't want any of them actually called.
+
+    :returns: a (driver_mock, feature_mock) 2-tuple
+    """
+    layer = mock.Mock(name="layer-mock")
+    layer.CreateField.return_value = 0
+    layer.GetLayerDefn.return_value = {}
+    layer.CreateFeature.return_value = 0
+
+    source = mock.Mock(name="source-mock")
+    source.CreateLayer.return_value = layer
+
+    driver = mock.Mock(name="driver-mock")
+    driver.CreateDataSource.return_value = source
+
+    feature = mock.Mock(name="feature-mock")
+
+    return(driver, feature)
+
+
+class CreateLossShapefileTestCase(unittest.TestCase, TestMixin):
+    """
+    Tests the behaviour of gen_shapefile.create_shapefile_from_loss_map().
+    """
+    def tearDown(self):
+        os.unlink(self.loss_map)
+
+    def test_create_shapefile_from_loss_map_with_unwanted_zero_val(self):
+        """
+        Zero values are *not* added to the shapefile when config["zeroes"] is
+        `False`.
+        """
+        content = '''
+            <LMNode gml:id="lmn_3">
+                <site>
+                  <gml:Point srsName="epsg:4326">
+                    <gml:pos>-118.245388 34.055984</gml:pos>
+                  </gml:Point>
+                </site>
+                <loss xmlns:ns6="http://openquake.org/xmlns/nrml/0.2"
+                      ns6:assetRef="219">
+                  <ns6:mean>59.1595800341</ns6:mean>
+                  <ns6:stdDev>53.5693102791</ns6:stdDev>
+                </loss>
+            </LMNode>
+            <LMNode gml:id="lmn_4">
+                <site>
+                  <gml:Point srsName="epsg:4326">
+                    <gml:pos>-117.245388 35.055984</gml:pos>
+                  </gml:Point>
+                </site>
+                <loss xmlns:ns6="http://openquake.org/xmlns/nrml/0.2"
+                      ns6:assetRef="220">
+                  <ns6:mean>0.0</ns6:mean>
+                  <ns6:stdDev>0.0</ns6:stdDev>
+                </loss>
+            </LMNode>
+            '''
+        self.loss_map = self.touch(content, suffix="xml")
+        config = dict(key="11", layer="abc", output="def",
+                      path=self.loss_map, type="loss", zeroes=False)
+
+        # We don't want any of the actual ogr functions called, they are all
+        # patched.
+        driver, feature = patch_ogr()
+        with mock.patch("ogr.GetDriverByName") as gdbn:
+            gdbn.return_value = driver
+            with mock.patch("ogr.Feature") as ofeat:
+                ofeat.return_value = feature
+                # Call the actual function under test.
+                create_shapefile_from_loss_map(config)
+
+        # The zero value is *not* added to the shapefile.
+        fields = [m for m in feature.method_calls if m[0] == 'SetField']
+        self.assertEqual([('SetField', ('mean', 59.1595800341), {})], fields)
+
+    def test_create_shapefile_from_loss_map_with_wanted_zero_val(self):
+        """
+        Zero values *are* added to the shapefile when config["zeroes"] is
+        `True`.
+        """
+        content = '''
+            <LMNode gml:id="lmn_3">
+                <site>
+                  <gml:Point srsName="epsg:4326">
+                    <gml:pos>-118.245388 34.055984</gml:pos>
+                  </gml:Point>
+                </site>
+                <loss xmlns:ns6="http://openquake.org/xmlns/nrml/0.2"
+                      ns6:assetRef="219">
+                  <ns6:mean>59.1595800341</ns6:mean>
+                  <ns6:stdDev>53.5693102791</ns6:stdDev>
+                </loss>
+            </LMNode>
+            <LMNode gml:id="lmn_4">
+                <site>
+                  <gml:Point srsName="epsg:4326">
+                    <gml:pos>-117.245388 35.055984</gml:pos>
+                  </gml:Point>
+                </site>
+                <loss xmlns:ns6="http://openquake.org/xmlns/nrml/0.2"
+                      ns6:assetRef="220">
+                  <ns6:mean>0.0</ns6:mean>
+                  <ns6:stdDev>0.0</ns6:stdDev>
+                </loss>
+            </LMNode>
+            '''
+        self.loss_map = self.touch(content, suffix="xml")
+        config = dict(key="11", layer="abc", output="def",
+                      path=self.loss_map, type="loss", zeroes=True)
+
+        # We don't want any of the actual ogr functions called, they are all
+        # patched.
+        driver, feature = patch_ogr()
+        with mock.patch("ogr.GetDriverByName") as gdbn:
+            gdbn.return_value = driver
+            with mock.patch("ogr.Feature") as ofeat:
+                ofeat.return_value = feature
+                # Call the actual function under test.
+                create_shapefile_from_loss_map(config)
+
+        # The zero value is added to the shapefile as well.
+        fields = [m for m in feature.method_calls if m[0] == 'SetField']
+        self.assertEqual(
+            [('SetField', ('mean', 59.1595800341), {}),
+             ('SetField', ('mean', 0.0), {})], fields)
 
 
 class CreateHazardShapefileTestCase(unittest.TestCase, TestMixin):
     """
     Tests the behaviour of gen_shapefile.create_shapefile_from_hazard_map().
     """
-
-    def setUp(self):
-        # Patch the ogr functions used in create_shapefile_from_hazard_map().
-        # We don't want any of them actually called.
-        layer = mock.Mock(name="layer-mock")
-        layer.CreateField.return_value = 0
-        layer.GetLayerDefn.return_value = {}
-        layer.CreateFeature.return_value = 0
-
-        source = mock.Mock(name="source-mock")
-        source.CreateLayer.return_value = layer
-
-        self.driver = mock.Mock(name="driver-mock")
-        self.driver.CreateDataSource.return_value = source
-
-        self.feature = mock.Mock(name="feature-mock")
-
     def tearDown(self):
         os.unlink(self.hazard_map)
 
@@ -92,15 +207,16 @@ class CreateHazardShapefileTestCase(unittest.TestCase, TestMixin):
 
         # We don't want any of the actual ogr functions called, they are all
         # patched.
+        driver, feature = patch_ogr()
         with mock.patch("ogr.GetDriverByName") as gdbn:
-            gdbn.return_value = self.driver
+            gdbn.return_value = driver
             with mock.patch("ogr.Feature") as ofeat:
-                ofeat.return_value = self.feature
+                ofeat.return_value = feature
                 # Call the actual function under test.
                 create_shapefile_from_hazard_map(config)
 
         # The zero value is *not* added to the shapefile.
-        fields = [m for m in self.feature.method_calls if m[0] == 'SetField']
+        fields = [m for m in feature.method_calls if m[0] == 'SetField']
         self.assertEqual([('SetField', ('IML', 1.1905288226), {})], fields)
 
     def test_create_shapefile_from_hazard_map_with_wanted_zero_val(self):
@@ -133,15 +249,16 @@ class CreateHazardShapefileTestCase(unittest.TestCase, TestMixin):
 
         # We don't want any of the actual ogr functions called, they are all
         # patched.
+        driver, feature = patch_ogr()
         with mock.patch("ogr.GetDriverByName") as gdbn:
-            gdbn.return_value = self.driver
+            gdbn.return_value = driver
             with mock.patch("ogr.Feature") as ofeat:
-                ofeat.return_value = self.feature
+                ofeat.return_value = feature
                 # Call the actual function under test.
                 create_shapefile_from_hazard_map(config)
 
         # The zero value is added to the shapefile as well.
-        fields = [m for m in self.feature.method_calls if m[0] == 'SetField']
+        fields = [m for m in feature.method_calls if m[0] == 'SetField']
         self.assertEqual(
             [('SetField', ('IML', 1.1905288226), {}),
              ('SetField', ('IML', 0.0), {})], fields)
