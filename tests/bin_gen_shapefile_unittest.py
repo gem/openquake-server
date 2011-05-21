@@ -150,7 +150,7 @@ class CreateLossShapefileTestCase(unittest.TestCase, TestMixin):
             </LMNode>
             '''
         self.loss_map = self.touch(content, suffix="xml")
-        config = dict(key="11", layer="abc", output="def",
+        config = dict(key="12", layer="abc", output="def",
                       path=self.loss_map, type="loss", zeroes=True)
 
         # We don't want any of the actual ogr functions called, they are all
@@ -202,7 +202,7 @@ class CreateHazardShapefileTestCase(unittest.TestCase, TestMixin):
                 <IML>0.0</IML>
             </HMNode>'''
         self.hazard_map = self.touch(content, suffix="xml")
-        config = dict(key="11", layer="abc", output="def",
+        config = dict(key="13", layer="abc", output="def",
                       path=self.hazard_map, type="hazard", zeroes=False)
 
         # We don't want any of the actual ogr functions called, they are all
@@ -244,7 +244,7 @@ class CreateHazardShapefileTestCase(unittest.TestCase, TestMixin):
                 <IML>0.0</IML>
             </HMNode>'''
         self.hazard_map = self.touch(content, suffix="xml")
-        config = dict(key="11", layer="abc", output="def",
+        config = dict(key="14", layer="abc", output="def",
                       path=self.hazard_map, type="hazard", zeroes=True)
 
         # We don't want any of the actual ogr functions called, they are all
@@ -278,7 +278,7 @@ class CreateShapefileTestCase(unittest.TestCase, TestMixin):
         When the passed map file path is not a file an `AssertionError` is
         raised.
         """
-        config = dict(key="11", layer="abc", output="def", path="/tmp",
+        config = dict(key="15", layer="abc", output="def", path="/tmp",
                       type="hazard")
         self.assertRaises(AssertionError, create_shapefile, config)
 
@@ -288,7 +288,7 @@ class CreateShapefileTestCase(unittest.TestCase, TestMixin):
         `AssertionError` is raised.
         """
         os.chmod(self.map_file, 0000)
-        config = dict(key="11", layer="abc", output="def", path=self.map_file,
+        config = dict(key="16", layer="abc", output="def", path=self.map_file,
                       type="hazard")
         self.assertRaises(AssertionError, create_shapefile, config)
 
@@ -297,7 +297,7 @@ class CreateShapefileTestCase(unittest.TestCase, TestMixin):
         If the user does not specify an output it will be "calculated" from the
         map's path and layer name.
         """
-        config = dict(key="11", layer="", output="", path=self.map_file,
+        config = dict(key="17", layer="", output="", path=self.map_file,
                       type="hazard")
         with mock.patch('bin.gen_shapefile.create_shapefile_from_hazard_map') \
             as mock_func:
@@ -318,7 +318,7 @@ class CreateShapefileTestCase(unittest.TestCase, TestMixin):
         All dot characters in the layer name will be replaced by dashes.
         """
         _, map_file2 = tempfile.mkstemp(prefix="we.love.dots.")
-        config = dict(key="11", layer="", output="", path=map_file2,
+        config = dict(key="18", layer="", output="", path=map_file2,
                       type="hazard")
         with mock.patch('bin.gen_shapefile.create_shapefile_from_hazard_map') \
             as mock_func:
@@ -340,7 +340,7 @@ class CreateShapefileTestCase(unittest.TestCase, TestMixin):
         """
         When the output path does not exist an `AssertionError` is raised.
         """
-        config = dict(key="11", layer="abc", output="/def", path="/tmp",
+        config = dict(key="19", layer="abc", output="/def", path="/tmp",
                       type="hazard")
         self.assertRaises(AssertionError, create_shapefile, config)
 
@@ -350,7 +350,7 @@ class CreateShapefileTestCase(unittest.TestCase, TestMixin):
         `AssertionError` is raised.
         """
         os.symlink(self.map_file, "/tmp/map-sym-link")
-        config = dict(key="11", layer="abc", output="/def",
+        config = dict(key="20", layer="abc", output="/def",
                       path="/tmp/map-sym-link", type="hazard")
         self.assertRaises(AssertionError, create_shapefile, config)
         os.unlink("/tmp/map-sym-link")
@@ -359,7 +359,7 @@ class CreateShapefileTestCase(unittest.TestCase, TestMixin):
         """
         Make sure the right function is called for hazard maps.
         """
-        config = dict(key="11", layer="", output="", path=self.map_file,
+        config = dict(key="21", layer="", output="", path=self.map_file,
                       type="hazard")
         with mock.patch('bin.gen_shapefile.create_shapefile_from_hazard_map') \
             as mock_func:
@@ -371,7 +371,7 @@ class CreateShapefileTestCase(unittest.TestCase, TestMixin):
         """
         Make sure the right function is called for loss maps.
         """
-        config = dict(key="11", layer="", output="", path=self.map_file,
+        config = dict(key="22", layer="", output="", path=self.map_file,
                       type="loss")
         with mock.patch('bin.gen_shapefile.create_shapefile_from_loss_map') \
             as mock_func:
@@ -383,7 +383,7 @@ class CreateShapefileTestCase(unittest.TestCase, TestMixin):
         """
         An `AssertionError` is raised for unknown map types.
         """
-        config = dict(key="11", layer="abc", output="/def", path="/tmp",
+        config = dict(key="23", layer="abc", output="/def", path="/tmp",
                       type="unknown")
         self.assertRaises(AssertionError, create_shapefile, config)
 
