@@ -26,7 +26,6 @@ Unit tests for the bin/gen_shapefile.py tool.
 import mock
 import operator
 import os
-import tempfile
 import unittest
 
 
@@ -272,7 +271,7 @@ class CreateShapefileTestCase(unittest.TestCase, TestMixin):
         map's path and layer name.
         All dot characters in the layer name will be replaced by dashes.
         """
-        _, map_file2 = tempfile.mkstemp(prefix="we.love.dots.")
+        map_file2 = self.touch(prefix="we.love.dots.")
         config = dict(key="18", layer="", output="", path=map_file2,
                       type="hazard")
         with mock.patch('bin.gen_shapefile.create_shapefile_from_hazard_map') \
