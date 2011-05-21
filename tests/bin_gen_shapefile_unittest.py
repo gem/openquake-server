@@ -66,6 +66,32 @@ class CreateLossShapefileTestCase(unittest.TestCase, TestMixin):
     """
     Tests the behaviour of gen_shapefile.create_shapefile_from_loss_map().
     """
+    CONTENT = '''
+        <LMNode gml:id="lmn_3">
+            <site>
+              <gml:Point srsName="epsg:4326">
+                <gml:pos>-118.245388 34.055984</gml:pos>
+              </gml:Point>
+            </site>
+            <loss xmlns:ns6="http://openquake.org/xmlns/nrml/0.2"
+                  ns6:assetRef="219">
+              <ns6:mean>59.1595800341</ns6:mean>
+              <ns6:stdDev>53.5693102791</ns6:stdDev>
+            </loss>
+        </LMNode>
+        <LMNode gml:id="lmn_4">
+            <site>
+              <gml:Point srsName="epsg:4326">
+                <gml:pos>-117.245388 35.055984</gml:pos>
+              </gml:Point>
+            </site>
+            <loss xmlns:ns6="http://openquake.org/xmlns/nrml/0.2"
+                  ns6:assetRef="220">
+              <ns6:mean>0.0</ns6:mean>
+              <ns6:stdDev>0.0</ns6:stdDev>
+            </loss>
+        </LMNode>
+        '''
     def tearDown(self):
         os.unlink(self.loss_map)
 
@@ -74,33 +100,7 @@ class CreateLossShapefileTestCase(unittest.TestCase, TestMixin):
         Zero values are *not* added to the shapefile when config["zeroes"] is
         `False`.
         """
-        content = '''
-            <LMNode gml:id="lmn_3">
-                <site>
-                  <gml:Point srsName="epsg:4326">
-                    <gml:pos>-118.245388 34.055984</gml:pos>
-                  </gml:Point>
-                </site>
-                <loss xmlns:ns6="http://openquake.org/xmlns/nrml/0.2"
-                      ns6:assetRef="219">
-                  <ns6:mean>59.1595800341</ns6:mean>
-                  <ns6:stdDev>53.5693102791</ns6:stdDev>
-                </loss>
-            </LMNode>
-            <LMNode gml:id="lmn_4">
-                <site>
-                  <gml:Point srsName="epsg:4326">
-                    <gml:pos>-117.245388 35.055984</gml:pos>
-                  </gml:Point>
-                </site>
-                <loss xmlns:ns6="http://openquake.org/xmlns/nrml/0.2"
-                      ns6:assetRef="220">
-                  <ns6:mean>0.0</ns6:mean>
-                  <ns6:stdDev>0.0</ns6:stdDev>
-                </loss>
-            </LMNode>
-            '''
-        self.loss_map = self.touch(content, suffix="xml")
+        self.loss_map = self.touch(self.CONTENT, suffix="xml")
         config = dict(key="11", layer="abc", output="def",
                       path=self.loss_map, type="loss", zeroes=False)
 
@@ -123,33 +123,7 @@ class CreateLossShapefileTestCase(unittest.TestCase, TestMixin):
         Zero values *are* added to the shapefile when config["zeroes"] is
         `True`.
         """
-        content = '''
-            <LMNode gml:id="lmn_3">
-                <site>
-                  <gml:Point srsName="epsg:4326">
-                    <gml:pos>-118.245388 34.055984</gml:pos>
-                  </gml:Point>
-                </site>
-                <loss xmlns:ns6="http://openquake.org/xmlns/nrml/0.2"
-                      ns6:assetRef="219">
-                  <ns6:mean>59.1595800341</ns6:mean>
-                  <ns6:stdDev>53.5693102791</ns6:stdDev>
-                </loss>
-            </LMNode>
-            <LMNode gml:id="lmn_4">
-                <site>
-                  <gml:Point srsName="epsg:4326">
-                    <gml:pos>-117.245388 35.055984</gml:pos>
-                  </gml:Point>
-                </site>
-                <loss xmlns:ns6="http://openquake.org/xmlns/nrml/0.2"
-                      ns6:assetRef="220">
-                  <ns6:mean>0.0</ns6:mean>
-                  <ns6:stdDev>0.0</ns6:stdDev>
-                </loss>
-            </LMNode>
-            '''
-        self.loss_map = self.touch(content, suffix="xml")
+        self.loss_map = self.touch(self.CONTENT, suffix="xml")
         config = dict(key="12", layer="abc", output="def",
                       path=self.loss_map, type="loss", zeroes=True)
 
@@ -174,6 +148,25 @@ class CreateHazardShapefileTestCase(unittest.TestCase, TestMixin):
     """
     Tests the behaviour of gen_shapefile.create_shapefile_from_hazard_map().
     """
+    CONTENT = '''
+        <HMNode gml:id="n_3">
+            <HMSite>
+              <gml:Point srsName="epsg:4326">
+                <gml:pos>-122.1 38.0</gml:pos>
+              </gml:Point>
+              <vs30>760.0</vs30>
+            </HMSite>
+            <IML>1.1905288226</IML>
+        </HMNode>
+        <HMNode gml:id="n_4">
+            <HMSite>
+              <gml:Point srsName="epsg:4326">
+                <gml:pos>-122.1 48.0</gml:pos>
+              </gml:Point>
+              <vs30>760.0</vs30>
+            </HMSite>
+            <IML>0.0</IML>
+        </HMNode>'''
     def tearDown(self):
         os.unlink(self.hazard_map)
 
@@ -182,26 +175,7 @@ class CreateHazardShapefileTestCase(unittest.TestCase, TestMixin):
         Zero values are *not* added to the shapefile when config["zeroes"] is
         `False`.
         """
-        content = '''
-            <HMNode gml:id="n_3">
-                <HMSite>
-                  <gml:Point srsName="epsg:4326">
-                    <gml:pos>-122.1 38.0</gml:pos>
-                  </gml:Point>
-                  <vs30>760.0</vs30>
-                </HMSite>
-                <IML>1.1905288226</IML>
-            </HMNode>
-            <HMNode gml:id="n_4">
-                <HMSite>
-                  <gml:Point srsName="epsg:4326">
-                    <gml:pos>-122.1 48.0</gml:pos>
-                  </gml:Point>
-                  <vs30>760.0</vs30>
-                </HMSite>
-                <IML>0.0</IML>
-            </HMNode>'''
-        self.hazard_map = self.touch(content, suffix="xml")
+        self.hazard_map = self.touch(self.CONTENT, suffix="xml")
         config = dict(key="13", layer="abc", output="def",
                       path=self.hazard_map, type="hazard", zeroes=False)
 
@@ -224,26 +198,7 @@ class CreateHazardShapefileTestCase(unittest.TestCase, TestMixin):
         Zero values *are* added to the shapefile when config["zeroes"] is
         `True`.
         """
-        content = '''
-            <HMNode gml:id="n_3">
-                <HMSite>
-                  <gml:Point srsName="epsg:4326">
-                    <gml:pos>-122.1 38.0</gml:pos>
-                  </gml:Point>
-                  <vs30>760.0</vs30>
-                </HMSite>
-                <IML>1.1905288226</IML>
-            </HMNode>
-            <HMNode gml:id="n_4">
-                <HMSite>
-                  <gml:Point srsName="epsg:4326">
-                    <gml:pos>-122.1 48.0</gml:pos>
-                  </gml:Point>
-                  <vs30>760.0</vs30>
-                </HMSite>
-                <IML>0.0</IML>
-            </HMNode>'''
-        self.hazard_map = self.touch(content, suffix="xml")
+        self.hazard_map = self.touch(self.CONTENT, suffix="xml")
         config = dict(key="14", layer="abc", output="def",
                       path=self.hazard_map, type="hazard", zeroes=True)
 
