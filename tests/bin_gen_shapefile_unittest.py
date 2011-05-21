@@ -305,11 +305,11 @@ class CreateShapefileTestCase(unittest.TestCase, TestMixin):
             create_shapefile(config)
             basename = os.path.basename(self.map_file)
             expected_layer = "%s-%s" % (config["key"], basename)
-            self.assertEqual(expected_layer,
-                             mock_func.call_args[0][0]["layer"])
+            [actual_config], _kwargs = mock_func.call_args
+            self.assertEqual(expected_layer, actual_config["layer"])
             dirname = os.path.dirname(self.map_file)
             self.assertEqual(os.path.join(dirname, "shapefiles"),
-                             mock_func.call_args[0][0]["output"])
+                             actual_config["output"])
 
     def test_create_shapefile_no_output_with_dots(self):
         """
@@ -328,11 +328,11 @@ class CreateShapefileTestCase(unittest.TestCase, TestMixin):
             basename, _ = os.path.splitext(basename)
             expected_layer = (
                 "%s-%s" % (config["key"], basename.replace(".", "-")))
-            self.assertEqual(expected_layer,
-                             mock_func.call_args[0][0]["layer"])
+            [actual_config], _kwargs = mock_func.call_args
+            self.assertEqual(expected_layer, actual_config["layer"])
             dirname = os.path.dirname(self.map_file)
             self.assertEqual(os.path.join(dirname, "shapefiles"),
-                             mock_func.call_args[0][0]["output"])
+                             actual_config["output"])
         os.unlink(map_file2)
 
 
@@ -428,7 +428,7 @@ class FindMinMaxTestCase(unittest.TestCase):
             (['-122.0', '37.5'], '1.19244541041'),
             (['-122.1', '38.0'], '1.1905288226')]
 
-        self.assertEqual(('1.1905288226', '1.23518683436'),
+        self.assertEqual((1.1905288226, 1.23518683436),
                          find_min_max(data, operator.itemgetter(1)))
 
     def test_find_min_max_for_loss_maps(self):
