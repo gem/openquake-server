@@ -32,7 +32,41 @@ import unittest
 
 from bin.gen_shapefile import (
     calculate_loss_data, extract_hazardmap_data, extract_lossmap_data,
-    extract_position, find_min_max, create_shapefile, tag_extractor)
+    extract_position, find_min_max, create_shapefile,
+    create_shapefile_from_hazard_map, tag_extractor)
+
+
+class CreateHazardShapefileTestCase(unittest.TestCase):
+    """Tests the behaviour of gen_shapefile.create_shapefile()."""
+
+    def setUp(self):
+        _, self.map_file = tempfile.mkstemp()
+
+    def tearDown(self):
+        os.unlink(self.map_file)
+
+    def test_create_shapefile_from_hazard_map(self):
+        """
+        When the passed map file path is not a file an `AssertionError` is
+        raised.
+        """
+        config = dict(key="11", layer="abc", output="def",
+                      path="/tmp/empty.xml", type="hazard", zeroes=False)
+        layer_mock = mock.Mock(
+            dict(CreateFeature=0, CreateField=0, GetLayerDefn=dict()),
+            name="layer-mock")
+        source_mock = mock.Mock(
+            dict(CreateLayer=layer_mock),
+            name="source-mock")
+        _driver_mock = mock.Mock(
+            dict(CreateDataSource=source_mock),
+            name="driver-mock")
+
+        with mock.patch('ogr.GetDriverByName', new=_driver_mock) as driver_mock:
+            import pdb; pdb.set_trace()
+            results = create_shapefile_from_hazard_map(config)
+            import pdb; pdb.set_trace()
+            self.assertTrue(1)
 
 
 class CreateShapefileTestCase(unittest.TestCase):
