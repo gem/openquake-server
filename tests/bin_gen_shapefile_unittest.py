@@ -46,16 +46,16 @@ class CreateHazardShapefileTestCase(unittest.TestCase, TestMixin):
     def setUp(self):
         # Patch the ogr functions used in create_shapefile_from_hazard_map().
         # We don't want any of them actually called.
-        self.layer = mock.Mock(name="layer-mock")
-        self.layer.CreateField.return_value = 0
-        self.layer.GetLayerDefn.return_value = {}
-        self.layer.CreateFeature.return_value = 0
+        layer = mock.Mock(name="layer-mock")
+        layer.CreateField.return_value = 0
+        layer.GetLayerDefn.return_value = {}
+        layer.CreateFeature.return_value = 0
 
-        self.source = mock.Mock(name="source-mock")
-        self.source.CreateLayer.return_value = self.layer
+        source = mock.Mock(name="source-mock")
+        source.CreateLayer.return_value = layer
 
         self.driver = mock.Mock(name="driver-mock")
-        self.driver.CreateDataSource.return_value = self.source
+        self.driver.CreateDataSource.return_value = source
 
         self.feature = mock.Mock(name="feature-mock")
 
