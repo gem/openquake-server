@@ -35,45 +35,123 @@ from bin.gen_shapefile import (
     extract_position, find_min_max, create_shapefile,
     create_shapefile_from_hazard_map, tag_extractor)
 
+from tests.helpers import TestMixin
 
-class CreateHazardShapefileTestCase(unittest.TestCase):
-    """Tests the behaviour of gen_shapefile.create_shapefile()."""
+
+class CreateHazardShapefileTestCase(unittest.TestCase, TestMixin):
+    """
+    Tests the behaviour of gen_shapefile.create_shapefile_from_hazard_map().
+    """
 
     def setUp(self):
-        _, self.map_file = tempfile.mkstemp()
+        # Patch the ogr functions used in create_shapefile_from_hazard_map().
+        # We don't want any of them actually called.
+        self.layer = mock.Mock(name="layer-mock")
+        self.layer.CreateField.return_value = 0
+        self.layer.GetLayerDefn.return_value = {}
+        self.layer.CreateFeature.return_value = 0
+
+        self.source = mock.Mock(name="source-mock")
+        self.source.CreateLayer.return_value = self.layer
+
+        self.driver = mock.Mock(name="driver-mock")
+        self.driver.CreateDataSource.return_value = self.source
+
+        self.feature = mock.Mock(name="feature-mock")
 
     def tearDown(self):
-        os.unlink(self.map_file)
+        os.unlink(self.hazard_map)
 
-    def test_create_shapefile_from_hazard_map(self):
+    def test_create_shapefile_from_hazard_map_with_unwanted_zero_val(self):
         """
-        When the passed map file path is not a file an `AssertionError` is
-        raised.
+        Zero values are *not* added to the shapefile when config["zeroes"] is
+        `False`.
         """
+        content = '''
+            <HMNode gml:id="n_3">
+                <HMSite>
+                  <gml:Point srsName="epsg:4326">
+                    <gml:pos>-122.1 38.0</gml:pos>
+                  </gml:Point>
+                  <vs30>760.0</vs30>
+                </HMSite>
+                <IML>1.1905288226</IML>
+            </HMNode>
+            <HMNode gml:id="n_4">
+                <HMSite>
+                  <gml:Point srsName="epsg:4326">
+                    <gml:pos>-122.1 48.0</gml:pos>
+                  </gml:Point>
+                  <vs30>760.0</vs30>
+                </HMSite>
+                <IML>0.0</IML>
+            </HMNode>'''
+        self.hazard_map = self.touch(content, suffix="xml")
         config = dict(key="11", layer="abc", output="def",
-                      path="/tmp/empty.xml", type="hazard", zeroes=False)
-        layer_mock = mock.Mock(
-            dict(CreateFeature=0, CreateField=0, GetLayerDefn=dict()),
-            name="layer-mock")
-        source_mock = mock.Mock(
-            dict(CreateLayer=layer_mock),
-            name="source-mock")
-        _driver_mock = mock.Mock(
-            dict(CreateDataSource=source_mock),
-            name="driver-mock")
+                      path=self.hazard_map, type="hazard", zeroes=False)
 
-        with mock.patch('ogr.GetDriverByName', new=_driver_mock) as driver_mock:
-            import pdb; pdb.set_trace()
-            results = create_shapefile_from_hazard_map(config)
-            import pdb; pdb.set_trace()
-            self.assertTrue(1)
+        # We don't want any of the actual ogr functions called, they are all
+        # patched.
+        with mock.patch("ogr.GetDriverByName") as gdbn:
+            gdbn.return_value = self.driver
+            with mock.patch("ogr.Feature") as ofeat:
+                ofeat.return_value = self.feature
+                # Call the actual function under test.
+                create_shapefile_from_hazard_map(config)
+
+        # The zero value is *not* added to the shapefile.
+        fields = [m for m in self.feature.method_calls if m[0] == 'SetField']
+        self.assertEqual([('SetField', ('IML', 1.1905288226), {})], fields)
+
+    def test_create_shapefile_from_hazard_map_with_wanted_zero_val(self):
+        """
+        Zero values *are* added to the shapefile when config["zeroes"] is
+        `True`.
+        """
+        content = '''
+            <HMNode gml:id="n_3">
+                <HMSite>
+                  <gml:Point srsName="epsg:4326">
+                    <gml:pos>-122.1 38.0</gml:pos>
+                  </gml:Point>
+                  <vs30>760.0</vs30>
+                </HMSite>
+                <IML>1.1905288226</IML>
+            </HMNode>
+            <HMNode gml:id="n_4">
+                <HMSite>
+                  <gml:Point srsName="epsg:4326">
+                    <gml:pos>-122.1 48.0</gml:pos>
+                  </gml:Point>
+                  <vs30>760.0</vs30>
+                </HMSite>
+                <IML>0.0</IML>
+            </HMNode>'''
+        self.hazard_map = self.touch(content, suffix="xml")
+        config = dict(key="11", layer="abc", output="def",
+                      path=self.hazard_map, type="hazard", zeroes=True)
+
+        # We don't want any of the actual ogr functions called, they are all
+        # patched.
+        with mock.patch("ogr.GetDriverByName") as gdbn:
+            gdbn.return_value = self.driver
+            with mock.patch("ogr.Feature") as ofeat:
+                ofeat.return_value = self.feature
+                # Call the actual function under test.
+                create_shapefile_from_hazard_map(config)
+
+        # The zero value is added to the shapefile as well.
+        fields = [m for m in self.feature.method_calls if m[0] == 'SetField']
+        self.assertEqual(
+            [('SetField', ('IML', 1.1905288226), {}),
+             ('SetField', ('IML', 0.0), {})], fields)
 
 
-class CreateShapefileTestCase(unittest.TestCase):
+class CreateShapefileTestCase(unittest.TestCase, TestMixin):
     """Tests the behaviour of gen_shapefile.create_shapefile()."""
 
     def setUp(self):
-        _, self.map_file = tempfile.mkstemp()
+        self.map_file = self.touch()
 
     def tearDown(self):
         os.unlink(self.map_file)
