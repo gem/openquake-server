@@ -396,14 +396,16 @@ def create_shapefile(config):
             - path (map file to be processed)
             - type (map type, hazard or loss)
     """
-    assert os.path.isfile(config["path"]), \
-        "'%s' is not a file" % config["path"]
-    assert os.access(config["path"], os.R_OK), \
-        "'%s' is not readable" % config["path"]
+    the_path = config["path"]
+    assert os.path.isfile(the_path), "'%s' is not a file" % the_path
+    assert os.access(the_path, os.R_OK), "'%s' is not readable" % the_path
 
     if not config["output"]:
-        dirname, filename = os.path.split(config["path"])
-        config["output"] = os.path.join(dirname, "shapefiles")
+        dirname, filename = os.path.split(the_path)
+        # All shapefiles for a particular map type shall reside in the same
+        # directory.
+        config["output"] = os.path.join(
+            dirname, "%s-shapefiles" % config["type"])
 
         try:
             os.mkdir(config["output"])

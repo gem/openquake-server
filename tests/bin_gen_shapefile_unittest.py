@@ -248,8 +248,7 @@ class CreateShapefileTestCase(unittest.TestCase, TestMixin):
 
     def test_create_shapefile_no_output(self):
         """
-        If the user does not specify an output it will be "calculated" from the
-        map's path and layer name.
+        If unspecified the output is determined from the map's path/layer.
         """
         config = dict(key="17", layer="", output="", path=self.map_file,
                       type="hazard")
@@ -262,13 +261,13 @@ class CreateShapefileTestCase(unittest.TestCase, TestMixin):
             [actual_config], _kwargs = mock_func.call_args
             self.assertEqual(expected_layer, actual_config["layer"])
             dirname = os.path.dirname(self.map_file)
-            self.assertEqual(os.path.join(dirname, "shapefiles"),
-                             actual_config["output"])
+            self.assertEqual(
+                os.path.join(dirname, "%s-shapefiles" % config["type"]),
+                actual_config["output"])
 
     def test_create_shapefile_no_output_with_dots(self):
         """
-        If the user does not specify an output it will be "calculated" from the
-        map's path and layer name.
+        If unspecified the output is determined from the map's path/layer.
         All dot characters in the layer name will be replaced by dashes.
         """
         map_file2 = self.touch(prefix="we.love.dots.")
@@ -285,8 +284,9 @@ class CreateShapefileTestCase(unittest.TestCase, TestMixin):
             [actual_config], _kwargs = mock_func.call_args
             self.assertEqual(expected_layer, actual_config["layer"])
             dirname = os.path.dirname(self.map_file)
-            self.assertEqual(os.path.join(dirname, "shapefiles"),
-                             actual_config["output"])
+            self.assertEqual(
+                os.path.join(dirname, "%s-shapefiles" % config["type"]),
+                actual_config["output"])
         os.unlink(map_file2)
 
     def test_create_shapefile_with_non_existent_output(self):
@@ -302,6 +302,7 @@ class CreateShapefileTestCase(unittest.TestCase, TestMixin):
         When the output path is neither a directory nor a file an
         `AssertionError` is raised.
         """
+        os.unlink("/tmp/map-sym-link")
         os.symlink(self.map_file, "/tmp/map-sym-link")
         config = dict(key="20", layer="abc", output="/def",
                       path="/tmp/map-sym-link", type="hazard")
