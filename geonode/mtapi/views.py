@@ -73,11 +73,11 @@ def input_upload_result(request, upload_id):
             else:
                 upload.status = "failed"
                 upload.save()
-                result = prepare_result(upload)
+                result = prepare_upload_result(upload)
                 print "Upload processing failed, process not found.."
                 return HttpResponse(result, status=500, mimetype="text/html")
         else:
-            result = prepare_result(upload)
+            result = prepare_upload_result(upload)
             if upload.status == "failed":
                 print "Upload processing failed.."
                 return HttpResponse(result, status=500, mimetype="text/html")
@@ -106,13 +106,13 @@ def input_upload(request):
         for uploaded_file in request.FILES.getlist('input_files'):
             handle_uploaded_file(upload, uploaded_file)
         load_source_files(upload)
-        return HttpResponse(prepare_result(upload, status="success"),
+        return HttpResponse(prepare_upload_result(upload, status="success"),
                             mimetype="text/html")
     else:
         raise Http404
 
 
-def prepare_result(upload, status=None):
+def prepare_upload_result(upload, status=None):
     """Prepare the result dictionary that is to be returned in json form.
 
     :param upload: the :py:class:`geonode.mtapi.models.Upload` instance
@@ -223,8 +223,9 @@ def run_oq_job(request):
     print("request: %s\n" % pprint.pformat(request))
     if request.method == "POST":
         job = prepare_job(request.POST)
+        start_job(job)
         return HttpResponse(
-            {"status": "success", "msg": "Calculation started", "id": 123})
+            {"status": "success", "msg": "Calculation started", "id": job.id})
     else:
         raise Http404
 
@@ -238,7 +239,7 @@ def start_job(job):
     """
     env = os.environ
     env["PYTHONPATH"] = settings.APIAPP_PYTHONPATH
-    args = ["%s/bin/oqrunner.py" % settings.OQ_APIAPP_DIR, "-j", str(job.id)]
+    args = [settings.OQRUNNER_PATH, "-j", str(job.id)]
     proc = subprocess.Popen(args, env=env)
     job.job_pid = proc.pid
     job.save()
@@ -314,3 +315,86 @@ def prepare_job(params):
                 job_type=params["fields"]["job_type"])
     job.save()
     return job
+
+
+@csrf_exempt
+def oq_job_result(request, job_id):
+    """This allows the GUI to poll for OpenQuake job status.
+
+    The request must be a HTTP GET. If the OpenQuake job is in progress we
+    return a 404. In case of succes and failure we return a 200 and a 500
+    status code respectively.
+
+    Here's an example of the json data retuned in case of success:
+
+    { "status": "success", "msg": "Calculation succeeded", "id": 123,
+      "files": [{
+        "id": 77, "name": "loss-map-0fcfdbc7.xml", "type": "loss map",
+        "min": 2.718281, "max": 3.141593,
+        "layer": {
+            "ows": "http://gemsun02.ethz.ch/geoserver-geonode-dev/ows"
+            "layer": "geonode:77-loss-map-0fcfdbc7"}}, {
+        "id": 78, "name": "hazardmap-0.01-mean.xml", "type": "hazard map",
+        "min": 0.060256, "max": 9.780226
+        "layer": {
+            "ows": "http://gemsun02.ethz.ch/geoserver-geonode-dev/ows"
+            "layer": "geonode:78-hazardmap-0-01-mean"}}]}
+
+    :param request: the :py:class:`django.http.HttpRequest` object
+    :param integer job_id: the database key of the associated oq_job record
+        (see also :py:class:`geonode.mtapi.models.OqJob`)
+    :returns: a :py:class:`django.http.HttpResponse` object with status code
+        `200` and `500` if the OpenQuake job succeeded and failed
+        respectively.
+    :raises Http404: when the OpenQuake job is still in progress or if the
+        request is not a HTTP GET request.
+    """
+    print("job_id: %s" % job_id)
+    if request.method == "GET":
+        [job] = OqJob.objects.filter(id=int(job_id))
+        if job.status == "running":
+            processor_is_alive = utils.is_process_running(
+                job.job_pid, settings.OQRUNNER_PATH)
+            if processor_is_alive:
+                print "OpenQuake job in progress.."
+                raise Http404
+            else:
+                job.status = "failed"
+                job.save()
+                result = prepare_job_result(job)
+                print "OpenQuake job failed, process not found.."
+                return HttpResponse(result, status=500, mimetype="text/html")
+        else:
+            result = prepare_job_result(job)
+            if job.status == "failed":
+                print "OpenQuake job failed.."
+                return HttpResponse(result, status=500, mimetype="text/html")
+            else:
+                print "OpenQuake job succeeded.."
+                return HttpResponse(result, mimetype="text/html")
+    else:
+        raise Http404
+
+
+def prepare_job_result(job, status=None):
+    """Prepare the result dictionary that is to be returned in json form.
+
+    :param job: the :py:class:`geonode.mtapi.models.OqJob` instance
+        associated with this job.
+    :param string status: if set overrides the `status` property of the passed
+        `job` parameter
+    """
+    status_translation = dict(failed="failure", succeeded="success",
+                              running="running", pending="pending")
+    msg = dict(job.UPLOAD_STATUS_CHOICES)[job.status]
+    status = status_translation[job.status] if status is None else status
+    result = dict(status=status, msg=msg, id=job.id)
+    if job.status == "succeeded":
+        files = []
+        srcs = job.input_set.filter(input_type="source")
+        for src in srcs:
+            files.append(dict(id=src.id, name=os.path.basename(src.path)))
+        if files:
+            result['files'] = files
+
+    return simplejson.dumps(result)

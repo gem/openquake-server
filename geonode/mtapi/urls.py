@@ -28,4 +28,5 @@ urlpatterns = patterns('geonode.mtapi.views',
     url(r'^input_upload/$', 'input_upload'),
     url(r'^input_upload_result/(\d+)/$', 'input_upload_result'),
     url(r'^hazard_risk_calc/$', 'run_oq_job'),
+    url(r'^hazard_risk_result/(\d+)/$', 'oq_job_result'),
 )

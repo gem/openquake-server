@@ -136,10 +136,9 @@ class StartJobTestCase(unittest.TestCase, DbTestMixin):
         process_mock.pid = 31459
         popen_mock = mock.MagicMock(name="mock:subprocess.Popen")
         popen_mock.return_value = process_mock
-        with mock.patch('subprocess.Popen', new=popen_mock) as mock_func:
+        with mock.patch('subprocess.Popen', new=popen_mock):
             start_job(job)
-            args, _kwargs = mock_func.call_args
+            args, _kwargs = popen_mock.call_args
             self.assertEqual(
-                (["%s/bin/oqrunner.py" % settings.OQ_APIAPP_DIR, "-j",
-                  str(job.id)],), args)
+                ([settings.OQRUNNER_PATH, "-j", str(job.id)],), args)
             self.assertEqual(31459, job.job_pid)

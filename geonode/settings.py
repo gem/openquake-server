@@ -118,6 +118,7 @@ INSTALLED_APPS = (
     'geonode.mtapi')
 
 NRML_RUNNER_PATH = "%s/bin/nrml_runner.py" % OQ_APIAPP_DIR
+OQRUNNER_PATH = "%s/bin/oqrunner.py" % OQ_APIAPP_DIR
 
 import sys
 APIAPP_PYTHONPATH = ":".join(
