@@ -203,7 +203,6 @@ def load_source_files(upload):
     print("nrml loader args: %s\n" % pprint.pformat(args))
     env = os.environ
     env["PYTHONPATH"] = settings.APIAPP_PYTHONPATH
-    pprint.pprint(env)
     pid = subprocess.Popen(args, env=env).pid
     upload.status = "running"
     upload.job_pid = pid
@@ -228,6 +227,24 @@ def run_oq_job(request):
             {"status": "success", "msg": "Calculation started", "id": 123})
     else:
         raise Http404
+
+
+def start_job(job):
+    """Start the OpenQuake engine in order to perform a calculation.
+
+    :param job: the :py:class:`geonode.mtapi.models.OqJob` instance in question
+    :returns: the integer process ID (pid) of the child process that is running
+        the oqrunner.py tool.
+    """
+    env = os.environ
+    env["PYTHONPATH"] = settings.APIAPP_PYTHONPATH
+    args = ["%s/bin/oqrunner.py", "-j", str(job.id)]
+    pid = subprocess.Popen(args, env=env).pid
+    job.status = "running"
+    job.job_pid = pid
+    job.save()
+    print "pid = %s" % pid
+    return pid
 
 
 def prepare_job(params):

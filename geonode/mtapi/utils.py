@@ -56,6 +56,11 @@ def run_cmd(cmds, ignore_exit_code=False, shell=False):
     :raises Exception: when the command terminates with a non-zero command
         exit code.
     """
+    # subprocess.Popen() wants to be fed strings only.
+    for idx, cmd in enumerate(cmds):
+        if not isinstance(cmd, basestring):
+            cmds[idx] = str(cmd)
+
     process = subprocess.Popen(
         cmds, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=shell)
     out, err = process.communicate()
