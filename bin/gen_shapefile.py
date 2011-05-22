@@ -400,7 +400,7 @@ def create_shapefile(config):
     assert os.path.isfile(the_path), "'%s' is not a file" % the_path
     assert os.access(the_path, os.R_OK), "'%s' is not readable" % the_path
 
-    if not config["output"]:
+    if not config.get("output"):
         dirname, filename = os.path.split(the_path)
         # All shapefiles for a particular map type shall reside in the same
         # directory.

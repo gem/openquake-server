@@ -302,7 +302,6 @@ class CreateShapefileTestCase(unittest.TestCase, TestMixin):
         When the output path is neither a directory nor a file an
         `AssertionError` is raised.
         """
-        os.unlink("/tmp/map-sym-link")
         os.symlink(self.map_file, "/tmp/map-sym-link")
         config = dict(key="20", layer="abc", output="/def",
                       path="/tmp/map-sym-link", type="hazard")
