@@ -23,10 +23,14 @@ database related unit tests for the geonode/mtapi/views.py module.
 """
 
 
+import mock
+import os
 import unittest
 
+from django.conf import settings
+
 from geonode.mtapi.models import OqJob, Upload
-from geonode.mtapi.views import prepare_job
+from geonode.mtapi.views import prepare_job, start_job
 
 from db_tests.helpers import DbTestMixin
 
@@ -116,3 +120,26 @@ class PrepareJobTestCase(unittest.TestCase, DbTestMixin):
             attr_name = trans_tab.get(param_name, param_name)
             self.assertEqual(getattr(oqp, attr_name),
                              post_params["fields"][param_name])
+
+
+class StartJobTestCase(unittest.TestCase, DbTestMixin):
+    """Tests the behaviour of views.start_job()."""
+
+    def test_start_job(self):
+        """
+        The oqrunner process is started with the correct path/arguments and
+        its process ID (pid) is captured in the corresponding job record.
+        """
+        post_params = get_post_params()
+        job = prepare_job(post_params)
+        process_mock = mock.MagicMock(name="mock:the-process")
+        process_mock.pid = 31459
+        popen_mock = mock.MagicMock(name="mock:subprocess.Popen")
+        popen_mock.return_value = process_mock
+        with mock.patch('subprocess.Popen', new=popen_mock) as mock_func:
+            start_job(job)
+            args, _kwargs = mock_func.call_args
+            self.assertEqual(
+                (["%s/bin/oqrunner.py" % settings.OQ_APIAPP_DIR, "-j",
+                  str(job.id)],), args)
+            self.assertEqual(31459, job.job_pid)

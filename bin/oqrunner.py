@@ -78,6 +78,7 @@ def create_input_file_dir(config):
     job.path = os.path.join(job.oq_params.upload.path, str(job.id))
     os.mkdir(job.path)
     os.chmod(job.path, 0777)
+    job.status = "running"
     job.save()
     return job
 

@@ -238,13 +238,11 @@ def start_job(job):
     """
     env = os.environ
     env["PYTHONPATH"] = settings.APIAPP_PYTHONPATH
-    args = ["%s/bin/oqrunner.py", "-j", str(job.id)]
-    pid = subprocess.Popen(args, env=env).pid
-    job.status = "running"
-    job.job_pid = pid
+    args = ["%s/bin/oqrunner.py" % settings.OQ_APIAPP_DIR, "-j", str(job.id)]
+    proc = subprocess.Popen(args, env=env)
+    job.job_pid = proc.pid
     job.save()
-    print "pid = %s" % pid
-    return pid
+    return proc.pid
 
 
 def prepare_job(params):
@@ -308,7 +306,7 @@ def prepare_job(params):
         if value:
             setattr(oqp, property_name, value)
 
-    region = params["fields"]["region"]
+    region = params["fields"].get("region")
     if region:
         oqp.region = GEOSGeometry(region)
     oqp.save()

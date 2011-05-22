@@ -327,3 +327,4 @@ class CreateInputFileDirTestCase(unittest.TestCase, DbTestMixin):
         self.assertEqual(
             os.path.join(job.oq_params.upload.path, str(job.id)),
             job.path)
+        self.assertEqual("running", job.status)
