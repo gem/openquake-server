@@ -36,6 +36,7 @@ class TestMixin(object):
         Please note: the temporary file must be deleted bu the caller.
 
         :param string content: the content to write to the temporary file.
+        :param string dir: directory where the file should be created
         :param string prefix: file name prefix
         :param string suffix: file name suffix
         :returns: a string with the path to the temporary file
