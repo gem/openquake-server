@@ -123,7 +123,7 @@ def prepare_upload_result(upload, status=None):
     status_translation = dict(failed="failure", succeeded="success",
                               running="running", pending="pending")
     msg = dict(upload.UPLOAD_STATUS_CHOICES)[upload.status]
-    status = status_translation[upload.status] if status is None else status
+    status = status if status else status_translation[upload.status]
     result = dict(status=status, msg=msg, id=upload.id)
     if upload.status == "succeeded":
         files = []
@@ -281,7 +281,7 @@ def prepare_job(params):
 
     :returns: a :py:class:`geonode.mtapi.models.OqJob` instance
     """
-    [upload] = Upload.objects.filter(id=params["upload"])
+    upload = Upload.objects.get(id=params["upload"])
     oqp = OqParams(upload=upload)
     trans_tab = dict(reference_v30_value="reference_vs30_value")
     attr_names = (
@@ -353,9 +353,9 @@ def oq_job_result(request, job_id):
     if request.method == "GET":
         [job] = OqJob.objects.filter(id=int(job_id))
         if job.status == "running":
-            processor_is_alive = utils.is_process_running(
+            oqrunner_is_alive = utils.is_process_running(
                 job.job_pid, settings.OQRUNNER_PATH)
-            if processor_is_alive:
+            if oqrunner_is_alive:
                 print "OpenQuake job in progress.."
                 raise Http404
             else:
@@ -376,25 +376,47 @@ def oq_job_result(request, job_id):
         raise Http404
 
 
-def prepare_job_result(job, status=None):
+def prepare_job_result(job):
     """Prepare the result dictionary that is to be returned in json form.
 
     :param job: the :py:class:`geonode.mtapi.models.OqJob` instance
         associated with this job.
-    :param string status: if set overrides the `status` property of the passed
-        `job` parameter
     """
     status_translation = dict(failed="failure", succeeded="success",
                               running="running", pending="pending")
     msg = dict(job.UPLOAD_STATUS_CHOICES)[job.status]
-    status = status_translation[job.status] if status is None else status
+    status = status_translation[job.status]
     result = dict(status=status, msg=msg, id=job.id)
     if job.status == "succeeded":
         files = []
-        srcs = job.input_set.filter(input_type="source")
-        for src in srcs:
-            files.append(dict(id=src.id, name=os.path.basename(src.path)))
+        for output in job.output_set.all():
+            files.append(prepare_map_result(output))
         if files:
             result['files'] = files
 
     return simplejson.dumps(result)
+
+
+def prepare_map_result(output):
+    """Prepare a json fragment for a single hazard/loss map.
+
+    The desired json fragment should look as follows:
+        {"id": 77, "name": "loss-map-0fcfdbc7.xml", "type": "loss map",
+         "min": 2.718281, "max": 3.141593,
+         "layer": {
+            "ows": "http://gemsun02.ethz.ch/geoserver-geonode-dev/ows"
+            "layer": "geonode:77-loss-map-0fcfdbc7"}}
+
+    :param output: the :py:class:`geonode.mtapi.models.Output` instance
+        in question
+    """
+    layer_name, _ = os.path.splitext(os.path.basename(output.shapefile_path))
+    type = dict(output.OUTPUT_TYPE_CHOICES)[output.output_type].lower()
+    format_string = (
+        "%sows" if settings.GEOSERVER_BASE_URL.endswith("/") else  "%s/ows")
+    result = dict(
+        id=output.id, name=os.path.basename(output.path),
+        type=type, min=output.min_value, max=output.max_value,
+        layer=dict(ows=format_string % settings.GEOSERVER_BASE_URL,
+                   layer="geonode:%s" % layer_name))
+    return result

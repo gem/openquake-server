@@ -23,14 +23,18 @@ Helper classes/functions needed across multiple database related unit tests.
 """
 
 
+import math
 import os
+import random
 import shutil
 
 from geonode.mtapi import utils
-from geonode.mtapi.models import Input, OqJob, OqParams, Upload
+from geonode.mtapi.models import Input, OqJob, OqParams, Output, Upload
+
+from tests.helpers import TestMixin
 
 
-class DbTestMixin(object):
+class DbTestMixin(TestMixin):
     """Mixin class with various helper methods."""
 
     def setup_upload(self, dbkey=None):
@@ -136,3 +140,52 @@ class DbTestMixin(object):
             return
         job.delete()
         oqp.delete()
+
+    def setup_output(self, job_to_use=None, output_type="hazard_map"):
+        """Create an output object that is reminiscent of a hazard map.
+
+        :param job_to_use: if set use the passed
+            :py:class:`geonode.mtapi.models.OqJob` instance as opposed to
+            creating a new one.
+        :param str output_type: map type, one of "hazard_map", "loss_map"
+        :returns: a :py:class:`geonode.mtapi.models.Output` instance
+        """
+        job = job_to_use if job_to_use else self.setup_classic_job()
+        output = Output(owner=job.owner, oq_job=job, output_type=output_type)
+        output.path = self.touch(
+            dir=os.path.join(job.path, "computed_output"), suffix=".xml",
+            prefix="hzrd." if output_type == "hazard_map" else "loss.")
+        output.save()
+        return output
+
+    def teardown_output(self, output, teardown_job=True, filesystem_only=True):
+        """
+        Tear down the file system (and potentially db) artefacts for the
+        given output.
+
+        :param output: the :py:class:`geonode.mtapi.models.Output` instance
+            in question
+        :param bool teardown_job: the associated job and its related artefacts
+            shall be torn down as well.
+        :param bool filesystem_only: if set the various database records will
+            be left intact. This saves time and the test db will be
+            dropped/recreated prior to the next db test suite run anyway.
+        """
+        job = output.oq_job
+        if not filesystem_only:
+            output.delete()
+        if teardown_job:
+            self.teardown_job(job, filesystem_only=filesystem_only)
+
+    def add_shapefile_data(self, output):
+        """Add shapefile data to the given output instance."""
+        prefix = "hazard" if output.output_type == "hazard_map" else "loss"
+        dirname = os.path.dirname(output.path)
+        layer_name, _ = os.path.splitext(os.path.basename(output.path))
+        layer_name = layer_name.replace(".", "-")
+        dirname = os.path.join(dirname, "%s-shapefiles" % prefix)
+        output.shapefile_path = os.path.join(dirname, "%s.shp" % layer_name)
+        os.rename(self.touch(dir=dirname), output.shapefile_path)
+        output.min_value = random.random()
+        output.max_value = output.min_value * math.pi
+        return output.shapefile_path

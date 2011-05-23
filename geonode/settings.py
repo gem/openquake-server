@@ -124,3 +124,6 @@ import sys
 APIAPP_PYTHONPATH = ":".join(
     [seg for seg in sys.path if seg.find("geonode") < 0])
 APIAPP_PYTHONPATH += ":%s:%s" % (OQ_ENGINE_DIR, OQ_APIAPP_DIR)
+
+SITEURL = "http://gemsun02.ethz.ch/"
+GEOSERVER_BASE_URL = SITEURL + "geoserver-geonode-dev/"

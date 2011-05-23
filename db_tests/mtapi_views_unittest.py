@@ -30,7 +30,7 @@ import unittest
 from django.conf import settings
 
 from geonode.mtapi.models import OqJob, Upload
-from geonode.mtapi.views import prepare_job, start_job
+from geonode.mtapi.views import prepare_job, prepare_map_result, start_job
 
 from db_tests.helpers import DbTestMixin
 
@@ -142,3 +142,64 @@ class StartJobTestCase(unittest.TestCase, DbTestMixin):
             self.assertEqual(
                 ([settings.OQRUNNER_PATH, "-j", str(job.id)],), args)
             self.assertEqual(31459, job.job_pid)
+
+
+class PrepareMapResultTestCase(unittest.TestCase, DbTestMixin):
+    """Tests the behaviour of views.prepare_map_result()."""
+
+    def tearDown(self):
+        self.teardown_output(self.output)
+
+    def test_prepare_map_result_with_hazard(self):
+        """
+        prepare_map_result() returns a correct json fragment for a
+        hazard map.
+        """
+        self.output = self.setup_output()
+        self.add_shapefile_data(self.output)
+
+        layer, _ = os.path.splitext(
+            os.path.basename(self.output.shapefile_path))
+        name = os.path.basename(self.output.path)
+        type = ("hazard map" if self.output.output_type == "hazard_map"
+                             else "loss map")
+
+        expected  = {
+            "layer": {
+                "layer": "geonode:%s" % layer,
+                "ows": "http://gemsun02.ethz.ch/geoserver-geonode-dev/ows"},
+            "name": name,
+            "min": self.output.min_value,
+            "max": self.output.max_value,
+            "type": type,
+            "id": self.output.id}
+
+        actual = prepare_map_result(self.output)
+        self.assertEqual(expected, actual)
+
+    def test_prepare_map_result_with_loss(self):
+        """
+        prepare_map_result() returns a correct json fragment for a
+        hazard map.
+        """
+        self.output = self.setup_output(output_type="loss_map")
+        self.add_shapefile_data(self.output)
+
+        layer, _ = os.path.splitext(
+            os.path.basename(self.output.shapefile_path))
+        name = os.path.basename(self.output.path)
+        type = ("loss map" if self.output.output_type == "loss_map"
+                             else "loss map")
+
+        expected  = {
+            "layer": {
+                "layer": "geonode:%s" % layer,
+                "ows": "http://gemsun02.ethz.ch/geoserver-geonode-dev/ows"},
+            "name": name,
+            "min": self.output.min_value,
+            "max": self.output.max_value,
+            "type": type,
+            "id": self.output.id}
+
+        actual = prepare_map_result(self.output)
+        self.assertEqual(expected, actual)
