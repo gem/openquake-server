@@ -233,6 +233,9 @@ def run_oq_job(request):
 def start_job(job):
     """Start the OpenQuake engine in order to perform a calculation.
 
+    The OpenQuake engine run may take a while and is hence started
+    asynchronously in a separate process.
+
     :param job: the :py:class:`geonode.mtapi.models.OqJob` instance in question
     :returns: the integer process ID (pid) of the child process that is running
         the oqrunner.py tool.
@@ -284,7 +287,7 @@ def prepare_job(params):
     upload = Upload.objects.get(id=params["upload"])
     oqp = OqParams(upload=upload)
     trans_tab = dict(reference_v30_value="reference_vs30_value")
-    attr_names = (
+    param_names = (
         "job_type", "region_grid_spacing", "min_magnitude",
         "investigation_time", "component", "imt", "period", "truncation_type",
         "truncation_level", "reference_v30_value", "imls", "poes",
@@ -298,12 +301,12 @@ def prepare_job(params):
     assert job_type in ("classical", "deterministic", "event_based"), \
         "invalid job type: '%s'" % job_type
 
-    for attr_name in attr_names:
-        if attr_name == "region" or attr_name in ignore[job_type]:
+    for param_name in param_names:
+        if param_name == "region" or param_name in ignore[job_type]:
             continue
         # Take care of differences in property names.
-        property_name = trans_tab.get(attr_name, attr_name)
-        value = params["fields"].get(attr_name)
+        property_name = trans_tab.get(param_name, param_name)
+        value = params["fields"].get(param_name)
         if value:
             setattr(oqp, property_name, value)
 
@@ -351,7 +354,7 @@ def oq_job_result(request, job_id):
     """
     print("job_id: %s" % job_id)
     if request.method == "GET":
-        [job] = OqJob.objects.filter(id=int(job_id))
+        job = OqJob.objects.get(id=int(job_id))
         if job.status == "running":
             oqrunner_is_alive = utils.is_process_running(
                 job.job_pid, settings.OQRUNNER_PATH)
@@ -373,7 +376,9 @@ def oq_job_result(request, job_id):
                 print "OpenQuake job succeeded.."
                 return HttpResponse(result, mimetype="text/html")
     else:
-        raise Http404
+        return HttpResponse(
+            "Wrong HTTP request type, use a GET for this API endpoint",
+            status=500, mimetype="text/html")
 
 
 def prepare_job_result(job):
@@ -384,7 +389,7 @@ def prepare_job_result(job):
     """
     status_translation = dict(failed="failure", succeeded="success",
                               running="running", pending="pending")
-    msg = dict(job.UPLOAD_STATUS_CHOICES)[job.status]
+    msg = dict(job.JOB_STATUS_CHOICES)[job.status]
     status = status_translation[job.status]
     result = dict(status=status, msg=msg, id=job.id)
     if job.status == "succeeded":
@@ -401,6 +406,7 @@ def prepare_map_result(output):
     """Prepare a json fragment for a single hazard/loss map.
 
     The desired json fragment should look as follows:
+
         {"id": 77, "name": "loss-map-0fcfdbc7.xml", "type": "loss map",
          "min": 2.718281, "max": 3.141593,
          "layer": {
@@ -409,6 +415,7 @@ def prepare_map_result(output):
 
     :param output: the :py:class:`geonode.mtapi.models.Output` instance
         in question
+    :returns: a dictionary with data needed to produce the json above.
     """
     layer_name, _ = os.path.splitext(os.path.basename(output.shapefile_path))
     type = dict(output.OUTPUT_TYPE_CHOICES)[output.output_type].lower()

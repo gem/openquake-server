@@ -142,7 +142,7 @@ class DbTestMixin(TestMixin):
         oqp.delete()
 
     def setup_output(self, job_to_use=None, output_type="hazard_map"):
-        """Create an output object that is reminiscent of a hazard map.
+        """Create an output object of the given type.
 
         :param job_to_use: if set use the passed
             :py:class:`geonode.mtapi.models.OqJob` instance as opposed to

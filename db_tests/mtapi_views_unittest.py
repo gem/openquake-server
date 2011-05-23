@@ -81,7 +81,7 @@ class PrepareJobTestCase(unittest.TestCase, DbTestMixin):
         post_params = get_post_params()
         job = prepare_job(post_params)
         self.assertTrue(isinstance(job, OqJob))
-        [upload] = Upload.objects.filter(id=post_params["upload"])
+        upload = Upload.objects.get(id=post_params["upload"])
         self.assertEqual(upload, job.oq_params.upload)
 
     def test_prepare_job_param_values(self):
@@ -137,6 +137,7 @@ class StartJobTestCase(unittest.TestCase, DbTestMixin):
         popen_mock = mock.MagicMock(name="mock:subprocess.Popen")
         popen_mock.return_value = process_mock
         with mock.patch('subprocess.Popen', new=popen_mock):
+            self.assertEqual(0, job.job_pid)
             start_job(job)
             args, _kwargs = popen_mock.call_args
             self.assertEqual(

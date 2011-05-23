@@ -166,6 +166,7 @@ class CreateHazardShapefileTestCase(unittest.TestCase, TestMixin):
             </HMSite>
             <IML>0.0</IML>
         </HMNode>'''
+
     def tearDown(self):
         os.unlink(self.hazard_map)
 
