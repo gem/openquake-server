@@ -31,7 +31,7 @@ from geonode.mtapi import views
 
 
 class PrepareResultTest(TestCase):
-    """Tests for geonode.mtapi.views.prepare_result()."""
+    """Tests for geonode.mtapi.views.prepare_upload_result()."""
 
     def test_prepare_result_with_pending_upload(self):
         """
@@ -41,4 +41,4 @@ class PrepareResultTest(TestCase):
         upload = Upload(owner=user, path="/a/1", status="pending", job_pid=0)
         Input(upload=upload, owner=upload.owner, size=11,
               path=upload.path + "/a", input_type="source")
-        self.assertEqual("", views.prepare_result(upload))
+        self.assertEqual("", views.prepare_upload_result(upload))

@@ -26,20 +26,203 @@ Unit tests for the bin/gen_shapefile.py tool.
 import mock
 import operator
 import os
-import tempfile
 import unittest
 
 
 from bin.gen_shapefile import (
     calculate_loss_data, extract_hazardmap_data, extract_lossmap_data,
-    extract_position, find_min_max, create_shapefile, tag_extractor)
+    extract_position, find_min_max, create_shapefile,
+    create_shapefile_from_hazard_map, create_shapefile_from_loss_map,
+    tag_extractor)
+
+from tests.helpers import TestMixin
 
 
-class CreateShapefileTestCase(unittest.TestCase):
+def patch_ogr():
+    """
+    Patch the ogr functions used in the shapefile generator functions.
+    We don't want any of them actually called.
+
+    :returns: a (driver_mock, feature_mock) 2-tuple
+    """
+    layer = mock.Mock(name="layer-mock")
+    layer.CreateField.return_value = 0
+    layer.GetLayerDefn.return_value = {}
+    layer.CreateFeature.return_value = 0
+
+    source = mock.Mock(name="source-mock")
+    source.CreateLayer.return_value = layer
+
+    driver = mock.Mock(name="driver-mock")
+    driver.CreateDataSource.return_value = source
+
+    feature = mock.Mock(name="feature-mock")
+
+    return(driver, feature)
+
+
+class CreateLossShapefileTestCase(unittest.TestCase, TestMixin):
+    """
+    Tests the behaviour of gen_shapefile.create_shapefile_from_loss_map().
+    """
+    CONTENT = '''
+        <LMNode gml:id="lmn_3">
+            <site>
+              <gml:Point srsName="epsg:4326">
+                <gml:pos>-118.245388 34.055984</gml:pos>
+              </gml:Point>
+            </site>
+            <loss xmlns:ns6="http://openquake.org/xmlns/nrml/0.2"
+                  ns6:assetRef="219">
+              <ns6:mean>59.1595800341</ns6:mean>
+              <ns6:stdDev>53.5693102791</ns6:stdDev>
+            </loss>
+        </LMNode>
+        <LMNode gml:id="lmn_4">
+            <site>
+              <gml:Point srsName="epsg:4326">
+                <gml:pos>-117.245388 35.055984</gml:pos>
+              </gml:Point>
+            </site>
+            <loss xmlns:ns6="http://openquake.org/xmlns/nrml/0.2"
+                  ns6:assetRef="220">
+              <ns6:mean>0.0</ns6:mean>
+              <ns6:stdDev>0.0</ns6:stdDev>
+            </loss>
+        </LMNode>
+        '''
+    def tearDown(self):
+        os.unlink(self.loss_map)
+
+    def test_create_shapefile_from_loss_map_with_unwanted_zero_val(self):
+        """
+        Zero values are *not* added to the shapefile when config["zeroes"] is
+        `False`.
+        """
+        self.loss_map = self.touch(self.CONTENT, suffix="xml")
+        config = dict(key="11", layer="abc", output="def",
+                      path=self.loss_map, type="loss", zeroes=False)
+
+        # We don't want any of the actual ogr functions called, they are all
+        # patched.
+        driver, feature = patch_ogr()
+        with mock.patch("ogr.GetDriverByName") as gdbn:
+            gdbn.return_value = driver
+            with mock.patch("ogr.Feature") as ofeat:
+                ofeat.return_value = feature
+                # Call the actual function under test.
+                create_shapefile_from_loss_map(config)
+
+        # The zero value is *not* added to the shapefile.
+        fields = [m for m in feature.method_calls if m[0] == 'SetField']
+        self.assertEqual([('SetField', ('mean', 59.1595800341), {})], fields)
+
+    def test_create_shapefile_from_loss_map_with_wanted_zero_val(self):
+        """
+        Zero values *are* added to the shapefile when config["zeroes"] is
+        `True`.
+        """
+        self.loss_map = self.touch(self.CONTENT, suffix="xml")
+        config = dict(key="12", layer="abc", output="def",
+                      path=self.loss_map, type="loss", zeroes=True)
+
+        # We don't want any of the actual ogr functions called, they are all
+        # patched.
+        driver, feature = patch_ogr()
+        with mock.patch("ogr.GetDriverByName") as gdbn:
+            gdbn.return_value = driver
+            with mock.patch("ogr.Feature") as ofeat:
+                ofeat.return_value = feature
+                # Call the actual function under test.
+                create_shapefile_from_loss_map(config)
+
+        # The zero value is added to the shapefile as well.
+        fields = [m for m in feature.method_calls if m[0] == 'SetField']
+        self.assertEqual(
+            [('SetField', ('mean', 59.1595800341), {}),
+             ('SetField', ('mean', 0.0), {})], fields)
+
+
+class CreateHazardShapefileTestCase(unittest.TestCase, TestMixin):
+    """
+    Tests the behaviour of gen_shapefile.create_shapefile_from_hazard_map().
+    """
+    CONTENT = '''
+        <HMNode gml:id="n_3">
+            <HMSite>
+              <gml:Point srsName="epsg:4326">
+                <gml:pos>-122.1 38.0</gml:pos>
+              </gml:Point>
+              <vs30>760.0</vs30>
+            </HMSite>
+            <IML>1.1905288226</IML>
+        </HMNode>
+        <HMNode gml:id="n_4">
+            <HMSite>
+              <gml:Point srsName="epsg:4326">
+                <gml:pos>-122.1 48.0</gml:pos>
+              </gml:Point>
+              <vs30>760.0</vs30>
+            </HMSite>
+            <IML>0.0</IML>
+        </HMNode>'''
+    def tearDown(self):
+        os.unlink(self.hazard_map)
+
+    def test_create_shapefile_from_hazard_map_with_unwanted_zero_val(self):
+        """
+        Zero values are *not* added to the shapefile when config["zeroes"] is
+        `False`.
+        """
+        self.hazard_map = self.touch(self.CONTENT, suffix="xml")
+        config = dict(key="13", layer="abc", output="def",
+                      path=self.hazard_map, type="hazard", zeroes=False)
+
+        # We don't want any of the actual ogr functions called, they are all
+        # patched.
+        driver, feature = patch_ogr()
+        with mock.patch("ogr.GetDriverByName") as gdbn:
+            gdbn.return_value = driver
+            with mock.patch("ogr.Feature") as ofeat:
+                ofeat.return_value = feature
+                # Call the actual function under test.
+                create_shapefile_from_hazard_map(config)
+
+        # The zero value is *not* added to the shapefile.
+        fields = [m for m in feature.method_calls if m[0] == 'SetField']
+        self.assertEqual([('SetField', ('IML', 1.1905288226), {})], fields)
+
+    def test_create_shapefile_from_hazard_map_with_wanted_zero_val(self):
+        """
+        Zero values *are* added to the shapefile when config["zeroes"] is
+        `True`.
+        """
+        self.hazard_map = self.touch(self.CONTENT, suffix="xml")
+        config = dict(key="14", layer="abc", output="def",
+                      path=self.hazard_map, type="hazard", zeroes=True)
+
+        # We don't want any of the actual ogr functions called, they are all
+        # patched.
+        driver, feature = patch_ogr()
+        with mock.patch("ogr.GetDriverByName") as gdbn:
+            gdbn.return_value = driver
+            with mock.patch("ogr.Feature") as ofeat:
+                ofeat.return_value = feature
+                # Call the actual function under test.
+                create_shapefile_from_hazard_map(config)
+
+        # The zero value is added to the shapefile as well.
+        fields = [m for m in feature.method_calls if m[0] == 'SetField']
+        self.assertEqual(
+            [('SetField', ('IML', 1.1905288226), {}),
+             ('SetField', ('IML', 0.0), {})], fields)
+
+
+class CreateShapefileTestCase(unittest.TestCase, TestMixin):
     """Tests the behaviour of gen_shapefile.create_shapefile()."""
 
     def setUp(self):
-        _, self.map_file = tempfile.mkstemp()
+        self.map_file = self.touch()
 
     def tearDown(self):
         os.unlink(self.map_file)
@@ -49,7 +232,7 @@ class CreateShapefileTestCase(unittest.TestCase):
         When the passed map file path is not a file an `AssertionError` is
         raised.
         """
-        config = dict(key="11", layer="abc", output="def", path="/tmp",
+        config = dict(key="15", layer="abc", output="def", path="/tmp",
                       type="hazard")
         self.assertRaises(AssertionError, create_shapefile, config)
 
@@ -59,16 +242,15 @@ class CreateShapefileTestCase(unittest.TestCase):
         `AssertionError` is raised.
         """
         os.chmod(self.map_file, 0000)
-        config = dict(key="11", layer="abc", output="def", path=self.map_file,
+        config = dict(key="16", layer="abc", output="def", path=self.map_file,
                       type="hazard")
         self.assertRaises(AssertionError, create_shapefile, config)
 
     def test_create_shapefile_no_output(self):
         """
-        If the user does not specify an output it will be "calculated" from the
-        map's path and layer name.
+        If unspecified the output is determined from the map's path/layer.
         """
-        config = dict(key="11", layer="", output="", path=self.map_file,
+        config = dict(key="17", layer="", output="", path=self.map_file,
                       type="hazard")
         with mock.patch('bin.gen_shapefile.create_shapefile_from_hazard_map') \
             as mock_func:
@@ -76,20 +258,20 @@ class CreateShapefileTestCase(unittest.TestCase):
             create_shapefile(config)
             basename = os.path.basename(self.map_file)
             expected_layer = "%s-%s" % (config["key"], basename)
-            self.assertEqual(expected_layer,
-                             mock_func.call_args[0][0]["layer"])
+            [actual_config], _kwargs = mock_func.call_args
+            self.assertEqual(expected_layer, actual_config["layer"])
             dirname = os.path.dirname(self.map_file)
-            self.assertEqual(os.path.join(dirname, "shapefiles"),
-                             mock_func.call_args[0][0]["output"])
+            self.assertEqual(
+                os.path.join(dirname, "%s-shapefiles" % config["type"]),
+                actual_config["output"])
 
     def test_create_shapefile_no_output_with_dots(self):
         """
-        If the user does not specify an output it will be "calculated" from the
-        map's path and layer name.
+        If unspecified the output is determined from the map's path/layer.
         All dot characters in the layer name will be replaced by dashes.
         """
-        _, map_file2 = tempfile.mkstemp(prefix="we.love.dots.")
-        config = dict(key="11", layer="", output="", path=map_file2,
+        map_file2 = self.touch(prefix="we.love.dots.")
+        config = dict(key="18", layer="", output="", path=map_file2,
                       type="hazard")
         with mock.patch('bin.gen_shapefile.create_shapefile_from_hazard_map') \
             as mock_func:
@@ -99,19 +281,19 @@ class CreateShapefileTestCase(unittest.TestCase):
             basename, _ = os.path.splitext(basename)
             expected_layer = (
                 "%s-%s" % (config["key"], basename.replace(".", "-")))
-            self.assertEqual(expected_layer,
-                             mock_func.call_args[0][0]["layer"])
+            [actual_config], _kwargs = mock_func.call_args
+            self.assertEqual(expected_layer, actual_config["layer"])
             dirname = os.path.dirname(self.map_file)
-            self.assertEqual(os.path.join(dirname, "shapefiles"),
-                             mock_func.call_args[0][0]["output"])
+            self.assertEqual(
+                os.path.join(dirname, "%s-shapefiles" % config["type"]),
+                actual_config["output"])
         os.unlink(map_file2)
-
 
     def test_create_shapefile_with_non_existent_output(self):
         """
         When the output path does not exist an `AssertionError` is raised.
         """
-        config = dict(key="11", layer="abc", output="/def", path="/tmp",
+        config = dict(key="19", layer="abc", output="/def", path="/tmp",
                       type="hazard")
         self.assertRaises(AssertionError, create_shapefile, config)
 
@@ -121,7 +303,7 @@ class CreateShapefileTestCase(unittest.TestCase):
         `AssertionError` is raised.
         """
         os.symlink(self.map_file, "/tmp/map-sym-link")
-        config = dict(key="11", layer="abc", output="/def",
+        config = dict(key="20", layer="abc", output="/def",
                       path="/tmp/map-sym-link", type="hazard")
         self.assertRaises(AssertionError, create_shapefile, config)
         os.unlink("/tmp/map-sym-link")
@@ -130,7 +312,7 @@ class CreateShapefileTestCase(unittest.TestCase):
         """
         Make sure the right function is called for hazard maps.
         """
-        config = dict(key="11", layer="", output="", path=self.map_file,
+        config = dict(key="21", layer="", output="", path=self.map_file,
                       type="hazard")
         with mock.patch('bin.gen_shapefile.create_shapefile_from_hazard_map') \
             as mock_func:
@@ -142,7 +324,7 @@ class CreateShapefileTestCase(unittest.TestCase):
         """
         Make sure the right function is called for loss maps.
         """
-        config = dict(key="11", layer="", output="", path=self.map_file,
+        config = dict(key="22", layer="", output="", path=self.map_file,
                       type="loss")
         with mock.patch('bin.gen_shapefile.create_shapefile_from_loss_map') \
             as mock_func:
@@ -154,7 +336,7 @@ class CreateShapefileTestCase(unittest.TestCase):
         """
         An `AssertionError` is raised for unknown map types.
         """
-        config = dict(key="11", layer="abc", output="/def", path="/tmp",
+        config = dict(key="23", layer="abc", output="/def", path="/tmp",
                       type="unknown")
         self.assertRaises(AssertionError, create_shapefile, config)
 
@@ -199,7 +381,7 @@ class FindMinMaxTestCase(unittest.TestCase):
             (['-122.0', '37.5'], '1.19244541041'),
             (['-122.1', '38.0'], '1.1905288226')]
 
-        self.assertEqual(('1.1905288226', '1.23518683436'),
+        self.assertEqual((1.1905288226, 1.23518683436),
                          find_min_max(data, operator.itemgetter(1)))
 
     def test_find_min_max_for_loss_maps(self):
@@ -384,15 +566,18 @@ class TagExtractorTestCase(unittest.TestCase):
             <gml:pos>-118.241243 34.061557</gml:pos>
           </gml:Point>
         </site>
-        <loss xmlns:ns3="http://openquake.org/xmlns/nrml/0.2" ns3:assetRef="104">
+        <loss xmlns:ns3="http://openquake.org/xmlns/nrml/0.2"
+              ns3:assetRef="104">
           <ns3:mean>260.1793321</ns3:mean>
           <ns3:stdDev>298.536543258</ns3:stdDev>
         </loss>
-        <loss xmlns:ns4="http://openquake.org/xmlns/nrml/0.2" ns4:assetRef="105">
+        <loss xmlns:ns4="http://openquake.org/xmlns/nrml/0.2"
+              ns4:assetRef="105">
           <ns4:mean>205.54063128</ns4:mean>
           <ns4:stdDev>182.363531209</ns4:stdDev>
         </loss>
-        <loss xmlns:ns5="http://openquake.org/xmlns/nrml/0.2" ns5:assetRef="106">
+        <loss xmlns:ns5="http://openquake.org/xmlns/nrml/0.2"
+              ns5:assetRef="106">
           <ns5:mean>163.603304574</ns5:mean>
           <ns5:stdDev>222.371828022</ns5:stdDev>
         </loss>
@@ -402,15 +587,18 @@ class TagExtractorTestCase(unittest.TestCase):
             <gml:pos>-118.245388 34.055984</gml:pos>
           </gml:Point>
         </site>
-        <loss xmlns:ns6="http://openquake.org/xmlns/nrml/0.2" ns6:assetRef="219">
+        <loss xmlns:ns6="http://openquake.org/xmlns/nrml/0.2"
+              ns6:assetRef="219">
           <ns6:mean>59.1595800341</ns6:mean>
           <ns6:stdDev>53.5693102791</ns6:stdDev>
         </loss>
-        <loss xmlns:ns7="http://openquake.org/xmlns/nrml/0.2" ns7:assetRef="220">
+        <loss xmlns:ns7="http://openquake.org/xmlns/nrml/0.2"
+              ns7:assetRef="220">
           <ns7:mean>104.689400653</ns7:mean>
           <ns7:stdDev>65.9931553211</ns7:stdDev>
         </loss>
-        <loss xmlns:ns8="http://openquake.org/xmlns/nrml/0.2" ns8:assetRef="221">
+        <loss xmlns:ns8="http://openquake.org/xmlns/nrml/0.2"
+              ns8:assetRef="221">
           <ns8:mean>82.1438713787</ns8:mean>
           <ns8:stdDev>156.848140719</ns8:stdDev>
         </loss>

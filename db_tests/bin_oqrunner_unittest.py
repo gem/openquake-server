@@ -320,7 +320,9 @@ class CreateInputFileDirTestCase(unittest.TestCase, DbTestMixin):
             'db': 'openquake', 'host': 'localhost', 'jobid': self.job.id,
             'password': 'xxx', 'user': 'oq_uiapi_writer'}
 
+        self.assertEqual("pending", self.job.status)
         job = create_input_file_dir(config)
+        self.assertEqual("running", job.status)
         info = os.stat(job.path)
         self.assertTrue(stat.S_ISDIR(info.st_mode))
         self.assertEqual("0777", oct(stat.S_IMODE(info.st_mode)))

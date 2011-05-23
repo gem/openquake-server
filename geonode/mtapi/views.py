@@ -30,11 +30,12 @@ import re
 import simplejson
 import subprocess
 
+from django.conf import settings
+from django.contrib.gis.geos import GEOSGeometry
 from django.http import HttpResponse, Http404
 from django.views.decorators.csrf import csrf_exempt
-from django.conf import settings
 
-from geonode.mtapi.models import Upload, Input
+from geonode.mtapi.models import Input, OqJob, OqParams, Upload
 from geonode.mtapi import utils
 
 
@@ -72,11 +73,11 @@ def input_upload_result(request, upload_id):
             else:
                 upload.status = "failed"
                 upload.save()
-                result = prepare_result(upload)
+                result = prepare_upload_result(upload)
                 print "Upload processing failed, process not found.."
                 return HttpResponse(result, status=500, mimetype="text/html")
         else:
-            result = prepare_result(upload)
+            result = prepare_upload_result(upload)
             if upload.status == "failed":
                 print "Upload processing failed.."
                 return HttpResponse(result, status=500, mimetype="text/html")
@@ -105,13 +106,13 @@ def input_upload(request):
         for uploaded_file in request.FILES.getlist('input_files'):
             handle_uploaded_file(upload, uploaded_file)
         load_source_files(upload)
-        return HttpResponse(prepare_result(upload, status="success"),
+        return HttpResponse(prepare_upload_result(upload, status="success"),
                             mimetype="text/html")
     else:
         raise Http404
 
 
-def prepare_result(upload, status=None):
+def prepare_upload_result(upload, status=None):
     """Prepare the result dictionary that is to be returned in json form.
 
     :param upload: the :py:class:`geonode.mtapi.models.Upload` instance
@@ -122,7 +123,7 @@ def prepare_result(upload, status=None):
     status_translation = dict(failed="failure", succeeded="success",
                               running="running", pending="pending")
     msg = dict(upload.UPLOAD_STATUS_CHOICES)[upload.status]
-    status = status_translation[upload.status] if status is None else status
+    status = status if status else status_translation[upload.status]
     result = dict(status=status, msg=msg, id=upload.id)
     if upload.status == "succeeded":
         files = []
@@ -201,8 +202,7 @@ def load_source_files(upload):
             "-u", str(upload.id), "--host", host]
     print("nrml loader args: %s\n" % pprint.pformat(args))
     env = os.environ
-    env["PYTHONPATH"] = settings.NRML_RUNNER_PYTHONPATH
-    pprint.pprint(env)
+    env["PYTHONPATH"] = settings.APIAPP_PYTHONPATH
     pid = subprocess.Popen(args, env=env).pid
     upload.status = "running"
     upload.job_pid = pid
@@ -222,7 +222,201 @@ def run_oq_job(request):
     """
     print("request: %s\n" % pprint.pformat(request))
     if request.method == "POST":
+        job = prepare_job(request.POST)
+        start_job(job)
         return HttpResponse(
-            {"status": "success", "msg": "Calculation started", "id": 123})
+            {"status": "success", "msg": "Calculation started", "id": job.id})
     else:
         raise Http404
+
+
+def start_job(job):
+    """Start the OpenQuake engine in order to perform a calculation.
+
+    :param job: the :py:class:`geonode.mtapi.models.OqJob` instance in question
+    :returns: the integer process ID (pid) of the child process that is running
+        the oqrunner.py tool.
+    """
+    env = os.environ
+    env["PYTHONPATH"] = settings.APIAPP_PYTHONPATH
+    args = [settings.OQRUNNER_PATH, "-j", str(job.id)]
+    proc = subprocess.Popen(args, env=env)
+    job.job_pid = proc.pid
+    job.save()
+    return proc.pid
+
+
+def prepare_job(params):
+    """Create a job with the associated upload and the given parameters.
+
+    :param dict params: the parameters will look as follows:
+        {"model":"openquake.calculationparams",
+         "upload": 23,
+         "fields":
+             {"job_type": "classical",
+              "region_grid_spacing": 0.1,
+              "min_magnitude": 5,
+              "investigation_time": 50,
+              "component": "average",
+              "imt": "pga",
+              "period": 1,
+              "truncation_type": "none",
+              "truncation_level": 3,
+              "reference_v30_value": 800,
+              "imls": [0.2,0.02,0.01],
+              "poes": [0.2,0.02,0.01],
+              "realizations": 6,
+              "histories": 1,
+              "gm_correlated": False,
+              "region":"POLYGON((
+                 16.460737205888 41.257786872643,
+                 16.460898138429 41.257786872643,
+                 16.460898138429 41.257923984376,
+                 16.460737205888 41.257923984376,
+                 16.460737205888 41.257786872643))"}}
+
+        Please see the "hazard_risk_calc" section of
+        https://github.com/gem/openquake/wiki/demo-client-API for details on
+        the parameters.
+
+    :returns: a :py:class:`geonode.mtapi.models.OqJob` instance
+    """
+    upload = Upload.objects.get(id=params["upload"])
+    oqp = OqParams(upload=upload)
+    trans_tab = dict(reference_v30_value="reference_vs30_value")
+    attr_names = (
+        "job_type", "region_grid_spacing", "min_magnitude",
+        "investigation_time", "component", "imt", "period", "truncation_type",
+        "truncation_level", "reference_v30_value", "imls", "poes",
+        "realizations", "histories", "gm_correlated")
+
+    ignore = dict(
+        classical=set(["period", "histories", "gm_correlated"]),
+        deterministic=set(), event_based=set())
+
+    job_type = params["fields"]["job_type"]
+    assert job_type in ("classical", "deterministic", "event_based"), \
+        "invalid job type: '%s'" % job_type
+
+    for attr_name in attr_names:
+        if attr_name == "region" or attr_name in ignore[job_type]:
+            continue
+        # Take care of differences in property names.
+        property_name = trans_tab.get(attr_name, attr_name)
+        value = params["fields"].get(attr_name)
+        if value:
+            setattr(oqp, property_name, value)
+
+    region = params["fields"].get("region")
+    if region:
+        oqp.region = GEOSGeometry(region)
+    oqp.save()
+    job = OqJob(oq_params=oqp, owner=upload.owner,
+                job_type=params["fields"]["job_type"])
+    job.save()
+    return job
+
+
+@csrf_exempt
+def oq_job_result(request, job_id):
+    """This allows the GUI to poll for OpenQuake job status.
+
+    The request must be a HTTP GET. If the OpenQuake job is in progress we
+    return a 404. In case of succes and failure we return a 200 and a 500
+    status code respectively.
+
+    Here's an example of the json data retuned in case of success:
+
+    { "status": "success", "msg": "Calculation succeeded", "id": 123,
+      "files": [{
+        "id": 77, "name": "loss-map-0fcfdbc7.xml", "type": "loss map",
+        "min": 2.718281, "max": 3.141593,
+        "layer": {
+            "ows": "http://gemsun02.ethz.ch/geoserver-geonode-dev/ows"
+            "layer": "geonode:77-loss-map-0fcfdbc7"}}, {
+        "id": 78, "name": "hazardmap-0.01-mean.xml", "type": "hazard map",
+        "min": 0.060256, "max": 9.780226
+        "layer": {
+            "ows": "http://gemsun02.ethz.ch/geoserver-geonode-dev/ows"
+            "layer": "geonode:78-hazardmap-0-01-mean"}}]}
+
+    :param request: the :py:class:`django.http.HttpRequest` object
+    :param integer job_id: the database key of the associated oq_job record
+        (see also :py:class:`geonode.mtapi.models.OqJob`)
+    :returns: a :py:class:`django.http.HttpResponse` object with status code
+        `200` and `500` if the OpenQuake job succeeded and failed
+        respectively.
+    :raises Http404: when the OpenQuake job is still in progress or if the
+        request is not a HTTP GET request.
+    """
+    print("job_id: %s" % job_id)
+    if request.method == "GET":
+        [job] = OqJob.objects.filter(id=int(job_id))
+        if job.status == "running":
+            oqrunner_is_alive = utils.is_process_running(
+                job.job_pid, settings.OQRUNNER_PATH)
+            if oqrunner_is_alive:
+                print "OpenQuake job in progress.."
+                raise Http404
+            else:
+                job.status = "failed"
+                job.save()
+                result = prepare_job_result(job)
+                print "OpenQuake job failed, process not found.."
+                return HttpResponse(result, status=500, mimetype="text/html")
+        else:
+            result = prepare_job_result(job)
+            if job.status == "failed":
+                print "OpenQuake job failed.."
+                return HttpResponse(result, status=500, mimetype="text/html")
+            else:
+                print "OpenQuake job succeeded.."
+                return HttpResponse(result, mimetype="text/html")
+    else:
+        raise Http404
+
+
+def prepare_job_result(job):
+    """Prepare the result dictionary that is to be returned in json form.
+
+    :param job: the :py:class:`geonode.mtapi.models.OqJob` instance
+        associated with this job.
+    """
+    status_translation = dict(failed="failure", succeeded="success",
+                              running="running", pending="pending")
+    msg = dict(job.UPLOAD_STATUS_CHOICES)[job.status]
+    status = status_translation[job.status]
+    result = dict(status=status, msg=msg, id=job.id)
+    if job.status == "succeeded":
+        files = []
+        for output in job.output_set.all():
+            files.append(prepare_map_result(output))
+        if files:
+            result['files'] = files
+
+    return simplejson.dumps(result)
+
+
+def prepare_map_result(output):
+    """Prepare a json fragment for a single hazard/loss map.
+
+    The desired json fragment should look as follows:
+        {"id": 77, "name": "loss-map-0fcfdbc7.xml", "type": "loss map",
+         "min": 2.718281, "max": 3.141593,
+         "layer": {
+            "ows": "http://gemsun02.ethz.ch/geoserver-geonode-dev/ows"
+            "layer": "geonode:77-loss-map-0fcfdbc7"}}
+
+    :param output: the :py:class:`geonode.mtapi.models.Output` instance
+        in question
+    """
+    layer_name, _ = os.path.splitext(os.path.basename(output.shapefile_path))
+    type = dict(output.OUTPUT_TYPE_CHOICES)[output.output_type].lower()
+    format_string = (
+        "%sows" if settings.GEOSERVER_BASE_URL.endswith("/") else  "%s/ows")
+    result = dict(
+        id=output.id, name=os.path.basename(output.path),
+        type=type, min=output.min_value, max=output.max_value,
+        layer=dict(ows=format_string % settings.GEOSERVER_BASE_URL,
+                   layer="geonode:%s" % layer_name))
+    return result
