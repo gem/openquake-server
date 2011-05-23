@@ -19,29 +19,32 @@
 
 
 """
-database related unit tests for the geonode/mtapi/utils.py module.
+Helper classes/functions needed across multiple unit tests.
 """
 
 
 import os
-import stat
-import unittest
-
-from geonode.mtapi.models import Upload
-from geonode.mtapi.utils import prepare_upload
+import tempfile
 
 
-class PrepareUploadTestCase(unittest.TestCase):
-    """Tests the behaviour of utils.prepare_upload()."""
+class TestMixin(object):
+    """Mixin class with various helper methods."""
 
-    def test_prepare_upload(self):
+    def touch(self, content=None, dir="/tmp", prefix="tmp", suffix="tmp"):
+        """Create temporary file with the given content.
+
+        Please note: the temporary file must be deleted bu the caller.
+
+        :param string content: the content to write to the temporary file.
+        :param string prefix: file name prefix
+        :param string suffix: file name suffix
+        :returns: a string with the path to the temporary file
         """
-        `prepare_upload` returns a :py:class:`geonode.mtapi.models.Upload`
-        instance. The latter's `path` must be a file system directory and have
-        `0777` permissions.
-        """
-        upload = prepare_upload()
-        self.assertTrue(isinstance(upload, Upload))
-        info = os.stat(upload.path)
-        self.assertTrue(stat.S_ISDIR(info.st_mode))
-        self.assertEqual('0777', oct(stat.S_IMODE(info.st_mode)))
+        if not os.path.exists(dir):
+            os.makedirs(dir)
+        fh, path = tempfile.mkstemp(dir=dir, prefix=prefix, suffix=suffix)
+        if content:
+            fh = os.fdopen(fh, "w")
+            fh.write(content)
+            fh.close()
+        return path

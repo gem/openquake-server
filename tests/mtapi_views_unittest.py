@@ -60,7 +60,8 @@ class DetectInputTypeTestCase(unittest.TestCase):
             <logicTreeSet>
 
                 <logicTree id="lt1">
-                        <logicTreeBranchSet branchingLevel="1" uncertaintyType="sourceModel">
+                   <logicTreeBranchSet branchingLevel="1"
+                                       uncertaintyType="sourceModel">
         '''
         self.assertEqual("lt_source", detect_input_type(chunk))
 
@@ -76,7 +77,8 @@ class DetectInputTypeTestCase(unittest.TestCase):
               gml:id="n1">
             <logicTreeSet>
                 <logicTree id="lt1" tectonicRegion="Active Shallow Crust">
-                    <logicTreeBranchSet branchingLevel="1" uncertaintyType="gmpeModel">
+                    <logicTreeBranchSet branchingLevel="1"
+                                        uncertaintyType="gmpeModel">
         '''
         self.assertEqual("lt_gmpe", detect_input_type(chunk))
 
@@ -86,9 +88,11 @@ class DetectInputTypeTestCase(unittest.TestCase):
         """
         chunk = '''
         <?xml version="1.0"?>
-        <nrml xmlns="http://openquake.org/xmlns/nrml/0.2" xmlns:gml="http://www.opengis.net/gml" gml:id="nrml">
+        <nrml xmlns="http://openquake.org/xmlns/nrml/0.2"
+              xmlns:gml="http://www.opengis.net/gml" gml:id="nrml">
           <exposurePortfolio gml:id="ep">
-            <exposureList gml:id="LA01" assetCategory="buildings" lossCategory="economic_loss">
+            <exposureList gml:id="LA01" assetCategory="buildings"
+                          lossCategory="economic_loss">
         '''
         self.assertEqual("exposure", detect_input_type(chunk))
 
@@ -98,8 +102,11 @@ class DetectInputTypeTestCase(unittest.TestCase):
         """
         chunk = '''
         <?xml version="1.0"?>
-        <nrml xmlns="http://openquake.org/xmlns/nrml/0.2" xmlns:gml="http://www.opengis.net/gml" gml:id="nrml">
+        <nrml xmlns="http://openquake.org/xmlns/nrml/0.2"
+              xmlns:gml="http://www.opengis.net/gml" gml:id="nrml">
           <vulnerabilityModel>
-            <discreteVulnerabilitySet vulnerabilitySetID="HAZUS" assetCategory="buildings" lossCategory="economic_loss">
+            <discreteVulnerabilitySet vulnerabilitySetID="HAZUS"
+                                      assetCategory="buildings"
+                                      lossCategory="economic_loss">
         '''
         self.assertEqual("vulnerability", detect_input_type(chunk))

@@ -118,8 +118,12 @@ INSTALLED_APPS = (
     'geonode.mtapi')
 
 NRML_RUNNER_PATH = "%s/bin/nrml_runner.py" % OQ_APIAPP_DIR
+OQRUNNER_PATH = "%s/bin/oqrunner.py" % OQ_APIAPP_DIR
 
 import sys
-NRML_RUNNER_PYTHONPATH = ":".join(
+APIAPP_PYTHONPATH = ":".join(
     [seg for seg in sys.path if seg.find("geonode") < 0])
-NRML_RUNNER_PYTHONPATH += ":%s:%s" % (OQ_ENGINE_DIR, OQ_APIAPP_DIR)
+APIAPP_PYTHONPATH += ":%s:%s" % (OQ_ENGINE_DIR, OQ_APIAPP_DIR)
+
+SITEURL = "http://gemsun02.ethz.ch/"
+GEOSERVER_BASE_URL = SITEURL + "geoserver-geonode-dev/"

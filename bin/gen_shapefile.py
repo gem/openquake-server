@@ -30,6 +30,7 @@ print the minimum and maximum value(*) seen to the standard output.
                       characters in shapefile names!
   -p | --path P     : path to the hazard/loss map file to be processed
   -t | --type T     : map type: may be one of hazard/loss
+  -z | --zeroes     : do not discard zero values (linear colour scale)
 
 (*) IML and loss mean for hazard and loss maps respectively.
 """
@@ -65,7 +66,7 @@ POSITION_RE = re.compile('''
  (Point[^>]+srsName="([^">]+)"[^>]*>    # srsName attribute
   [^>]+pos>([^>]+)</[^>]*pos>
   [^>]*/[^>]*Point>)+
-''', (re.DOTALL|re.VERBOSE))
+''', (re.DOTALL | re.VERBOSE))
 
 
 def extract_position(xml, expected_srid="epsg:4326"):
@@ -206,6 +207,10 @@ def create_shapefile_from_hazard_map(config):
 
     for pos, iml in data:
         iml = float(iml)
+        if not iml and not config["zeroes"]:
+            # Zero values are to be discarded (logarithmic colour scale)
+            continue
+
         feature = ogr.Feature(layer.GetLayerDefn())
         feature.SetField("IML", iml)
 
@@ -246,7 +251,7 @@ def extract_lossmap_data(config):
       [^>]+mean>([^>]+)</[^>]*mean>
       [^>]+stdDev>([^>]+)</[^>]*stdDev>
       [^>]*/[^>]*loss>)+
-    ''', (re.DOTALL|re.VERBOSE))
+    ''', (re.DOTALL | re.VERBOSE))
 
     data = []
     pos = None
@@ -259,11 +264,13 @@ def extract_lossmap_data(config):
         #       <gml:pos>-118.245388 34.055984</gml:pos>
         #     </gml:Point>
         #   </site>
-        #   <loss xmlns:ns6="http://openquake.org/xmlns/nrml/0.2" ns6:assetRef="219">
+        #   <loss xmlns:ns6="http://openquake.org/xmlns/nrml/0.2"
+        #         ns6:assetRef="219">
         #     <ns6:mean>59.1595800341</ns6:mean>
         #     <ns6:stdDev>53.5693102791</ns6:stdDev>
         #   </loss>
-        #   <loss xmlns:ns7="http://openquake.org/xmlns/nrml/0.2" ns7:assetRef="220">
+        #   <loss xmlns:ns7="http://openquake.org/xmlns/nrml/0.2"
+        #         ns7:assetRef="220">
         #     <ns7:mean>104.689400653</ns7:mean>
         #     <ns7:stdDev>65.9931553211</ns7:stdDev>
         #   </loss>
@@ -358,6 +365,10 @@ def create_shapefile_from_loss_map(config):
     assert layer.CreateField(field) == 0, "failed to create 'mean' field"
 
     for pos, loss in data:
+        if not loss and not config["zeroes"]:
+            # Zero values are to be discarded (logarithmic colour scale)
+            continue
+
         feature = ogr.Feature(layer.GetLayerDefn())
         feature.SetField("mean", loss)
 
@@ -385,14 +396,16 @@ def create_shapefile(config):
             - path (map file to be processed)
             - type (map type, hazard or loss)
     """
-    assert os.path.isfile(config["path"]), \
-        "'%s' is not a file" % config["path"]
-    assert os.access(config["path"], os.R_OK), \
-        "'%s' is not readable" % config["path"]
+    the_path = config["path"]
+    assert os.path.isfile(the_path), "'%s' is not a file" % the_path
+    assert os.access(the_path, os.R_OK), "'%s' is not readable" % the_path
 
     if not config.get("output"):
-        dirname, filename = os.path.split(config["path"])
-        config["output"] = os.path.join(dirname, "shapefiles")
+        dirname, filename = os.path.split(the_path)
+        # All shapefiles for a particular map type shall reside in the same
+        # directory.
+        config["output"] = os.path.join(
+            dirname, "%s-shapefiles" % config["type"])
 
         try:
             os.mkdir(config["output"])
@@ -445,14 +458,15 @@ def main(cargs):
         return arg.split('-')[-1]
 
     mandatory_args = ["key", "path"]
-    config = dict(key="", layer="", output="", path="", type="hazard")
+    config = dict(key="", layer="", output="", path="", type="hazard",
+                  zeroes=False)
     longopts = ["%s" % k if isinstance(v, bool) else "%s=" % k
                 for k, v in config.iteritems()] + ["help"]
     # Translation between short/long command line arguments.
-    s2l = dict(k="key", l="layer", o="output", p="path", t="type")
+    s2l = dict(k="key", l="layer", o="output", p="path", t="type", z="zeroes")
 
     try:
-        opts, _ = getopt.getopt(cargs[1:], "hk:l:o:p:t:", longopts)
+        opts, _ = getopt.getopt(cargs[1:], "hk:l:o:p:t:z", longopts)
     except getopt.GetoptError, e:
         # User supplied unknown argument(?); print help and exit.
         print e
