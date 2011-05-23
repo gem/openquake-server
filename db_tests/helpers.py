@@ -188,4 +188,5 @@ class DbTestMixin(TestMixin):
         os.rename(self.touch(dir=dirname), output.shapefile_path)
         output.min_value = random.random()
         output.max_value = output.min_value * math.pi
+        output.save()
         return output.shapefile_path

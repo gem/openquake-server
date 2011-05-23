@@ -22,6 +22,7 @@
 """Various utility functions used by the django API"""
 
 
+import decimal
 import os
 import subprocess
 import tempfile
@@ -109,3 +110,29 @@ def is_process_running(pid, name_pattern=None):
             result = True
             break
     return result
+
+
+def round_float(value):
+    """
+    Takes a float and rounds it to a fixed number of decimal places.
+
+    This function makes uses of the built-in
+    :py:method:`decimal.Decimal.quantize` to limit the precision.
+
+    The 'round-half-even' algorithm is used for rounding.
+
+    This should give us what can be considered 'safe' float values for
+    geographical coordinates (to side-step precision and rounding errors).
+
+    :type value: float
+
+    :returns: the input value rounded to a hard-coded fixed number of decimal
+    places
+    """
+    FLOAT_DECIMAL_PLACES = 7
+    QUANTIZE_STR = '0.' + '0' * FLOAT_DECIMAL_PLACES
+
+    return float(
+        decimal.Decimal(str(value)).quantize(
+            decimal.Decimal(QUANTIZE_STR),
+            rounding=decimal.ROUND_HALF_EVEN))

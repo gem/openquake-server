@@ -30,7 +30,9 @@ import unittest
 from django.conf import settings
 
 from geonode.mtapi.models import OqJob, Upload
-from geonode.mtapi.views import prepare_job, prepare_map_result, start_job
+from geonode.mtapi import utils
+from geonode.mtapi.views import (
+    prepare_job, prepare_job_result, prepare_map_result, start_job)
 
 from db_tests.helpers import DbTestMixin
 
@@ -69,8 +71,84 @@ def get_post_params(additional_fields=None):
     return post_params
 
 
+class PrepareJobResultTestCase(unittest.TestCase, DbTestMixin):
+    """Tests the behaviour of views.prepare_job_result()."""
+
+    def tearDown(self):
+        if getattr(self, "upload", None) and self.upload:
+            self.teardown_upload(self.upload)
+        if getattr(self, "job_to_teardown", None) and self.job_to_teardown:
+            self.teardown_job(self.job_to_teardown)
+
+    def test_prepare_job_result_with_failed(self):
+        """
+        The json for failed OpenQuake jobs is prepared correctly.
+        """
+        post_params = get_post_params()
+        job = prepare_job(post_params)
+        self.upload = job.oq_params.upload
+        job.status = "failed"
+        self.assertEqual(
+            '{"msg": "Calculation failed", "status": "failure", '
+            '"id": %s}' % job.id,
+            prepare_job_result(job))
+
+    def test_prepare_job_result_with_succeeded_no_maps(self):
+        """
+        The json for succeeded OpenQuake jobs (w/o hazard/loss maps) is
+        prepared correctly.
+        """
+        post_params = get_post_params()
+        job = prepare_job(post_params)
+        self.upload = job.oq_params.upload
+        job.status = "succeeded"
+        self.assertEqual(
+            '{"msg": "Calculation succeeded", "status": "success", '
+            '"id": %s}' % job.id,
+            prepare_job_result(job))
+
+    def test_prepare_job_result_with_succeeded_and_maps(self):
+        """
+        The json for succeeded OpenQuake jobs (w/o hazard/loss maps) is
+        prepared correctly.
+        """
+        hazard_map = self.setup_output()
+        self.job_to_teardown = job = hazard_map.oq_job
+        self.add_shapefile_data(hazard_map)
+        hazard_layer, _ = os.path.splitext(
+            os.path.basename(hazard_map.shapefile_path))
+        hazard_file = os.path.basename(hazard_map.path)
+
+        loss_map = self.setup_output(job_to_use=job, output_type="loss_map")
+        self.add_shapefile_data(loss_map)
+        loss_layer, _ = os.path.splitext(
+            os.path.basename(loss_map.shapefile_path))
+        loss_file = os.path.basename(loss_map.path)
+        job.status = "succeeded"
+        expected = (
+            '{"msg": "Calculation succeeded", "status": "success", "id": %s, '
+            '"files": [{"layer": {"layer": "geonode:%s", "ows": '
+            '"http://gemsun02.ethz.ch/geoserver-geonode-dev/ows"}, "name": '
+            '"%s", "min": %s, "max": %s, "type": "hazard map", "id": %s}, '
+            '{"layer": {"layer": "geonode:%s", "ows": '
+            '"http://gemsun02.ethz.ch/geoserver-geonode-dev/ows"}, "name": '
+            '"%s", "min": %s, "max": %s, "type": "loss map", "id": %s}]}'
+                % (job.id, hazard_layer, hazard_file,
+                   utils.round_float(hazard_map.min_value),
+                   utils.round_float(hazard_map.max_value),
+                   hazard_map.id,
+                   loss_layer, loss_file,
+                   utils.round_float(loss_map.min_value),
+                   utils.round_float(loss_map.max_value), loss_map.id))
+        actual = prepare_job_result(job)
+        self.assertEqual(expected, actual)
+
+
 class PrepareJobTestCase(unittest.TestCase, DbTestMixin):
     """Tests the behaviour of views.prepare_job()."""
+
+    def tearDown(self):
+        self.teardown_upload(self.upload)
 
     def test_prepare_job(self):
         """
@@ -81,8 +159,8 @@ class PrepareJobTestCase(unittest.TestCase, DbTestMixin):
         post_params = get_post_params()
         job = prepare_job(post_params)
         self.assertTrue(isinstance(job, OqJob))
-        upload = Upload.objects.get(id=post_params["upload"])
-        self.assertEqual(upload, job.oq_params.upload)
+        self.upload = Upload.objects.get(id=post_params["upload"])
+        self.assertEqual(self.upload, job.oq_params.upload)
 
     def test_prepare_job_param_values(self):
         """
@@ -91,6 +169,7 @@ class PrepareJobTestCase(unittest.TestCase, DbTestMixin):
         """
         post_params = get_post_params()
         oqp = prepare_job(post_params).oq_params
+        self.upload = oqp.upload
         trans_tab = dict(reference_v30_value="reference_vs30_value")
         param_names = (
             "job_type", "region_grid_spacing", "min_magnitude",
@@ -110,6 +189,7 @@ class PrepareJobTestCase(unittest.TestCase, DbTestMixin):
         ignored_fields = {"period": 1, "histories": 1, "gm_correlated": False}
         post_params = get_post_params(ignored_fields)
         oqp = prepare_job(post_params).oq_params
+        self.upload = oqp.upload
         trans_tab = dict(reference_v30_value="reference_vs30_value")
         param_names = (
             "job_type", "region_grid_spacing", "min_magnitude",
@@ -125,6 +205,9 @@ class PrepareJobTestCase(unittest.TestCase, DbTestMixin):
 class StartJobTestCase(unittest.TestCase, DbTestMixin):
     """Tests the behaviour of views.start_job()."""
 
+    def tearDown(self):
+        self.teardown_upload(self.upload)
+
     def test_start_job(self):
         """
         The oqrunner process is started with the correct path/arguments and
@@ -132,6 +215,7 @@ class StartJobTestCase(unittest.TestCase, DbTestMixin):
         """
         post_params = get_post_params()
         job = prepare_job(post_params)
+        self.upload = job.oq_params.upload
         process_mock = mock.MagicMock(name="mock:the-process")
         process_mock.pid = 31459
         popen_mock = mock.MagicMock(name="mock:subprocess.Popen")
@@ -170,8 +254,8 @@ class PrepareMapResultTestCase(unittest.TestCase, DbTestMixin):
                 "layer": "geonode:%s" % layer,
                 "ows": "http://gemsun02.ethz.ch/geoserver-geonode-dev/ows"},
             "name": name,
-            "min": self.output.min_value,
-            "max": self.output.max_value,
+            "min": utils.round_float(self.output.min_value),
+            "max": utils.round_float(self.output.max_value),
             "type": type,
             "id": self.output.id}
 
@@ -197,8 +281,8 @@ class PrepareMapResultTestCase(unittest.TestCase, DbTestMixin):
                 "layer": "geonode:%s" % layer,
                 "ows": "http://gemsun02.ethz.ch/geoserver-geonode-dev/ows"},
             "name": name,
-            "min": self.output.min_value,
-            "max": self.output.max_value,
+            "min": utils.round_float(self.output.min_value),
+            "max": utils.round_float(self.output.max_value),
             "type": type,
             "id": self.output.id}
 

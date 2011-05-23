@@ -394,7 +394,7 @@ def prepare_job_result(job):
     result = dict(status=status, msg=msg, id=job.id)
     if job.status == "succeeded":
         files = []
-        for output in job.output_set.all():
+        for output in job.output_set.all().order_by("id"):
             files.append(prepare_map_result(output))
         if files:
             result['files'] = files
@@ -423,7 +423,8 @@ def prepare_map_result(output):
         "%sows" if settings.GEOSERVER_BASE_URL.endswith("/") else  "%s/ows")
     result = dict(
         id=output.id, name=os.path.basename(output.path),
-        type=type, min=output.min_value, max=output.max_value,
+        type=type, min=utils.round_float(output.min_value),
+        max=utils.round_float(output.max_value),
         layer=dict(ows=format_string % settings.GEOSERVER_BASE_URL,
                    layer="geonode:%s" % layer_name))
     return result
