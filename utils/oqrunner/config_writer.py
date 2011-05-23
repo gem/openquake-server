@@ -90,11 +90,13 @@ def polygon_to_coord_string(polygon):
     Derive a correctly formatted 'REGION_VERTEX' string from a
     :py:class:`django.contrib.gis.geos.polygon.Polygon`.
 
-    This function formats a string
+    NOTE: Job config files requires coordinates to be in the order lat, lon.
+    However, the order of the coordinates in the input polygon object is
+    lon, lat (equivalent to x, y).
 
     :type polygon: :py:class:`django.contrib.gis.geos.polygon.Polygon`
 
-    :returns: String of coordinate points, in the order of lon, lat. Example::
+    :returns: String of coordinate points, in the order of lat, lon. Example::
         '38.0, -122.2, 38.0, -121.7, 37.5, -121.7, 37.5, -122.2'
     """
     # get a list of the lon,lat pairs
