@@ -5,6 +5,7 @@ Dependencies
 
  * django
  * psycopg2
+ * simplejson
  * nose (for running tests)
  * mock (for running tests)
 
