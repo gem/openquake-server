@@ -395,7 +395,8 @@ def prepare_job_result(job):
     if job.status == "succeeded":
         files = []
         for output in job.output_set.all().order_by("id"):
-            files.append(prepare_map_result(output))
+            if output.shapefile_path:
+                files.append(prepare_map_result(output))
         if files:
             result['files'] = files
 

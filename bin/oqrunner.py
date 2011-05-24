@@ -130,6 +130,41 @@ def run_calculation(config):
     process_results(job)
 
 
+def register_shapefiles(job):
+    """
+    Register the shapefiles generated for the hazard/loss maps with
+    Geoserver.
+
+    :param job: the :py:class:`geonode.mtapi.models.OqJob` instance in question
+    """
+    shapefile_dirs = set()
+    for output in job.output_set.all().order_by("id"):
+        if not output.shapefile_path:
+            continue
+        datastore = ("hazardmap" if output.output_type == "hazard_map"
+                                 else "lossmap")
+        shapefile_dirs.add((os.path.dirname(output.shapefile_path), datastore))
+
+    for location in shapefile_dirs:
+        register_shapefiles_in_location(*location)
+
+
+def register_shapefiles_in_location(location, datastore):
+    """Register the shapefiles in the given location with the Geoserver.
+
+    :param str location: a server-side file system path.
+    :param str datastore: one of "hazardmap", "lossmap"
+    """
+    url = "%s/rest/workspaces/geonode/datastores/%s/external.shp?configure=all"
+    url %= (settings.GEOSERVER_BASE_URL, datastore)
+    commands = ["curl", "-u", "admin:@dm1n", "-XPUT", "-H",
+                "Content-type: text/plain",  "-d" "file://%s" % location, url]
+    code, out, err = utils.run_cmd(commands, ignore_exit_code=True)
+    if code != 0:
+        # Something went wrong..
+        logger.error("curl returned with exit code '%s', %s" % (code, err))
+
+
 def process_results(job):
     """Generates a shapefile for each hazard/loss map.
 
