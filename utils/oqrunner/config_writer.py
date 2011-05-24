@@ -357,7 +357,7 @@ class JobConfigWriter(object):
                     'EXPOSURE': 'exposure',
                     'VULNERABILITY': 'vulnerability'}}
         """
-        inputs = upload.input_set.all()
+        inputs = upload.input_set.all().order_by("id")
 
         for section in input_params.keys():
             if not self.cfg_parser.has_section(section):

@@ -90,7 +90,7 @@ def prepare_inputs(job):
     """
     cw = config_writer.JobConfigWriter(job.id)
     cw.serialize()
-    for input in job.oq_params.upload.input_set.all():
+    for input in job.oq_params.upload.input_set.all().order_by("id"):
         basename = os.path.basename(input.path)
         os.symlink(input.path, os.path.join(job.path, basename))
 
@@ -137,16 +137,18 @@ def register_shapefiles(job):
 
     :param job: the :py:class:`geonode.mtapi.models.OqJob` instance in question
     """
-    shapefile_dirs = set()
+    registration_data = []
     for output in job.output_set.all().order_by("id"):
         if not output.shapefile_path:
             continue
         datastore = ("hazardmap" if output.output_type == "hazard_map"
                                  else "lossmap")
-        shapefile_dirs.add((os.path.dirname(output.shapefile_path), datastore))
+        datum = ((os.path.dirname(output.shapefile_path), datastore))
+        if datum not in registration_data:
+            registration_data.append(datum)
 
-    for location in shapefile_dirs:
-        register_shapefiles_in_location(*location)
+    for datum in registration_data:
+        register_shapefiles_in_location(*datum)
 
 
 def register_shapefiles_in_location(location, datastore):

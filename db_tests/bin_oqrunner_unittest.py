@@ -51,6 +51,7 @@ class RegisterShapefilesTestCase(unittest.TestCase, DbTestMixin):
         # The loss map has *no* shapefile.
         self.loss_map = self.setup_output(
             job_to_use=self.job, output_type="loss_map")
+        self.assertTrue(hazard_map.id < self.loss_map.id)
 
     def tearDown(self):
         self.teardown_job(self.job)
