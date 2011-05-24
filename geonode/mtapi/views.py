@@ -30,13 +30,14 @@ import re
 import simplejson
 import subprocess
 
+import utils
+
 from django.conf import settings
 from django.contrib.gis.geos import GEOSGeometry
 from django.http import HttpResponse, Http404
 from django.views.decorators.csrf import csrf_exempt
 
 from geonode.mtapi.models import Input, OqJob, OqParams, Upload
-from geonode.mtapi import utils
 
 
 @csrf_exempt

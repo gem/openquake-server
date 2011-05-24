@@ -27,10 +27,11 @@ import mock
 import os
 import unittest
 
+import utils
+
 from django.conf import settings
 
 from geonode.mtapi.models import OqJob, Upload
-from geonode.mtapi import utils
 from geonode.mtapi.views import (
     prepare_job, prepare_job_result, prepare_map_result, start_job)
 
