@@ -234,4 +234,3 @@ class JobConfigWriterClassicalTestCase(unittest.TestCase):
 
             exp_fh.close()
             act_fh.close()
-

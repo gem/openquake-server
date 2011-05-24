@@ -33,6 +33,7 @@ TEST_REGION = geos.Polygon(
     ((-122.2, 38.0), (-121.7, 38.0), (-121.7, 37.5),
      (-122.2, 37.5), (-122.2, 38.0)))
 
+
 class JobConfigWriterClassicalTestCase(unittest.TestCase):
     """
     This suite of tests exercises funcionality related to the generation of
@@ -67,7 +68,7 @@ class JobConfigWriterClassicalTestCase(unittest.TestCase):
                 # we expected the str equivalent of whatever the value is
                 self.assertEqual(str(v), cfg_parser.get(section, k))
 
-    
+
 class ConfigWriterUtilsTestCase(unittest.TestCase):
     """
     Exercises the module-level utility functions of
