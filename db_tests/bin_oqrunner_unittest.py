@@ -42,16 +42,17 @@ class RegisterShapefilesTestCase(unittest.TestCase, DbTestMixin):
     """Tests the behaviour of oqrunner.register_shapefiles()."""
 
     def setUp(self):
-        # The hazard map has a shapefile.
+        # Two hazard maps with a shapefile.
         hazard_map = self.setup_output()
         self.job = hazard_map.oq_job
         self.add_shapefile_data(hazard_map)
         self.hazard_location = os.path.dirname(hazard_map.shapefile_path)
+        hazard_map2 = self.setup_output(job_to_use=self.job)
+        self.add_shapefile_data(hazard_map2)
 
         # The loss map has *no* shapefile.
         self.loss_map = self.setup_output(
             job_to_use=self.job, output_type="loss_map")
-        self.assertTrue(hazard_map.id < self.loss_map.id)
 
     def tearDown(self):
         self.teardown_job(self.job)
