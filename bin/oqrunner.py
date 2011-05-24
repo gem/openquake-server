@@ -37,9 +37,9 @@ former with the geonode server.
 import getopt
 import glob
 import logging
-import re
 import os
 import pprint
+import re
 import sys
 
 from django.conf import settings
@@ -165,6 +165,14 @@ def register_shapefiles_in_location(location, datastore):
     if code != 0:
         # Something went wrong..
         logger.error("curl returned with exit code '%s', %s" % (code, err))
+
+
+def update_layers():
+    """Updates the geonode layers, called after shapefile registration."""
+    command = (
+        "cd %s; python %s updatelayers" % (
+            settings.GEONODE_BASEPATH, settings.GEONODE_DJANGOADMIN_PATH))
+    code, out, err = utils.run_cmd(command, ignore_exit_code=True, shell=True)
 
 
 def process_results(job):

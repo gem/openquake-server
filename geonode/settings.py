@@ -127,3 +127,5 @@ APIAPP_PYTHONPATH += ":%s:%s" % (OQ_ENGINE_DIR, OQ_APIAPP_DIR)
 
 SITEURL = "http://gemsun02.ethz.ch/"
 GEOSERVER_BASE_URL = SITEURL + "geoserver-geonode-dev/"
+GEONODE_BASEPATH = "/var/www/geonode/wsgi/geonode"
+GEONODE_DJANGOADMIN_PATH = "./build/Django/django/bin/django-admin.py"

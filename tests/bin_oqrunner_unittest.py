@@ -29,7 +29,23 @@ import unittest
 from django.conf import settings
 
 from bin.oqrunner import (
-    detect_output_type, extract_results, register_shapefiles_in_location)
+    detect_output_type, extract_results, register_shapefiles_in_location,
+    update_layers)
+
+
+class UpdateLayersTestCase(unittest.TestCase):
+    """Tests the behaviour of oqrunner.update_layers()."""
+
+    def test_register_shapefiles_in_location(self):
+        """run_cmd() is called correctly."""
+        expected = "cd %s; python %s updatelayers" % (
+            settings.GEONODE_BASEPATH, settings.GEONODE_DJANGOADMIN_PATH)
+        with mock.patch('geonode.mtapi.utils.run_cmd') as mock_func:
+            mock_func.return_value = (0, "", "")
+            update_layers()
+            self.assertEqual(1, mock_func.call_count)
+            [command], _ = mock_func.call_args
+            self.assertEqual(expected, command)
 
 
 class RegisterShapefilesInLocationTestCase(unittest.TestCase):
