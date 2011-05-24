@@ -26,7 +26,6 @@ This module provides utilities for generating OpenQuake job config files.
 import os
 
 from ConfigParser import ConfigParser
-from geonode.mtapi import utils
 from geonode.mtapi import models
 
 

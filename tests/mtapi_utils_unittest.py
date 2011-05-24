@@ -23,7 +23,6 @@ Unit tests for the geonode/mtapi/utils.py module.
 """
 
 
-import os
 import subprocess
 import unittest
 

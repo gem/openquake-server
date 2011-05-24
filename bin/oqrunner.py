@@ -90,9 +90,9 @@ def prepare_inputs(job):
     """
     cw = config_writer.JobConfigWriter(job.id)
     cw.serialize()
-    for input in job.oq_params.upload.input_set.all().order_by("id"):
-        basename = os.path.basename(input.path)
-        os.symlink(input.path, os.path.join(job.path, basename))
+    for an_input in job.oq_params.upload.input_set.all().order_by("id"):
+        basename = os.path.basename(an_input.path)
+        os.symlink(an_input.path, os.path.join(job.path, basename))
 
 
 def run_engine(job):
@@ -181,30 +181,31 @@ def process_results(job):
     :param job: the :py:class:`geonode.mtapi.models.OqJob` instance in question
     """
     maps = find_maps(job)
-    for map in maps:
-        process_map(map)
+    for a_map in maps:
+        process_map(a_map)
 
 
-def process_map(map):
-    """Creates shapefile from map. Updates the respective db record.
+def process_map(a_map):
+    """Creates shapefile from a map. Updates the respective db record.
 
     The minimum/maximum values as well as the shapefile path/URL will be
     captured in the output's db record.
 
-    :param map: :py:class:`geonode.mtapi.models.Output` instance in question
+    :param a_map: :py:class:`geonode.mtapi.models.Output` instance in question
     """
     commands = ["%s/bin/gen_shapefile.py" % settings.OQ_APIAPP_DIR]
     commands.append("-k")
-    commands.append(str(map.id))
+    commands.append(str(a_map.id))
     commands.append("-p")
-    commands.append(map.path)
+    commands.append(a_map.path)
     commands.append("-t")
-    commands.append("hazard" if map.output_type == "hazard_map" else "loss")
-    code, out, err = utils.run_cmd(commands, ignore_exit_code=True)
+    commands.append("hazard" if a_map.output_type == "hazard_map" else "loss")
+    code, out, _ = utils.run_cmd(commands, ignore_exit_code=True)
     if code == 0:
         # All went well
-        map.shapefile_path, map.min_value, map.max_value = extract_results(out)
-        map.save()
+        a_map.shapefile_path, a_map.min_value, a_map.max_value = \
+            extract_results(out)
+        a_map.save()
 
 
 def extract_results(stdout):

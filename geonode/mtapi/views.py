@@ -419,12 +419,12 @@ def prepare_map_result(output):
     :returns: a dictionary with data needed to produce the json above.
     """
     layer_name, _ = os.path.splitext(os.path.basename(output.shapefile_path))
-    type = dict(output.OUTPUT_TYPE_CHOICES)[output.output_type].lower()
+    map_type = dict(output.OUTPUT_TYPE_CHOICES)[output.output_type].lower()
     format_string = (
         "%sows" if settings.GEOSERVER_BASE_URL.endswith("/") else  "%s/ows")
     result = dict(
         id=output.id, name=os.path.basename(output.path),
-        type=type, min=utils.round_float(output.min_value),
+        type=map_type, min=utils.round_float(output.min_value),
         max=utils.round_float(output.max_value),
         layer=dict(ows=format_string % settings.GEOSERVER_BASE_URL,
                    layer="geonode:%s" % layer_name))
