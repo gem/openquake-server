@@ -23,9 +23,33 @@ Unit tests for the bin/oqrunner.py module.
 """
 
 
+import mock
 import unittest
 
-from bin.oqrunner import detect_output_type, extract_results
+from django.conf import settings
+
+from bin.oqrunner import (
+    detect_output_type, extract_results, register_shapefiles_in_location)
+
+
+class RegisterShapefilesInLocationTestCase(unittest.TestCase):
+    """Tests the behaviour of oqrunner.register_shapefiles_in_location()."""
+
+    def test_register_shapefiles_in_location(self):
+        """curl is called correctly."""
+        location = "/a/b/c"
+        datastore = "hazardmap"
+        expected = [
+            "curl", "-u", "admin:@dm1n", "-XPUT", "-H",
+            "Content-type: text/plain", "-dfile://%s" % location,
+            "%s/rest/workspaces/geonode/datastores/%s/external.shp?"
+            "configure=all" % (settings.GEOSERVER_BASE_URL, datastore)]
+        with mock.patch('geonode.mtapi.utils.run_cmd') as mock_func:
+            mock_func.return_value = (0, "", "")
+            register_shapefiles_in_location(location, datastore)
+            self.assertEqual(1, mock_func.call_count)
+            [curl_command], _ = mock_func.call_args
+            self.assertEqual(expected, curl_command)
 
 
 class ExtractResultsTestCase(unittest.TestCase):
