@@ -262,7 +262,7 @@ class PrepareMapResultTestCase(unittest.TestCase, DbTestMixin):
         type = ("hazard map" if self.output.output_type == "hazard_map"
                              else "loss map")
 
-        expected  = {
+        expected = {
             "layer": {
                 "layer": "geonode:%s" % layer,
                 "ows": "http://gemsun02.ethz.ch/geoserver-geonode-dev/ows"},
@@ -289,7 +289,7 @@ class PrepareMapResultTestCase(unittest.TestCase, DbTestMixin):
         type = ("loss map" if self.output.output_type == "loss_map"
                              else "loss map")
 
-        expected  = {
+        expected = {
             "layer": {
                 "layer": "geonode:%s" % layer,
                 "ows": "http://gemsun02.ethz.ch/geoserver-geonode-dev/ows"},
