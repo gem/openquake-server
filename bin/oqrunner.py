@@ -128,6 +128,7 @@ def run_calculation(config):
     prepare_inputs(job)
     run_engine(job)
     process_results(job)
+    register_shapefiles(job)
 
 
 def register_shapefiles(job):
@@ -149,6 +150,8 @@ def register_shapefiles(job):
 
     for datum in registration_data:
         register_shapefiles_in_location(*datum)
+    if registration_data:
+        update_layers()
 
 
 def register_shapefiles_in_location(location, datastore):
