@@ -164,10 +164,7 @@ def register_shapefiles_in_location(location, datastore):
     url %= (settings.GEOSERVER_BASE_URL, datastore)
     commands = ["curl", "-u", "admin:@dm1n", "-XPUT", "-H",
                 "Content-type: text/plain",  "-d" "file://%s" % location, url]
-    code, out, err = utils.run_cmd(commands, ignore_exit_code=True)
-    if code != 0:
-        # Something went wrong..
-        logger.error("curl returned with exit code '%s', %s" % (code, err))
+    utils.run_cmd(commands, ignore_exit_code=True)
 
 
 def update_layers():
@@ -175,7 +172,7 @@ def update_layers():
     command = (
         "cd %s; python %s updatelayers" % (
             settings.GEONODE_BASEPATH, settings.GEONODE_DJANGOADMIN_PATH))
-    code, out, err = utils.run_cmd(command, ignore_exit_code=True, shell=True)
+    utils.run_cmd(command, ignore_exit_code=True, shell=True)
 
 
 def process_results(job):
