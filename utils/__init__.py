@@ -77,4 +77,5 @@ def log_scale(lower_bound, upper_bound, n):
 
     delta = (1.0 / (n - 1)) * math.log10(upper_bound / lower_bound)
 
-    return [round_float(lower_bound * math.pow(10, i * delta)) for i in xrange(n)]
+    return [round_float(lower_bound * math.pow(10, i * delta)) \
+        for i in xrange(n)]

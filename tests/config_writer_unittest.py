@@ -27,11 +27,8 @@ import uuid
 from ConfigParser import ConfigParser
 from django.contrib.gis import geos
 from utils.oqrunner import config_writer
-
-
-TEST_REGION = geos.Polygon(
-    ((-122.2, 38.0), (-121.7, 38.0), (-121.7, 37.5),
-     (-122.2, 37.5), (-122.2, 38.0)))
+from utils.oqrunner.config_writer import (_enum_translate,
+    _float_list_to_str, _polygon_to_coord_string, _get_iml_bounds_from_vuln_file, _lower_bound, _upper_bound)
 
 
 class JobConfigWriterClassicalTestCase(unittest.TestCase):
@@ -74,11 +71,16 @@ class ConfigWriterUtilsTestCase(unittest.TestCase):
     Exercises the module-level utility functions of
     :py:module:`oqrunner.config_writer`.
     """
-    def test_polygon_to_coord_string(self):
-        expected_str = '38.0, -122.2, 38.0, -121.7, 37.5, -121.7, 37.5, -122.2'
-        polygon = TEST_REGION
 
-        actual_str = config_writer.polygon_to_coord_string(polygon)
+    def test_polygon_to_coord_string(self):
+        # Note that the lon,lat order is reversed in the expected string
+        # (compared to the polygon below).
+        expected_str = '38.0, -122.2, 38.0, -121.7, 37.5, -121.7, 37.5, -122.2'
+        polygon = geos.Polygon(
+            ((-122.2, 38.0), (-121.7, 38.0), (-121.7, 37.5),
+             (-122.2, 37.5), (-122.2, 38.0)))
+
+        actual_str = _polygon_to_coord_string(polygon)
         self.assertEqual(expected_str, actual_str)
 
     def test_float_list_to_str(self):
@@ -86,7 +88,7 @@ class ConfigWriterUtilsTestCase(unittest.TestCase):
         delimiter = '~! '
 
         expected = '0.1~! 0.3~! -0.666666~! 3.14159~! -2.17828'
-        self.assertEqual(expected, config_writer.float_list_to_str(
+        self.assertEqual(expected, _float_list_to_str(
             floats, delimiter))
 
     def test_enum_translate(self):
@@ -111,4 +113,93 @@ class ConfigWriterUtilsTestCase(unittest.TestCase):
 
         for ctr, in_item in enumerate(in_list):
             self.assertEqual(
-                config_writer.enum_translate(in_item), out_list[ctr])
+                _enum_translate(in_item), out_list[ctr])
+    
+
+class VulnerabilityIMLsTestCase(unittest.TestCase):
+
+    TEST_VULN_GOOD = tests.test_data_path('functions_hazus.xml')
+
+    # Doesn't not contain enough IML values
+    TEST_VULN_NOT_ENOUGH_IMLS = tests.test_fail_data_path('vuln_not_enough_imls.xml')
+
+    # Contains improperly ordered IML values
+    TEST_VULN_BAD_IML_ORDER = tests.test_fail_data_path('vuln_bad_iml_order.xml')
+
+    # Contains negative and 0.0 IML values
+    TEST_VULN_BAD_IMLS = tests.test_fail_data_path('vuln_bad_imls.xml')
+    
+    
+    def test_lower_bound(self):
+        """
+        Test _lower_bound with known-good inputs.
+        """
+        expected_lower_bound = 0.0657675
+
+        lower_bound = _lower_bound(0.0672981496848, 0.0703593786689)
+
+        self.assertEqual(expected_lower_bound, lower_bound)
+
+    def test_lower_bound_raises(self):
+        """
+        Test that the _lower_bound function raises an AssertionError when the computed
+        lower_bound value is <= 0.0.
+        """
+        self.assertRaises(AssertionError, _lower_bound, 1, 3)  # gives a lower bound of 0.0
+        self.assertRaises(AssertionError, _lower_bound, 1, 5)  # gives a negative lower bound
+
+    def test_upper_bound(self):
+        """
+        Test _upper_bound with known-good inputs.
+        """
+        expected_upper_bound = 5.62235
+
+        upper_bound = _upper_bound(5.50264416787, 5.26323253716)
+
+        self.assertEqual(expected_upper_bound, upper_bound)
+
+    def test_upper_bound_raises(self):
+        """
+        Test that the _upper_bound function raises an AssertionError when the computed
+        upper_bound value is <= 0.0.
+        """
+        self.assertRaises(AssertionError, _upper_bound, 2, 6)  # gives an upper bound of 0.0
+        self.assertRaises(AssertionError, _upper_bound, 1, 5)  # gives a negative upper bound
+
+    def test_get_iml_bounds_with_good_vuln_file(self):
+        """
+        Test calculation of IML bounds from a known-good vulnerability file.
+        """
+        exp_lb = 0.07414
+        exp_ub = 1.62586
+
+        actual_lb, actual_ub = _get_iml_bounds_from_vuln_file(self.TEST_VULN_GOOD) 
+
+        self.assertEqual(exp_lb, actual_lb)
+        self.assertEqual(exp_ub, actual_ub)
+
+    def test_get_iml_bounds_raises_when_not_enough_imls(self):
+        """
+        If a vulnerability file contains less than 2 IMLs values in a given IML set,
+        an AssertionError should be raised.
+        """
+        self.assertRaises(
+            AssertionError, _get_iml_bounds_from_vuln_file,
+            self.TEST_VULN_NOT_ENOUGH_IMLS)
+
+    def test_get_iml_bounds_raises_when_imls_are_not_in_asc_order(self):
+        """
+        If the IMLs in a given IML set are not arranged in ascending order (where no two values are equal),
+        an AssertionError should be raised.
+        """
+        self.assertRaises(
+            AssertionError, _get_iml_bounds_from_vuln_file,
+            self.TEST_VULN_BAD_IML_ORDER) 
+
+    def test_get_iml_bounds_raises_on_invalid_imls(self):
+        """
+        If a vulnerability file contains IML values <= 0.0, an AssertionError should be raised.
+        """
+        self.assertRaises(
+            AssertionError, _get_iml_bounds_from_vuln_file,
+            self.TEST_VULN_BAD_IMLS)
