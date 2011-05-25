@@ -342,8 +342,6 @@ def prepare_job(params):
     if region:
         oqp.region = GEOSGeometry(region)
 
-    print "oqp.region %s" % oqp.region
-
     oqp.save()
     print oqp
 
