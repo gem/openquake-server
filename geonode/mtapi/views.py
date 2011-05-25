@@ -29,6 +29,7 @@ import pprint
 import re
 import simplejson
 import subprocess
+from urlparse import urljoin
 
 from django.conf import settings
 from django.contrib.gis.geos import GEOSGeometry
@@ -457,12 +458,10 @@ def prepare_map_result(output):
     """
     layer_name, _ = os.path.splitext(os.path.basename(output.shapefile_path))
     map_type = dict(output.OUTPUT_TYPE_CHOICES)[output.output_type].lower()
-    format_string = (
-        "%sows" if settings.GEOSERVER_BASE_URL.endswith("/") else  "%s/ows")
+    ows = urljoin(settings.GEOSERVER_BASE_URL, "ows")
     result = dict(
         id=output.id, name=os.path.basename(output.path),
         type=map_type, min=utils.round_float(output.min_value),
         max=utils.round_float(output.max_value),
-        layer=dict(ows=format_string % settings.GEOSERVER_BASE_URL,
-                   layer="geonode:%s" % layer_name))
+        layer=dict(ows=ows, layer="geonode:%s" % layer_name))
     return result

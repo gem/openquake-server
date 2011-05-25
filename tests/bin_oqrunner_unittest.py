@@ -25,6 +25,7 @@ Unit tests for the bin/oqrunner.py module.
 
 import mock
 import unittest
+from urlparse import urljoin
 
 from django.conf import settings
 
@@ -38,8 +39,7 @@ class UpdateLayersTestCase(unittest.TestCase):
 
     def test_register_shapefiles_in_location(self):
         """run_cmd() is called correctly."""
-        expected = "cd %s; python %s updatelayers" % (
-            settings.GEONODE_BASEPATH, settings.GEONODE_DJANGOADMIN_PATH)
+        expected = settings.OQ_UPDATE_LAYERS_PATH
         with mock.patch('geonode.mtapi.utils.run_cmd') as mock_func:
             mock_func.return_value = (0, "", "")
             update_layers()
@@ -55,11 +55,13 @@ class RegisterShapefilesInLocationTestCase(unittest.TestCase):
         """curl is called correctly."""
         location = "/a/b/c"
         datastore = "hazardmap"
-        expected = [
-            "curl", "-u", "admin:@dm1n", "-XPUT", "-H",
-            "Content-type: text/plain", "-dfile://%s" % location,
-            "%s/rest/workspaces/geonode/datastores/%s/external.shp?"
-            "configure=all" % (settings.GEOSERVER_BASE_URL, datastore)]
+        url = urljoin(
+            settings.GEOSERVER_BASE_URL,
+            "rest/workspaces/geonode/datastores/%s/external.shp?configure=all"
+            % datastore)
+        expected = (
+            "curl -v -u 'admin:@dm1n' -XPUT -H 'Content-type: text/plain' "
+            "-d 'file:///a/b/c' '%s'" % url)
         with mock.patch('geonode.mtapi.utils.run_cmd') as mock_func:
             mock_func.return_value = (0, "", "")
             register_shapefiles_in_location(location, datastore)

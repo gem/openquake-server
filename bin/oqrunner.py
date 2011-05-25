@@ -41,6 +41,7 @@ import os
 import pprint
 import re
 import sys
+from urlparse import urljoin
 
 from django.conf import settings
 from geonode.mtapi import utils
@@ -180,11 +181,10 @@ def register_shapefiles_in_location(location, datastore):
     :param str datastore: one of "hazardmap", "lossmap"
     """
     logger.info("> register_shapefiles_in_location")
-    if settings.GEOSERVER_BASE_URL.endswith("/"):
-        url = "%srest/workspaces/geonode/datastores/%s/external.shp?configure=all"
-    else:
-        url = "%s/rest/workspaces/geonode/datastores/%s/external.shp?configure=all"
-    url %= (settings.GEOSERVER_BASE_URL, datastore)
+    url = urljoin(
+        settings.GEOSERVER_BASE_URL,
+        "rest/workspaces/geonode/datastores/%s/external.shp?configure=all")
+    url %= datastore
     command = ("curl -v -u 'admin:@dm1n' -XPUT -H 'Content-type: text/plain' "
                "-d 'file://%s' '%s'" % (location, url))
     logger.info("location: '%s'" % location)
