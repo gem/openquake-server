@@ -198,7 +198,7 @@ class OqJob(models.Model):
     def __str__(self):
         return smart_str(
             ":job: %s, %s, %s (%s)" % (
-                self.id, self.job_type, self.path, self.oq_params))
+                self.id, self.job_type, self.path, self.oq_params.id))
 
     class Meta:
         db_table = 'uiapi\".\"oq_job'

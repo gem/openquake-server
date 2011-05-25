@@ -282,9 +282,10 @@ def find_maps(job):
         "%s/*map*.xml" % os.path.join(job.path, "computed_output"))))
     maps = [(path, detect_output_type(path)) for path in maps]
     # Ignore anything that's not a hazard or loss map.
-    maps = [(path, type) for path, type in maps if type in ("hazard", "loss")]
-    for path, type in maps:
-        output = Output(owner=job.owner, output_type="%s_map" % type,
+    maps = [(path, map_type) for path, map_type in maps
+            if map_type in ("hazard", "loss")]
+    for path, map_type in maps:
+        output = Output(owner=job.owner, output_type="%s_map" % map_type,
                         oq_job=job, path=path, size=os.path.getsize(path))
         output.save()
         results.append(output)

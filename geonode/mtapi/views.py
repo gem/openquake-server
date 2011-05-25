@@ -306,7 +306,7 @@ def prepare_job(params):
     oqp = OqParams(upload=upload)
     trans_tab = dict(reference_v30_value="reference_vs30_value")
     value_trans_tab = {
-        "truncation_type" : {
+        "truncation_type": {
             "1-sided": "onesided",
             "2-sided": "twosided"}}
     param_names = (
@@ -330,6 +330,7 @@ def prepare_job(params):
         property_name = trans_tab.get(param_name, param_name)
         value = params["fields"].get(param_name)
         if value:
+            # Is there a need to translate the value?
             trans = value_trans_tab.get(property_name)
             if trans:
                 value = trans.get(value, value)
@@ -343,10 +344,7 @@ def prepare_job(params):
 
     print "oqp.region %s" % oqp.region
 
-    try:
-        oqp.save()
-    except Exception, e:
-        print "exception: '%s'" % e
+    oqp.save()
     print oqp
 
     job = OqJob(oq_params=oqp, owner=upload.owner,
