@@ -197,7 +197,7 @@ class OqJob(models.Model):
 
     def __str__(self):
         return smart_str(
-            ":job: %s, %s, %s (%s)" % (
+            ":job: %s, %s, %s (:params %s:)" % (
                 self.id, self.job_type, self.path, self.oq_params.id))
 
     class Meta:
