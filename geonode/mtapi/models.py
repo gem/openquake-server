@@ -163,8 +163,13 @@ class OqParams(models.Model):
 
     last_update = models.DateTimeField(editable=False, default=datetime.utcnow)
     region = models.PolygonField(srid=4326)
+
     class Meta:
         db_table = 'uiapi\".\"oq_params'
+
+    def __str__(self):
+        return smart_str(
+            ":params: %s, %s (%s)" % (self.id, self.job_type, self.upload))
 
 
 class OqJob(models.Model):
@@ -189,6 +194,11 @@ class OqJob(models.Model):
     job_pid = models.PositiveIntegerField(default=0)
     oq_params = models.ForeignKey(OqParams)
     last_update = models.DateTimeField(editable=False, default=datetime.utcnow)
+
+    def __str__(self):
+        return smart_str(
+            ":job: %s, %s, %s (%s)" % (
+                self.id, self.job_type, self.path, self.oq_params))
 
     class Meta:
         db_table = 'uiapi\".\"oq_job'

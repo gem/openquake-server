@@ -26,7 +26,7 @@ DATABASES = {
 def dbn():
     """The name of the db as well as the db user ceredential to use."""
     return dict(
-        NAME=os.environ.get("OQ_MTAPI_DB", "mtapi"),
+        NAME=os.environ.get("OQ_MTAPI_DB", "geonode"),
         USER=os.environ.get("OQ_MTAPI_USER", "oq_uiapi_writer"),
         PASSWORD=os.environ.get("OQ_MTAPI_PASSWORD"))
 
@@ -37,8 +37,8 @@ DATABASES["default"].update(dbn())
 
 OQ_ROOT = "/usr/openquake"
 OQ_UPLOAD_DIR = os.path.join(OQ_ROOT, "spool")
-OQ_ENGINE_DIR = os.path.join(OQ_ROOT, "engine")
-OQ_APIAPP_DIR = os.path.join(OQ_ROOT, "apiapp")
+OQ_ENGINE_DIR = os.path.join(OQ_ROOT, "openquake")
+OQ_APIAPP_DIR = os.path.join(OQ_ROOT, "openquake-server")
 
 # Local time zone for this installation. Choices can be found here:
 # http://en.wikipedia.org/wiki/List_of_tz_zones_by_name
@@ -119,6 +119,7 @@ INSTALLED_APPS = (
 
 NRML_RUNNER_PATH = "%s/bin/nrml_runner.py" % OQ_APIAPP_DIR
 OQRUNNER_PATH = "%s/bin/oqrunner.py" % OQ_APIAPP_DIR
+OQ_UPDATE_LAYERS_PATH = "%s/bin/oq-updatelayers" % OQ_APIAPP_DIR
 
 import sys
 APIAPP_PYTHONPATH = ":".join(
@@ -128,4 +129,5 @@ APIAPP_PYTHONPATH += ":%s:%s" % (OQ_ENGINE_DIR, OQ_APIAPP_DIR)
 SITEURL = "http://gemsun02.ethz.ch/"
 GEOSERVER_BASE_URL = SITEURL + "geoserver-geonode-dev/"
 GEONODE_BASEPATH = "/var/www/geonode/wsgi/geonode"
-GEONODE_DJANGOADMIN_PATH = "./build/Django/django/bin/django-admin.py"
+GEONODE_DJANGOADMIN_PATH = "./bin/django-admin.py"
+os.environ["MPLCONFIGDIR"] = "/tmp"

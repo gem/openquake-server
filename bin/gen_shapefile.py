@@ -416,12 +416,6 @@ def create_shapefile(config):
                 pass
             else:
                 raise
-
-        basename, _ = os.path.splitext(filename)
-        config["layer"] = "%s-%s" % (config["key"], basename)
-        # Dots in layer names are taken to be file extension delimiters and
-        # problematic for geonode.
-        config["layer"] = config["layer"].replace(".", "-")
     else:
         assert os.path.exists(config["output"]), \
             "'%s' does not exist" % config["output"]
@@ -435,6 +429,13 @@ def create_shapefile(config):
             logger.error(error)
             raise Exception(error)
         assert os.access(outdir, os.W_OK), "'%s' is not writable" % outdir
+
+    if not config.get("layer"):
+        basename, _ = os.path.splitext(filename)
+        config["layer"] = "%s-%s" % (config["key"], basename)
+        # Dots in layer names are taken to be file extension delimiters and
+        # problematic for geonode.
+        config["layer"] = config["layer"].replace(".", "-")
 
     path_and_minmax_values = None
     if config["type"] == "hazard":

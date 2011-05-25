@@ -222,10 +222,12 @@ def run_oq_job(request):
     """
     print("request: %s\n" % pprint.pformat(request))
     if request.method == "POST":
-        job = prepare_job(request.POST)
+        params = request.POST
+        params = simplejson.loads(params.keys().pop())
+        job = prepare_job(params)
         start_job(job)
-        return HttpResponse(
-            {"status": "success", "msg": "Calculation started", "id": job.id})
+        return HttpResponse(simplejson.dumps({
+            "status": "success", "msg": "Calculation started", "id": job.id}))
     else:
         raise Http404
 
@@ -240,12 +242,14 @@ def start_job(job):
     :returns: the integer process ID (pid) of the child process that is running
         the oqrunner.py tool.
     """
+    print "> start_job"
     env = os.environ
     env["PYTHONPATH"] = settings.APIAPP_PYTHONPATH
     args = [settings.OQRUNNER_PATH, "-j", str(job.id)]
     proc = subprocess.Popen(args, env=env)
     job.job_pid = proc.pid
     job.save()
+    print "< start_job"
     return proc.pid
 
 
@@ -284,9 +288,26 @@ def prepare_job(params):
 
     :returns: a :py:class:`geonode.mtapi.models.OqJob` instance
     """
-    upload = Upload.objects.get(id=params["upload"])
+
+    print "> prepare_job"
+    print "params: %s" % params
+
+    upload = params.get("upload")
+    if not upload:
+        print "No upload database key supplied"
+
+    upload = Upload.objects.get(id=upload)
+    if not upload:
+        print "No upload record found"
+    else:
+        print upload
+
     oqp = OqParams(upload=upload)
     trans_tab = dict(reference_v30_value="reference_vs30_value")
+    value_trans_tab = {
+        "truncation_type" : {
+            "1-sided": "onesided",
+            "2-sided": "twosided"}}
     param_names = (
         "job_type", "region_grid_spacing", "min_magnitude",
         "investigation_time", "component", "imt", "period", "truncation_type",
@@ -308,15 +329,31 @@ def prepare_job(params):
         property_name = trans_tab.get(param_name, param_name)
         value = params["fields"].get(param_name)
         if value:
+            trans = value_trans_tab.get(property_name)
+            if trans:
+                value = trans.get(value, value)
             setattr(oqp, property_name, value)
 
     region = params["fields"].get("region")
+    print "region %s" % region
+
     if region:
         oqp.region = GEOSGeometry(region)
-    oqp.save()
+
+    print "oqp.region %s" % oqp.region
+
+    try:
+        oqp.save()
+    except Exception, e:
+        print "exception: '%s'" % e
+    print oqp
+
     job = OqJob(oq_params=oqp, owner=upload.owner,
                 job_type=params["fields"]["job_type"])
     job.save()
+    print job
+
+    print "< prepare_job"
     return job
 
 
@@ -397,9 +434,9 @@ def prepare_job_result(job):
         for output in job.output_set.all().order_by("id"):
             if output.shapefile_path:
                 files.append(prepare_map_result(output))
-        if files:
-            result['files'] = files
+        result['files'] = files
 
+    print("result: %s\n" % pprint.pformat(result))
     return simplejson.dumps(result)
 
 

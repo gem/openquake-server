@@ -51,13 +51,16 @@ from utils.oqrunner import config_writer
 logger = logging.getLogger('oqrunner')
 logger.setLevel(logging.DEBUG)
 ch = logging.StreamHandler()
-ch.setLevel(logging.ERROR)
+ch.setLevel(logging.DEBUG)
+fh = logging.FileHandler("/tmp/oqrunner.log")
+fh.setLevel(logging.DEBUG)
 # create formatter and add it to the handlers
 formatter = logging.Formatter(
     '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 ch.setFormatter(formatter)
 # add the handlers to the logger
 logger.addHandler(ch)
+logger.addHandler(fh)
 
 
 def create_input_file_dir(config):
@@ -102,12 +105,17 @@ def run_engine(job):
     :returns: a triple (exit code, stdout, stderr) with engine's execution
         outcome
     """
+    logger.info("> run_engine")
     cmds = [os.path.join(settings.OQ_ENGINE_DIR, "bin/openquake")]
     cmds.append("--config_file")
     cmds.append(os.path.join(job.path, "config.gem"))
+    logger.info("cmds: %s" % cmds)
     code, out, err = utils.run_cmd(cmds, ignore_exit_code=True)
+    logger.info("code: '%s'" % code)
+    logger.info("out: '%s'" % out)
     if code != 0:
-        logging.error(err)
+        logger.error(err)
+    logger.info("< run_engine")
     return (code, out, err)
 
 
@@ -126,9 +134,16 @@ def run_calculation(config):
     """
     job = create_input_file_dir(config)
     prepare_inputs(job)
-    run_engine(job)
+    code, _, _ = run_engine(job)
+    if code != 0:
+        logger.error("OpenQuake engine exited with code %s, aborting.." % code)
+        job.status = "failed"
+        job.save()
+        sys.exit(code)
     process_results(job)
     register_shapefiles(job)
+    job.status = "succeeded"
+    job.save()
 
 
 def register_shapefiles(job):
@@ -138,20 +153,24 @@ def register_shapefiles(job):
 
     :param job: the :py:class:`geonode.mtapi.models.OqJob` instance in question
     """
+    logger.info("> register_shapefiles")
     registration_data = []
     for output in job.output_set.all().order_by("id"):
         if not output.shapefile_path:
             continue
         datastore = ("hazardmap" if output.output_type == "hazard_map"
                                  else "lossmap")
+        datastore = "%s-%s" % (job.id, datastore)
         datum = ((os.path.dirname(output.shapefile_path), datastore))
         if datum not in registration_data:
             registration_data.append(datum)
 
+    logger.info("registration_data: %s" % registration_data)
     for datum in registration_data:
         register_shapefiles_in_location(*datum)
     if registration_data:
         update_layers()
+    logger.info("< register_shapefiles")
 
 
 def register_shapefiles_in_location(location, datastore):
@@ -160,19 +179,40 @@ def register_shapefiles_in_location(location, datastore):
     :param str location: a server-side file system path.
     :param str datastore: one of "hazardmap", "lossmap"
     """
-    url = "%s/rest/workspaces/geonode/datastores/%s/external.shp?configure=all"
+    logger.info("> register_shapefiles_in_location")
+    if settings.GEOSERVER_BASE_URL.endswith("/"):
+        url = "%srest/workspaces/geonode/datastores/%s/external.shp?configure=all"
+    else:
+        url = "%s/rest/workspaces/geonode/datastores/%s/external.shp?configure=all"
     url %= (settings.GEOSERVER_BASE_URL, datastore)
-    commands = ["curl", "-u", "admin:@dm1n", "-XPUT", "-H",
-                "Content-type: text/plain",  "-d" "file://%s" % location, url]
-    utils.run_cmd(commands, ignore_exit_code=True)
+    command = ("curl -v -u 'admin:@dm1n' -XPUT -H 'Content-type: text/plain' "
+               "-d 'file://%s' '%s'" % (location, url))
+    logger.info("location: '%s'" % location)
+    logger.info("url: '%s'" % url)
+    logger.info("command: %s" % command)
+
+    code, out, err = utils.run_cmd(command, ignore_exit_code=True, shell=True)
+
+    logger.info("code: '%s'" % code)
+    logger.info("out: '%s'" % out)
+    logger.info("err: '%s'" % err)
+    logger.info("< register_shapefiles_in_location")
 
 
 def update_layers():
     """Updates the geonode layers, called after shapefile registration."""
-    command = (
-        "cd %s; python %s updatelayers" % (
-            settings.GEONODE_BASEPATH, settings.GEONODE_DJANGOADMIN_PATH))
-    utils.run_cmd(command, ignore_exit_code=True, shell=True)
+    logger.info("> update_layers")
+    command = settings.OQ_UPDATE_LAYERS_PATH
+    logger.info("command: %s" % command)
+    python_path = os.environ["PYTHONPATH"]
+    logger.info("PYTHONPATH: '%s'" % python_path)
+    os.environ["PYTHONPATH"] = ""
+    code, out, err = utils.run_cmd(command, ignore_exit_code=True)
+    logger.info("code: '%s'" % code)
+    logger.info("out: '%s'" % out)
+    logger.info("err: '%s'" % err)
+    logger.info("< update_layers")
+    os.environ["PYTHONPATH"] = python_path
 
 
 def process_results(job):
