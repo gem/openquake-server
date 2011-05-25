@@ -201,7 +201,6 @@ def load_source_files(upload):
     args = [settings.NRML_RUNNER_PATH, "--db", config["NAME"],
             "-U", config["USER"], "-W", config["PASSWORD"],
             "-u", str(upload.id), "--host", host]
-    print("nrml loader args: %s\n" % pprint.pformat(args))
     env = os.environ
     env["PYTHONPATH"] = settings.APIAPP_PYTHONPATH
     pid = subprocess.Popen(args, env=env).pid
@@ -221,7 +220,7 @@ def run_oq_job(request):
     :param request: the :py:class:`django.http.HttpRequest` object
     :raises Http404: if the request is not a HTTP POST request.
     """
-    print("request: %s\n" % pprint.pformat(request))
+    print("request: %s\n" % pprint.pformat(request.POST))
     if request.method == "POST":
         params = request.POST
         params = simplejson.loads(params.keys().pop())
@@ -289,9 +288,7 @@ def prepare_job(params):
 
     :returns: a :py:class:`geonode.mtapi.models.OqJob` instance
     """
-
     print "> prepare_job"
-    print "params: %s" % params
 
     upload = params.get("upload")
     if not upload:
@@ -337,7 +334,6 @@ def prepare_job(params):
             setattr(oqp, property_name, value)
 
     region = params["fields"].get("region")
-    print "region %s" % region
 
     if region:
         oqp.region = GEOSGeometry(region)
