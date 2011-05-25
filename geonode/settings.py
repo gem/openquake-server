@@ -26,7 +26,7 @@ DATABASES = {
 def dbn():
     """The name of the db as well as the db user ceredential to use."""
     return dict(
-        NAME=os.environ.get("OQ_MTAPI_DB", "geonode"),
+        NAME=os.environ.get("OQ_MTAPI_DB", "mtapi"),
         USER=os.environ.get("OQ_MTAPI_USER", "oq_uiapi_writer"),
         PASSWORD=os.environ.get("OQ_MTAPI_PASSWORD"))
 
@@ -37,8 +37,8 @@ DATABASES["default"].update(dbn())
 
 OQ_ROOT = "/usr/openquake"
 OQ_UPLOAD_DIR = os.path.join(OQ_ROOT, "spool")
-OQ_ENGINE_DIR = os.path.join(OQ_ROOT, "openquake")
-OQ_APIAPP_DIR = os.path.join(OQ_ROOT, "openquake-server")
+OQ_ENGINE_DIR = os.path.join(OQ_ROOT, "engine")
+OQ_APIAPP_DIR = os.path.join(OQ_ROOT, "apiapp")
 
 # Local time zone for this installation. Choices can be found here:
 # http://en.wikipedia.org/wiki/List_of_tz_zones_by_name
@@ -128,6 +128,4 @@ APIAPP_PYTHONPATH += ":%s:%s" % (OQ_ENGINE_DIR, OQ_APIAPP_DIR)
 
 SITEURL = "http://gemsun02.ethz.ch/"
 GEOSERVER_BASE_URL = SITEURL + "geoserver-geonode-dev/"
-GEONODE_BASEPATH = "/var/www/geonode/wsgi/geonode"
-GEONODE_DJANGOADMIN_PATH = "./bin/django-admin.py"
 os.environ["MPLCONFIGDIR"] = "/tmp"

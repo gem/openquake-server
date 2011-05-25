@@ -104,7 +104,7 @@ class PrepareJobResultTestCase(unittest.TestCase, DbTestMixin):
         job.status = "succeeded"
         self.assertEqual(
             '{"msg": "Calculation succeeded", "status": "success", '
-            '"id": %s}' % job.id,
+            '"id": %s, "files": []}' % job.id,
             prepare_job_result(job))
 
     def test_prepare_job_result_with_succeeded_and_map_wo_shapefile(self):
@@ -117,7 +117,7 @@ class PrepareJobResultTestCase(unittest.TestCase, DbTestMixin):
         job.status = "succeeded"
         self.assertEqual(
             '{"msg": "Calculation succeeded", "status": "success", '
-            '"id": %s}' % job.id,
+            '"id": %s, "files": []}' % job.id,
             prepare_job_result(job))
 
     def test_prepare_job_result_with_succeeded_and_maps(self):

@@ -64,23 +64,30 @@ class RegisterShapefilesTestCase(unittest.TestCase, DbTestMixin):
         loss_location = os.path.dirname(self.loss_map.shapefile_path)
         with mock.patch('bin.oqrunner.register_shapefiles_in_location') \
             as mock_func:
-            register_shapefiles(self.job)
-            # Both the hazard and the loss map have a shapefile. Hence the 2
-            # calls to register_shapefiles_in_location().
-            self.assertEqual(2, mock_func.call_count)
-            [(args1, _), (args2, _)] = mock_func.call_args_list
-            self.assertEqual((self.hazard_location, "hazardmap"), args1)
-            self.assertEqual((loss_location, "lossmap"), args2)
+            with mock.patch('bin.oqrunner.update_layers'):
+                register_shapefiles(self.job)
+                # Both the hazard and the loss map have a shapefile. Hence the
+                # 2 calls to register_shapefiles_in_location().
+                self.assertEqual(2, mock_func.call_count)
+                [(args1, _), (args2, _)] = mock_func.call_args_list
+                self.assertEqual(
+                    (self.hazard_location, "%s-hazardmap" % self.job.id),
+                    args1)
+                self.assertEqual(
+                    (loss_location, "%s-lossmap" % self.job.id), args2)
 
     def test_register_shapefiles_with_map_wo_shapefile(self):
         """register_shapefiles_in_location() is called for the maps."""
         with mock.patch('bin.oqrunner.register_shapefiles_in_location') \
             as mock_func:
-            register_shapefiles(self.job)
-            # The loss map has no shapefile and is ignored.
-            self.assertEqual(1, mock_func.call_count)
-            [(args1, _)] = mock_func.call_args_list
-            self.assertEqual((self.hazard_location, "hazardmap"), args1)
+            with mock.patch('bin.oqrunner.update_layers'):
+                register_shapefiles(self.job)
+                # The loss map has no shapefile and is ignored.
+                self.assertEqual(1, mock_func.call_count)
+                [(args1, _)] = mock_func.call_args_list
+                self.assertEqual(
+                    (self.hazard_location, "%s-hazardmap" % self.job.id),
+                    args1)
 
 
 class ProcessMapTestCase(unittest.TestCase, DbTestMixin):
