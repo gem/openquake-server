@@ -1,0 +1,8 @@
+#!/bin/bash
+
+echo $PYTHONPATH
+
+cd /var/www/geonode/wsgi/geonode
+source bin/activate
+django-admin.py updatelayers --settings=geonode.settings
+deactivate
