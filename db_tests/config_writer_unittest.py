@@ -121,6 +121,7 @@ def create_inputs(upload_uuid):
 
     return inputs
 
+
 class JobConfigWriterClassicalTestCase(unittest.TestCase):
 
     @classmethod
@@ -209,7 +210,8 @@ class JobConfigWriterClassicalTestCase(unittest.TestCase):
             os.path.abspath(out_path),
             os.path.abspath(path_to_new_cfg_file))
 
-        self._test_config_files_are_the_same(expected_config, path_to_new_cfg_file)
+        self._test_config_files_are_the_same(
+            expected_config, path_to_new_cfg_file)
 
     def test_classical_config_file_generation_with_vuln_imls(self):
         """
@@ -225,11 +227,13 @@ class JobConfigWriterClassicalTestCase(unittest.TestCase):
 
         path_to_new_cfg_file = cfg_writer.serialize()
 
-        self._test_config_files_are_the_same(expected_config, path_to_new_cfg_file)
+        self._test_config_files_are_the_same(
+            expected_config, path_to_new_cfg_file)
 
     def _test_config_files_are_the_same(self, expected_file, actual_file):
         """
-        Given two *.gem config files, compare their contents and use test assertions to determine if they are the same.
+        Given two *.gem config files, compare their contents and use test
+        assertions to determine if they are the same.
         """
         # now compare the new file with the expected file
         exp_parser = ConfigParser()
@@ -255,6 +259,3 @@ class JobConfigWriterClassicalTestCase(unittest.TestCase):
 
             exp_fh.close()
             act_fh.close()
-
-        
-        

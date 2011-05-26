@@ -28,7 +28,8 @@ from ConfigParser import ConfigParser
 from django.contrib.gis import geos
 from utils.oqrunner import config_writer
 from utils.oqrunner.config_writer import (_enum_translate,
-    _float_list_to_str, _polygon_to_coord_string, _get_iml_bounds_from_vuln_file, _lower_bound, _upper_bound)
+    _float_list_to_str, _polygon_to_coord_string,
+    _get_iml_bounds_from_vuln_file, _lower_bound, _upper_bound)
 
 
 class JobConfigWriterTestCase(unittest.TestCase):
@@ -44,22 +45,24 @@ class JobConfigWriterTestCase(unittest.TestCase):
         """
         fake_job_id = 1234
 
-        self.assertRaises(AssertionError, config_writer.JobConfigWriter, fake_job_id,
-            derive_imls_from_vuln=True, num_of_derived_imls=0)
-        self.assertRaises(AssertionError, config_writer.JobConfigWriter, fake_job_id,
-            derive_imls_from_vuln=True, num_of_derived_imls=1)
-        self.assertRaises(AssertionError, config_writer.JobConfigWriter, fake_job_id,
-            derive_imls_from_vuln=True, num_of_derived_imls=-1)
-
+        self.assertRaises(AssertionError, config_writer.JobConfigWriter,
+            fake_job_id, derive_imls_from_vuln=True, num_of_derived_imls=0)
+        self.assertRaises(AssertionError, config_writer.JobConfigWriter,
+            fake_job_id, derive_imls_from_vuln=True, num_of_derived_imls=1)
+        self.assertRaises(AssertionError, config_writer.JobConfigWriter,
+            fake_job_id, derive_imls_from_vuln=True, num_of_derived_imls=-1)
 
     def test_constructor_with_valid_input(self):
         """
-        Test that the JobConfigWriter constructor does not throw any errors with known-good
-        input combinations.
+        Test that the JobConfigWriter constructor does not throw any errors
+        with known-good input combinations.
         """
-        config_writer.JobConfigWriter(1234, derive_imls_from_vuln=True, num_of_derived_imls=2)
-        config_writer.JobConfigWriter(1234, derive_imls_from_vuln=True, num_of_derived_imls=25)
-        # num_of_derived_imls should be ignored if derive_imls_from_vuln is not set to True
+        config_writer.JobConfigWriter(
+            1234, derive_imls_from_vuln=True, num_of_derived_imls=2)
+        config_writer.JobConfigWriter(
+            1234, derive_imls_from_vuln=True, num_of_derived_imls=25)
+        # num_of_derived_imls should be ignored if derive_imls_from_vuln is not
+        # set to True
         config_writer.JobConfigWriter(1234, num_of_derived_imls=-2)
 
 
@@ -146,22 +149,23 @@ class ConfigWriterUtilsTestCase(unittest.TestCase):
         for ctr, in_item in enumerate(in_list):
             self.assertEqual(
                 _enum_translate(in_item), out_list[ctr])
-    
+
 
 class VulnerabilityIMLsTestCase(unittest.TestCase):
 
     TEST_VULN_GOOD = tests.test_data_path('vulnerability.xml')
 
     # Doesn't not contain enough IML values
-    TEST_VULN_NOT_ENOUGH_IMLS = tests.test_fail_data_path('vuln_not_enough_imls.xml')
+    TEST_VULN_NOT_ENOUGH_IMLS = tests.test_fail_data_path(
+        'vuln_not_enough_imls.xml')
 
     # Contains improperly ordered IML values
-    TEST_VULN_BAD_IML_ORDER = tests.test_fail_data_path('vuln_bad_iml_order.xml')
+    TEST_VULN_BAD_IML_ORDER = tests.test_fail_data_path(
+        'vuln_bad_iml_order.xml')
 
     # Contains negative and 0.0 IML values
     TEST_VULN_BAD_IMLS = tests.test_fail_data_path('vuln_bad_imls.xml')
-    
-    
+
     def test_lower_bound(self):
         """
         Test _lower_bound with known-good inputs.
@@ -174,11 +178,13 @@ class VulnerabilityIMLsTestCase(unittest.TestCase):
 
     def test_lower_bound_raises(self):
         """
-        Test that the _lower_bound function raises an AssertionError when the computed
-        lower_bound value is <= 0.0.
+        Test that the _lower_bound function raises an AssertionError when the
+        computed lower_bound value is <= 0.0.
         """
-        self.assertRaises(AssertionError, _lower_bound, 1, 3)  # gives a lower bound of 0.0
-        self.assertRaises(AssertionError, _lower_bound, 1, 5)  # gives a negative lower bound
+        # gives a lower bound of 0.0
+        self.assertRaises(AssertionError, _lower_bound, 1, 3)
+        # gives a negative lower bound
+        self.assertRaises(AssertionError, _lower_bound, 1, 5)
 
     def test_upper_bound(self):
         """
@@ -192,11 +198,13 @@ class VulnerabilityIMLsTestCase(unittest.TestCase):
 
     def test_upper_bound_raises(self):
         """
-        Test that the _upper_bound function raises an AssertionError when the computed
-        upper_bound value is <= 0.0.
+        Test that the _upper_bound function raises an AssertionError when the
+        computed upper_bound value is <= 0.0.
         """
-        self.assertRaises(AssertionError, _upper_bound, 2, 6)  # gives an upper bound of 0.0
-        self.assertRaises(AssertionError, _upper_bound, 1, 5)  # gives a negative upper bound
+        # gives an upper bound of 0.0
+        self.assertRaises(AssertionError, _upper_bound, 2, 6)
+        # gives a negative upper bound
+        self.assertRaises(AssertionError, _upper_bound, 1, 5)
 
     def test_get_iml_bounds_with_good_vuln_file(self):
         """
@@ -205,15 +213,16 @@ class VulnerabilityIMLsTestCase(unittest.TestCase):
         exp_lb = 0.07414
         exp_ub = 1.62586
 
-        actual_lb, actual_ub = _get_iml_bounds_from_vuln_file(self.TEST_VULN_GOOD) 
+        actual_lb, actual_ub = _get_iml_bounds_from_vuln_file(
+            self.TEST_VULN_GOOD)
 
         self.assertEqual(exp_lb, actual_lb)
         self.assertEqual(exp_ub, actual_ub)
 
     def test_get_iml_bounds_raises_when_not_enough_imls(self):
         """
-        If a vulnerability file contains less than 2 IMLs values in a given IML set,
-        an AssertionError should be raised.
+        If a vulnerability file contains less than 2 IMLs values in a given IML
+        set, an AssertionError should be raised.
         """
         self.assertRaises(
             AssertionError, _get_iml_bounds_from_vuln_file,
@@ -221,16 +230,17 @@ class VulnerabilityIMLsTestCase(unittest.TestCase):
 
     def test_get_iml_bounds_raises_when_imls_are_not_in_asc_order(self):
         """
-        If the IMLs in a given IML set are not arranged in ascending order (where no two values are equal),
-        an AssertionError should be raised.
+        If the IMLs in a given IML set are not arranged in ascending order
+        (where no two values are equal), an AssertionError should be raised.
         """
         self.assertRaises(
             AssertionError, _get_iml_bounds_from_vuln_file,
-            self.TEST_VULN_BAD_IML_ORDER) 
+            self.TEST_VULN_BAD_IML_ORDER)
 
     def test_get_iml_bounds_raises_on_invalid_imls(self):
         """
-        If a vulnerability file contains IML values <= 0.0, an AssertionError should be raised.
+        If a vulnerability file contains IML values <= 0.0, an AssertionError
+        should be raised.
         """
         self.assertRaises(
             AssertionError, _get_iml_bounds_from_vuln_file,

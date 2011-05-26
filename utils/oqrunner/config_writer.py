@@ -202,7 +202,8 @@ def get_classical_user_params(oqparams):
             'GMPE_TRUNCATION_TYPE': _enum_translate(oqparams.truncation_type),
             'TRUNCATION_LEVEL': oqparams.truncation_level,
             'REFERENCE_VS30_VALUE': oqparams.reference_vs30_value,
-            'INTENSITY_MEASURE_LEVELS': _float_list_to_str(oqparams.imls, ', '),
+            'INTENSITY_MEASURE_LEVELS': \
+                _float_list_to_str(oqparams.imls, ', '),
             'POES_HAZARD_MAPS': poes_str,
             'NUMBER_OF_LOGIC_TREE_SAMPLES': oqparams.realizations},
         'RISK': {
@@ -213,36 +214,47 @@ def get_classical_user_params(oqparams):
 
 def _lower_bound(iml_1, iml_2):
     """
-    Calculate a lower bound given the first and second values in a vulnerability IML set.
+    Calculate a lower bound given the first and second values in a
+    vulnerability IML set.
 
-    :py:function:`utils.round_float` is used with the calculated bound values to maintain reasonable limits on precision.
+    :type iml_1: float
+    :type iml_2: float
+
+    :py:function:`utils.round_float` is used with the calculated bound values
+    to maintain reasonable limits on precision.
     """
     lower_bound = utils.round_float(iml_1 - ((iml_2 - iml_1) / 2))
 
-    assert lower_bound > 0.0, "Invalid lower bound '%s': must be > 0.0" % lower_bound
+    assert lower_bound > 0.0, \
+        "Invalid lower bound '%s': must be > 0.0" % lower_bound
 
     return lower_bound
 
 
 def _upper_bound(iml_n, iml_n_1):
     """
-    Calculate an upper bound given the last (n) and second-to-last (n-1) values in a vulnerability IML set.
+    Calculate an upper bound given the last (n) and second-to-last (n-1) values
+    in a vulnerability IML set.
 
-    :py:function:`utils.round_float` is used with the calculated bound values to maintain reasonable limits on precision.
+    :type iml_n: float
+    :type iml_n_1: float
+
+    :py:function:`utils.round_float` is used with the calculated bound values
+    to maintain reasonable limits on precision.
     """
     upper_bound = utils.round_float(iml_n + ((iml_n - iml_n_1) / 2))
 
-    assert upper_bound > 0.0, "Invalid upper bound '%s': must be > 0.0" % upper_bound
+    assert upper_bound > 0.0, \
+        "Invalid upper bound '%s': must be > 0.0" % upper_bound
 
     return upper_bound
 
 
 def _get_iml_bounds_from_vuln_file(path):
     """
-    Given a path to a vulnerability NRML (XML) file, get the min lowerbound and max upperbound
-    IML values from the vulnerability model.
+    Given a path to a vulnerability NRML (XML) file, get the min lowerbound and
+    max upperbound IML values from the vulnerability model.
 
-    
     :param path: path to a vulnerability NRML (XML) file
     :type path: str
 
@@ -253,8 +265,10 @@ def _get_iml_bounds_from_vuln_file(path):
     # NRML namespace
     nrml_ns = '{http://openquake.org/xmlns/nrml/0.2}'
 
-    # IMLs in the XML file should be arranged in ascending order; we can use this to verify:
-    correct_iml_order = lambda lst: all(lst[i] < lst[i+1] for i in xrange(len(lst)-1))
+    # IMLs in the XML file should be arranged in ascending order; we can use
+    # this to verify:
+    correct_iml_order = \
+        lambda lst: all(lst[i] < lst[i + 1] for i in xrange(len(lst) - 1))
 
     lower_bounds = []
     upper_bounds = []
@@ -269,12 +283,15 @@ def _get_iml_bounds_from_vuln_file(path):
 
         imls = [float(x) for x in iml_elem.text.strip().split()]
 
-        assert len(imls) >= 2, "%s: an IML set must have at least 2 values" % bad_data_error
+        assert len(imls) >= 2, \
+            "%s: an IML set must have at least 2 values" % bad_data_error
 
-        assert correct_iml_order(imls), "%s: IML values are not in ascending order" % bad_data_error
+        assert correct_iml_order(imls), \
+            "%s: IML values are not in ascending order" % bad_data_error
 
         # Make sure all values are > 0.0
-        assert all([x > 0.0 for x in imls]), "%s: IML values must be > 0.0" % bad_data_error
+        assert all([x > 0.0 for x in imls]), \
+            "%s: IML values must be > 0.0" % bad_data_error
 
         # Collect the upper and lower bounds for this set of imls
         lower_bounds.append(_lower_bound(imls[0], imls[1]))
@@ -283,7 +300,8 @@ def _get_iml_bounds_from_vuln_file(path):
     min_lb = min(lower_bounds)
     max_ub = max(upper_bounds)
 
-    assert max_ub > min_lb, "%s: upper bound must be > lower bound" % bad_data_error
+    assert max_ub > min_lb, \
+        "%s: upper bound must be > lower bound" % bad_data_error
 
     return min_lb, max_ub
 
@@ -313,22 +331,21 @@ class JobConfigWriter(object):
 
     DEFAULT_NUM_OF_DERIVED_IMLS = 10
 
-
     def __init__(self, job_id, derive_imls_from_vuln=False,
         num_of_derived_imls=DEFAULT_NUM_OF_DERIVED_IMLS):
         """
 
         :param derive_imls_from_vuln: If True, the INTENSITY_MEASURE_LEVELS
-            parameter in the [HAZARD] section of the config file will be derived
-            from the IML values in the job vulnerability file. The scale of IMLs
-            will be logarithmic.
+            parameter in the [HAZARD] section of the config file will be
+            derived from the IML values in the job vulnerability file. The
+            scale of IMLs will be logarithmic.
 
             This parameter is optional. Default is False.
         :type derive_imls_from_vuln: bool
 
-        :param num_of_derived_imls: If derive_imls_from_vuln is True, the number
-            of derived IMLs can be specified. If derive_imls_from_vuln is False,
-            this parameter will be ignored.
+        :param num_of_derived_imls: If derive_imls_from_vuln is True, the
+            number of derived IMLs can be specified. If derive_imls_from_vuln
+            is False, this parameter will be ignored.
         :type num_of_derived_imls: int
 
         :param job_id: ID of a job stored in the uiapi.oq_job table for which
@@ -339,7 +356,8 @@ class JobConfigWriter(object):
 
         self.derive_imls_from_vuln = derive_imls_from_vuln
         if self.derive_imls_from_vuln:
-            assert num_of_derived_imls >= 2, "There must be at least 2 IML values"
+            assert num_of_derived_imls >= 2, \
+                "There must be at least 2 IML values"
             self.num_of_derived_imls = num_of_derived_imls
 
         # this will be used to build the config file
@@ -418,19 +436,24 @@ class JobConfigWriter(object):
 
     def _derive_imls_from_vulnerability(self, upload):
         """
-        Generates a new scale of IML values from the a job's vulnerability model (if one exists).
-        The new IML values will be written to the INTENSITY_MEASURE_LEVELS config param in the [HAZARD]
-        section of the config file.
+        Generates a new scale of IML values from the a job's vulnerability
+        model (if one exists). The new IML values will be written to the
+        INTENSITY_MEASURE_LEVELS config param in the [HAZARD] section of the
+        config file.
 
-        This will override the IML values specified for this job in the uiapi.oq_params.imls DB field.
+        This will override the IML values specified for this job in the
+        uiapi.oq_params.imls DB field.
 
-        :param upload: :py:class:`geonode.mtapi.models.Upload` instance associated with this job
+        :param upload: :py:class:`geonode.mtapi.models.Upload` instance
+            associated with this job
         """
         vuln_input = upload.input_set.get(input_type='vulnerability')
 
-        lower_bound, upper_bound = _get_iml_bounds_from_vuln_file(vuln_input.path)
+        lower_bound, upper_bound = \
+            _get_iml_bounds_from_vuln_file(vuln_input.path)
 
-        iml_scale = utils.log_scale(lower_bound, upper_bound, self.num_of_derived_imls)
+        iml_scale = utils.log_scale(
+            lower_bound, upper_bound, self.num_of_derived_imls)
 
         # format the new IML scale properly for the config file
         imls_str = _float_list_to_str(iml_scale, ', ')
