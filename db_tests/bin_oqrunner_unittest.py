@@ -32,9 +32,62 @@ import unittest
 from django.conf import settings
 
 from bin.oqrunner import (
-    create_input_file_dir, find_maps, prepare_inputs, process_map, run_engine)
+    create_input_file_dir, find_maps, prepare_inputs, process_map,
+    register_shapefiles, run_engine)
 
 from db_tests.helpers import DbTestMixin
+
+
+class RegisterShapefilesTestCase(unittest.TestCase, DbTestMixin):
+    """Tests the behaviour of oqrunner.register_shapefiles()."""
+
+    def setUp(self):
+        # Two hazard maps with a shapefile.
+        hazard_map = self.setup_output()
+        self.job = hazard_map.oq_job
+        self.add_shapefile_data(hazard_map)
+        self.hazard_location = os.path.dirname(hazard_map.shapefile_path)
+        hazard_map2 = self.setup_output(job_to_use=self.job)
+        self.add_shapefile_data(hazard_map2)
+
+        # The loss map has *no* shapefile.
+        self.loss_map = self.setup_output(
+            job_to_use=self.job, output_type="loss_map")
+
+    def tearDown(self):
+        self.teardown_job(self.job)
+
+    def test_register_shapefiles(self):
+        """register_shapefiles_in_location() is called for the maps."""
+        # Add a shapefile to the loss map.
+        self.add_shapefile_data(self.loss_map)
+        loss_location = os.path.dirname(self.loss_map.shapefile_path)
+        with mock.patch('bin.oqrunner.register_shapefiles_in_location') \
+            as mock_func:
+            with mock.patch('bin.oqrunner.update_layers'):
+                register_shapefiles(self.job)
+                # Both the hazard and the loss map have a shapefile. Hence the
+                # 2 calls to register_shapefiles_in_location().
+                self.assertEqual(2, mock_func.call_count)
+                [(args1, _), (args2, _)] = mock_func.call_args_list
+                self.assertEqual(
+                    (self.hazard_location, "%s-hazardmap" % self.job.id),
+                    args1)
+                self.assertEqual(
+                    (loss_location, "%s-lossmap" % self.job.id), args2)
+
+    def test_register_shapefiles_with_map_wo_shapefile(self):
+        """register_shapefiles_in_location() is called for the maps."""
+        with mock.patch('bin.oqrunner.register_shapefiles_in_location') \
+            as mock_func:
+            with mock.patch('bin.oqrunner.update_layers'):
+                register_shapefiles(self.job)
+                # The loss map has no shapefile and is ignored.
+                self.assertEqual(1, mock_func.call_count)
+                [(args1, _)] = mock_func.call_args_list
+                self.assertEqual(
+                    (self.hazard_location, "%s-hazardmap" % self.job.id),
+                    args1)
 
 
 class ProcessMapTestCase(unittest.TestCase, DbTestMixin):

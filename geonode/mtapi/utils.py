@@ -23,6 +23,7 @@
 
 
 import decimal
+import logging
 import os
 import subprocess
 import tempfile
@@ -65,10 +66,12 @@ def run_cmd(cmds, ignore_exit_code=False, shell=False):
     process = subprocess.Popen(
         cmds, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=shell)
     out, err = process.communicate()
-    if process.returncode != 0 and not ignore_exit_code:
+    if process.returncode != 0:
         error = ("%s terminated with exit code: %s\n%s"
-                 % (cmds[0], process.returncode, err))
-        raise Exception(error)
+                 % (cmds, process.returncode, err))
+        logging.error(error)
+        if not ignore_exit_code:
+            raise Exception(error)
     return (process.returncode, out, err)
 
 

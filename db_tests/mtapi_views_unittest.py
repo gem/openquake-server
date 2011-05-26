@@ -104,7 +104,20 @@ class PrepareJobResultTestCase(unittest.TestCase, DbTestMixin):
         job.status = "succeeded"
         self.assertEqual(
             '{"msg": "Calculation succeeded", "status": "success", '
-            '"id": %s}' % job.id,
+            '"id": %s, "files": []}' % job.id,
+            prepare_job_result(job))
+
+    def test_prepare_job_result_with_succeeded_and_map_wo_shapefile(self):
+        """
+        Hazard/loss maps without a shapefile are not listed in the json
+        returned by prepare_job_result().
+        """
+        hazard_map = self.setup_output()
+        self.job_to_teardown = job = hazard_map.oq_job
+        job.status = "succeeded"
+        self.assertEqual(
+            '{"msg": "Calculation succeeded", "status": "success", '
+            '"id": %s, "files": []}' % job.id,
             prepare_job_result(job))
 
     def test_prepare_job_result_with_succeeded_and_maps(self):
@@ -249,7 +262,7 @@ class PrepareMapResultTestCase(unittest.TestCase, DbTestMixin):
         type = ("hazard map" if self.output.output_type == "hazard_map"
                              else "loss map")
 
-        expected  = {
+        expected = {
             "layer": {
                 "layer": "geonode:%s" % layer,
                 "ows": "http://gemsun02.ethz.ch/geoserver-geonode-dev/ows"},
@@ -276,7 +289,7 @@ class PrepareMapResultTestCase(unittest.TestCase, DbTestMixin):
         type = ("loss map" if self.output.output_type == "loss_map"
                              else "loss map")
 
-        expected  = {
+        expected = {
             "layer": {
                 "layer": "geonode:%s" % layer,
                 "ows": "http://gemsun02.ethz.ch/geoserver-geonode-dev/ows"},

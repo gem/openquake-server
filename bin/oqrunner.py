@@ -37,10 +37,11 @@ former with the geonode server.
 import getopt
 import glob
 import logging
-import re
 import os
 import pprint
+import re
 import sys
+from urlparse import urljoin
 
 from django.conf import settings
 from geonode.mtapi import utils
@@ -51,7 +52,7 @@ from utils.oqrunner import config_writer
 logger = logging.getLogger('oqrunner')
 logger.setLevel(logging.DEBUG)
 ch = logging.StreamHandler()
-ch.setLevel(logging.ERROR)
+ch.setLevel(logging.DEBUG)
 # create formatter and add it to the handlers
 formatter = logging.Formatter(
     '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -90,9 +91,9 @@ def prepare_inputs(job):
     """
     cw = config_writer.JobConfigWriter(job.id)
     cw.serialize()
-    for input in job.oq_params.upload.input_set.all():
-        basename = os.path.basename(input.path)
-        os.symlink(input.path, os.path.join(job.path, basename))
+    for an_input in job.oq_params.upload.input_set.all().order_by("id"):
+        basename = os.path.basename(an_input.path)
+        os.symlink(an_input.path, os.path.join(job.path, basename))
 
 
 def run_engine(job):
@@ -102,12 +103,17 @@ def run_engine(job):
     :returns: a triple (exit code, stdout, stderr) with engine's execution
         outcome
     """
+    logger.info("> run_engine")
     cmds = [os.path.join(settings.OQ_ENGINE_DIR, "bin/openquake")]
     cmds.append("--config_file")
     cmds.append(os.path.join(job.path, "config.gem"))
+    logger.info("cmds: %s" % cmds)
     code, out, err = utils.run_cmd(cmds, ignore_exit_code=True)
+    logger.info("code: '%s'" % code)
+    logger.info("out: '%s'" % out)
     if code != 0:
-        logging.error(err)
+        logger.error(err)
+    logger.info("< run_engine")
     return (code, out, err)
 
 
@@ -126,8 +132,84 @@ def run_calculation(config):
     """
     job = create_input_file_dir(config)
     prepare_inputs(job)
-    run_engine(job)
+    code, _, _ = run_engine(job)
+    if code != 0:
+        logger.error("OpenQuake engine exited with code %s, aborting.." % code)
+        job.status = "failed"
+        job.save()
+        sys.exit(code)
     process_results(job)
+    register_shapefiles(job)
+    job.status = "succeeded"
+    job.save()
+
+
+def register_shapefiles(job):
+    """
+    Register the shapefiles generated for the hazard/loss maps with
+    Geoserver.
+
+    :param job: the :py:class:`geonode.mtapi.models.OqJob` instance in question
+    """
+    logger.info("> register_shapefiles")
+    registration_data = []
+    for output in job.output_set.all().order_by("id"):
+        if not output.shapefile_path:
+            continue
+        datastore = ("hazardmap" if output.output_type == "hazard_map"
+                                 else "lossmap")
+        datastore = "%s-%s" % (job.id, datastore)
+        datum = ((os.path.dirname(output.shapefile_path), datastore))
+        if datum not in registration_data:
+            registration_data.append(datum)
+
+    logger.info("registration_data: %s" % registration_data)
+    for datum in registration_data:
+        register_shapefiles_in_location(*datum)
+    if registration_data:
+        update_layers()
+    logger.info("< register_shapefiles")
+
+
+def register_shapefiles_in_location(location, datastore):
+    """Register the shapefiles in the given location with the Geoserver.
+
+    :param str location: a server-side file system path.
+    :param str datastore: one of "<job_id>-hazardmap", "<job_id>-lossmap"
+    """
+    logger.info("> register_shapefiles_in_location")
+    url = urljoin(
+        settings.GEOSERVER_BASE_URL,
+        "rest/workspaces/geonode/datastores/%s/external.shp?configure=all")
+    url %= datastore
+    command = ("curl -v -u 'admin:@dm1n' -XPUT -H 'Content-type: text/plain' "
+               "-d '%s' '%s'" % (urljoin('file://', location), url))
+    logger.info("location: '%s'" % location)
+    logger.info("url: '%s'" % url)
+    logger.info("command: %s" % command)
+
+    code, out, err = utils.run_cmd(command, ignore_exit_code=True, shell=True)
+
+    logger.info("code: '%s'" % code)
+    logger.info("out: '%s'" % out)
+    logger.info("err: '%s'" % err)
+    logger.info("< register_shapefiles_in_location")
+
+
+def update_layers():
+    """Updates the geonode layers, called after shapefile registration."""
+    logger.info("> update_layers")
+    command = settings.OQ_UPDATE_LAYERS_PATH
+    logger.info("command: %s" % command)
+    python_path = os.environ["PYTHONPATH"]
+    logger.info("PYTHONPATH: '%s'" % python_path)
+    os.environ["PYTHONPATH"] = ""
+    code, out, err = utils.run_cmd(command, ignore_exit_code=True)
+    logger.info("code: '%s'" % code)
+    logger.info("out: '%s'" % out)
+    logger.info("err: '%s'" % err)
+    logger.info("< update_layers")
+    os.environ["PYTHONPATH"] = python_path
 
 
 def process_results(job):
@@ -136,30 +218,31 @@ def process_results(job):
     :param job: the :py:class:`geonode.mtapi.models.OqJob` instance in question
     """
     maps = find_maps(job)
-    for map in maps:
-        process_map(map)
+    for a_map in maps:
+        process_map(a_map)
 
 
-def process_map(map):
-    """Creates shapefile from map. Updates the respective db record.
+def process_map(a_map):
+    """Creates shapefile from a map. Updates the respective db record.
 
     The minimum/maximum values as well as the shapefile path/URL will be
     captured in the output's db record.
 
-    :param map: :py:class:`geonode.mtapi.models.Output` instance in question
+    :param a_map: :py:class:`geonode.mtapi.models.Output` instance in question
     """
     commands = ["%s/bin/gen_shapefile.py" % settings.OQ_APIAPP_DIR]
     commands.append("-k")
-    commands.append(str(map.id))
+    commands.append(str(a_map.id))
     commands.append("-p")
-    commands.append(map.path)
+    commands.append(a_map.path)
     commands.append("-t")
-    commands.append("hazard" if map.output_type == "hazard_map" else "loss")
-    code, out, err = utils.run_cmd(commands, ignore_exit_code=True)
+    commands.append("hazard" if a_map.output_type == "hazard_map" else "loss")
+    code, out, _ = utils.run_cmd(commands, ignore_exit_code=True)
     if code == 0:
         # All went well
-        map.shapefile_path, map.min_value, map.max_value = extract_results(out)
-        map.save()
+        a_map.shapefile_path, a_map.min_value, a_map.max_value = \
+            extract_results(out)
+        a_map.save()
 
 
 def extract_results(stdout):
@@ -196,9 +279,10 @@ def find_maps(job):
         "%s/*map*.xml" % os.path.join(job.path, "computed_output"))))
     maps = [(path, detect_output_type(path)) for path in maps]
     # Ignore anything that's not a hazard or loss map.
-    maps = [(path, type) for path, type in maps if type in ("hazard", "loss")]
-    for path, type in maps:
-        output = Output(owner=job.owner, output_type="%s_map" % type,
+    maps = [(path, map_type) for path, map_type in maps
+            if map_type in ("hazard", "loss")]
+    for path, map_type in maps:
+        output = Output(owner=job.owner, output_type="%s_map" % map_type,
                         oq_job=job, path=path, size=os.path.getsize(path))
         output.save()
         results.append(output)

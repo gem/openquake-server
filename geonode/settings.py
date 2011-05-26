@@ -119,6 +119,7 @@ INSTALLED_APPS = (
 
 NRML_RUNNER_PATH = "%s/bin/nrml_runner.py" % OQ_APIAPP_DIR
 OQRUNNER_PATH = "%s/bin/oqrunner.py" % OQ_APIAPP_DIR
+OQ_UPDATE_LAYERS_PATH = "%s/bin/oq-updatelayers" % OQ_APIAPP_DIR
 
 import sys
 APIAPP_PYTHONPATH = ":".join(
@@ -127,3 +128,4 @@ APIAPP_PYTHONPATH += ":%s:%s" % (OQ_ENGINE_DIR, OQ_APIAPP_DIR)
 
 SITEURL = "http://gemsun02.ethz.ch/"
 GEOSERVER_BASE_URL = SITEURL + "geoserver-geonode-dev/"
+os.environ["MPLCONFIGDIR"] = "/tmp"
