@@ -150,7 +150,7 @@ class ConfigWriterUtilsTestCase(unittest.TestCase):
 
 class VulnerabilityIMLsTestCase(unittest.TestCase):
 
-    TEST_VULN_GOOD = tests.test_data_path('functions_hazus.xml')
+    TEST_VULN_GOOD = tests.test_data_path('vulnerability.xml')
 
     # Doesn't not contain enough IML values
     TEST_VULN_NOT_ENOUGH_IMLS = tests.test_fail_data_path('vuln_not_enough_imls.xml')

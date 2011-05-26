@@ -234,3 +234,10 @@ class JobConfigWriterClassicalTestCase(unittest.TestCase):
 
             exp_fh.close()
             act_fh.close()
+
+    def test_classical_config_file_generation_with_vuln_imls(self):
+        """
+        Test that the config file output has the proper IML values,
+        as determined by the job's vulnerability model.
+        """
+        pass

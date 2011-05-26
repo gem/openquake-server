@@ -214,6 +214,8 @@ def get_classical_user_params(oqparams):
 def _lower_bound(iml_1, iml_2):
     """
     Calculate a lower bound given the first and second values in a vulnerability IML set.
+
+    :py:function:`utils.round_float` is used with the calculated bound values to maintain reasonable limits on precision.
     """
     lower_bound = utils.round_float(iml_1 - ((iml_2 - iml_1) / 2))
 
@@ -225,6 +227,8 @@ def _lower_bound(iml_1, iml_2):
 def _upper_bound(iml_n, iml_n_1):
     """
     Calculate an upper bound given the last (n) and second-to-last (n-1) values in a vulnerability IML set.
+
+    :py:function:`utils.round_float` is used with the calculated bound values to maintain reasonable limits on precision.
     """
     upper_bound = utils.round_float(iml_n + ((iml_n - iml_n_1) / 2))
 
@@ -238,8 +242,7 @@ def _get_iml_bounds_from_vuln_file(path):
     Given a path to a vulnerability NRML (XML) file, get the min lowerbound and max upperbound
     IML values from the vulnerability model.
 
-    :py:function:`utils.round_float` is used with the calculated bound values to maintain reasonable limits on precision.
-
+    
     :param path: path to a vulnerability NRML (XML) file
     :type path: str
 
@@ -405,13 +408,34 @@ class JobConfigWriter(object):
         self._write_input_params(upload, input_params)
 
         if self.derive_imls_from_vuln:
-            pass
+            self._derive_imls_from_vulnerability(upload)
 
         # write and close
         self.cfg_parser.write(output_fh)
         output_fh.close()
 
         return output_path
+
+    def _derive_imls_from_vulnerability(self, upload):
+        """
+        Generates a new scale of IML values from the a job's vulnerability model (if one exists).
+        The new IML values will be written to the INTENSITY_MEASURE_LEVELS config param in the [HAZARD]
+        section of the config file.
+
+        This will override the IML values specified for this job in the uiapi.oq_params.imls DB field.
+
+        :param upload: :py:class:`geonode.mtapi.models.Upload` instance associated with this job
+        """
+        vuln_input = upload.input_set.get(input_type='vulnerability')
+
+        lower_bound, upper_bound = _get_iml_bounds_from_vuln_file(vuln_input.path)
+
+        iml_scale = utils.log_scale(lower_bound, upper_bound, self.num_of_derived_imls)
+
+        # format the new IML scale properly for the config file
+        imls_str = _float_list_to_str(iml_scale, ', ')
+
+        self.cfg_parser.set('HAZARD', 'INTENSITY_MEASURE_LEVELS', imls_str)
 
     def _write_params(self, params):
         """
