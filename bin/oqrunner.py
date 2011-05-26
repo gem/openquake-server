@@ -175,7 +175,7 @@ def register_shapefiles_in_location(location, datastore):
     """Register the shapefiles in the given location with the Geoserver.
 
     :param str location: a server-side file system path.
-    :param str datastore: one of "hazardmap", "lossmap"
+    :param str datastore: one of "<job_id>-hazardmap", "<job_id>-lossmap"
     """
     logger.info("> register_shapefiles_in_location")
     url = urljoin(
@@ -183,7 +183,7 @@ def register_shapefiles_in_location(location, datastore):
         "rest/workspaces/geonode/datastores/%s/external.shp?configure=all")
     url %= datastore
     command = ("curl -v -u 'admin:@dm1n' -XPUT -H 'Content-type: text/plain' "
-               "-d 'file://%s' '%s'" % (location, url))
+               "-d '%s' '%s'" % (urljoin('file://', location), url))
     logger.info("location: '%s'" % location)
     logger.info("url: '%s'" % url)
     logger.info("command: %s" % command)
