@@ -29,6 +29,7 @@ import pprint
 import re
 import simplejson
 import subprocess
+from urlparse import urljoin
 
 import utils
 
@@ -201,7 +202,6 @@ def load_source_files(upload):
     args = [settings.NRML_RUNNER_PATH, "--db", config["NAME"],
             "-U", config["USER"], "-W", config["PASSWORD"],
             "-u", str(upload.id), "--host", host]
-    print("nrml loader args: %s\n" % pprint.pformat(args))
     env = os.environ
     env["PYTHONPATH"] = settings.APIAPP_PYTHONPATH
     pid = subprocess.Popen(args, env=env).pid
@@ -221,12 +221,14 @@ def run_oq_job(request):
     :param request: the :py:class:`django.http.HttpRequest` object
     :raises Http404: if the request is not a HTTP POST request.
     """
-    print("request: %s\n" % pprint.pformat(request))
+    print("request: %s\n" % pprint.pformat(request.POST))
     if request.method == "POST":
-        job = prepare_job(request.POST)
+        params = request.POST
+        params = simplejson.loads(params.keys().pop())
+        job = prepare_job(params)
         start_job(job)
-        return HttpResponse(
-            {"status": "success", "msg": "Calculation started", "id": job.id})
+        return HttpResponse(simplejson.dumps({
+            "status": "success", "msg": "Calculation started", "id": job.id}))
     else:
         raise Http404
 
@@ -241,12 +243,14 @@ def start_job(job):
     :returns: the integer process ID (pid) of the child process that is running
         the oqrunner.py tool.
     """
+    print "> start_job"
     env = os.environ
     env["PYTHONPATH"] = settings.APIAPP_PYTHONPATH
     args = [settings.OQRUNNER_PATH, "-j", str(job.id)]
     proc = subprocess.Popen(args, env=env)
     job.job_pid = proc.pid
     job.save()
+    print "< start_job"
     return proc.pid
 
 
@@ -285,9 +289,24 @@ def prepare_job(params):
 
     :returns: a :py:class:`geonode.mtapi.models.OqJob` instance
     """
-    upload = Upload.objects.get(id=params["upload"])
+    print "> prepare_job"
+
+    upload = params.get("upload")
+    if not upload:
+        print "No upload database key supplied"
+
+    upload = Upload.objects.get(id=upload)
+    if not upload:
+        print "No upload record found"
+    else:
+        print upload
+
     oqp = OqParams(upload=upload)
     trans_tab = dict(reference_v30_value="reference_vs30_value")
+    value_trans_tab = {
+        "truncation_type": {
+            "1-sided": "onesided",
+            "2-sided": "twosided"}}
     param_names = (
         "job_type", "region_grid_spacing", "min_magnitude",
         "investigation_time", "component", "imt", "period", "truncation_type",
@@ -309,15 +328,26 @@ def prepare_job(params):
         property_name = trans_tab.get(param_name, param_name)
         value = params["fields"].get(param_name)
         if value:
+            # Is there a need to translate the value?
+            trans = value_trans_tab.get(property_name)
+            if trans:
+                value = trans.get(value, value)
             setattr(oqp, property_name, value)
 
     region = params["fields"].get("region")
+
     if region:
         oqp.region = GEOSGeometry(region)
+
     oqp.save()
+    print oqp
+
     job = OqJob(oq_params=oqp, owner=upload.owner,
                 job_type=params["fields"]["job_type"])
     job.save()
+    print job
+
+    print "< prepare_job"
     return job
 
 
@@ -396,10 +426,11 @@ def prepare_job_result(job):
     if job.status == "succeeded":
         files = []
         for output in job.output_set.all().order_by("id"):
-            files.append(prepare_map_result(output))
-        if files:
-            result['files'] = files
+            if output.shapefile_path:
+                files.append(prepare_map_result(output))
+        result['files'] = files
 
+    print("result: %s\n" % pprint.pformat(result))
     return simplejson.dumps(result)
 
 
@@ -419,13 +450,11 @@ def prepare_map_result(output):
     :returns: a dictionary with data needed to produce the json above.
     """
     layer_name, _ = os.path.splitext(os.path.basename(output.shapefile_path))
-    type = dict(output.OUTPUT_TYPE_CHOICES)[output.output_type].lower()
-    format_string = (
-        "%sows" if settings.GEOSERVER_BASE_URL.endswith("/") else  "%s/ows")
+    map_type = dict(output.OUTPUT_TYPE_CHOICES)[output.output_type].lower()
+    ows = urljoin(settings.GEOSERVER_BASE_URL, "ows")
     result = dict(
         id=output.id, name=os.path.basename(output.path),
-        type=type, min=utils.round_float(output.min_value),
+        type=map_type, min=utils.round_float(output.min_value),
         max=utils.round_float(output.max_value),
-        layer=dict(ows=format_string % settings.GEOSERVER_BASE_URL,
-                   layer="geonode:%s" % layer_name))
+        layer=dict(ows=ows, layer="geonode:%s" % layer_name))
     return result

@@ -149,7 +149,7 @@ class OqParams(models.Model):
         (u"twosided", u"Two-sided"),
     )
     truncation_type = models.TextField(choices=TRUNCATION_TYPE_CHOICES)
-    truncation_level = models.FloatField()
+    truncation_level = models.FloatField(null=True)
     reference_vs30_value = models.FloatField()
     imls = FloatArrayField(null=True, verbose_name="Intensity measure levels")
     poes = FloatArrayField(
@@ -163,8 +163,13 @@ class OqParams(models.Model):
 
     last_update = models.DateTimeField(editable=False, default=datetime.utcnow)
     region = models.PolygonField(srid=4326)
+
     class Meta:
         db_table = 'uiapi\".\"oq_params'
+
+    def __str__(self):
+        return smart_str(
+            ":params: %s, %s (%s)" % (self.id, self.job_type, self.upload))
 
 
 class OqJob(models.Model):
@@ -190,6 +195,11 @@ class OqJob(models.Model):
     oq_params = models.ForeignKey(OqParams)
     last_update = models.DateTimeField(editable=False, default=datetime.utcnow)
 
+    def __str__(self):
+        return smart_str(
+            ":job: %s, %s, %s (:params %s:)" % (
+                self.id, self.job_type, self.path, self.oq_params.id))
+
     class Meta:
         db_table = 'uiapi\".\"oq_job'
 
@@ -209,7 +219,6 @@ class Output(models.Model):
     output_type = models.TextField(choices=OUTPUT_TYPE_CHOICES)
     size = models.PositiveIntegerField(default=0)
     shapefile_path = models.TextField(null=True)
-    shapefile_url = models.TextField(null=True)
     min_value = models.FloatField(null=True)
     max_value = models.FloatField(null=True)
     last_update = models.DateTimeField(editable=False, default=datetime.utcnow)

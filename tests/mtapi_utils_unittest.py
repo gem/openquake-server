@@ -23,7 +23,6 @@ Unit tests for the geonode/mtapi/utils.py module.
 """
 
 
-import os
 import subprocess
 import unittest
 
@@ -72,8 +71,9 @@ class RunCmdTestCase(unittest.TestCase):
             code, out, err = run_cmd(["ls", "-AF", "/this/does/not/exist"])
         except Exception, e:
             self.assertEqual(
-                "ls terminated with exit code: 2\nls: cannot access "
-                "/this/does/not/exist: No such file or directory\n", e.args[0])
+                "['ls', '-AF', '/this/does/not/exist'] terminated with exit "
+                "code: 2\nls: cannot access /this/does/not/exist: No such "
+                "file or directory\n", e.args[0])
         else:
             raise Exception("exception not raised")
 
