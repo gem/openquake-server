@@ -149,7 +149,7 @@ class OqParams(models.Model):
         (u"twosided", u"Two-sided"),
     )
     truncation_type = models.TextField(choices=TRUNCATION_TYPE_CHOICES)
-    truncation_level = models.FloatField()
+    truncation_level = models.FloatField(null=True)
     reference_vs30_value = models.FloatField()
     imls = FloatArrayField(null=True, verbose_name="Intensity measure levels")
     poes = FloatArrayField(
@@ -219,7 +219,6 @@ class Output(models.Model):
     output_type = models.TextField(choices=OUTPUT_TYPE_CHOICES)
     size = models.PositiveIntegerField(default=0)
     shapefile_path = models.TextField(null=True)
-    shapefile_url = models.TextField(null=True)
     min_value = models.FloatField(null=True)
     max_value = models.FloatField(null=True)
     last_update = models.DateTimeField(editable=False, default=datetime.utcnow)
