@@ -121,7 +121,6 @@ def create_inputs(upload_uuid):
 
     return inputs
 
-
 class JobConfigWriterClassicalTestCase(unittest.TestCase):
 
     @classmethod
@@ -210,13 +209,35 @@ class JobConfigWriterClassicalTestCase(unittest.TestCase):
             os.path.abspath(out_path),
             os.path.abspath(path_to_new_cfg_file))
 
+        self._test_config_files_are_the_same(expected_config, path_to_new_cfg_file)
+
+    def test_classical_config_file_generation_with_vuln_imls(self):
+        """
+        Test that the config file output has the proper IML values,
+        as determined by the job's vulnerability model.
+        """
+        expected_config = tests.test_data_path('config_with_vuln_imls.gem')
+
+        cfg_writer = config_writer.JobConfigWriter(
+            self.oqjob.id,
+            derive_imls_from_vuln=True,
+            num_of_derived_imls=15)
+
+        path_to_new_cfg_file = cfg_writer.serialize()
+
+        self._test_config_files_are_the_same(expected_config, path_to_new_cfg_file)
+
+    def _test_config_files_are_the_same(self, expected_file, actual_file):
+        """
+        Given two *.gem config files, compare their contents and use test assertions to determine if they are the same.
+        """
         # now compare the new file with the expected file
         exp_parser = ConfigParser()
-        exp_fh = open(expected_config, 'r')
+        exp_fh = open(expected_file, 'r')
         exp_parser.readfp(exp_fh)
 
         actual_parser = ConfigParser()
-        act_fh = open(out_path, 'r')
+        act_fh = open(actual_file, 'r')
         actual_parser.readfp(act_fh)
 
         # now compare the actual configuration items
@@ -235,9 +256,5 @@ class JobConfigWriterClassicalTestCase(unittest.TestCase):
             exp_fh.close()
             act_fh.close()
 
-    def test_classical_config_file_generation_with_vuln_imls(self):
-        """
-        Test that the config file output has the proper IML values,
-        as determined by the job's vulnerability model.
-        """
-        pass
+        
+        
