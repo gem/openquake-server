@@ -31,6 +31,38 @@ from utils.oqrunner.config_writer import (_enum_translate,
     _float_list_to_str, _polygon_to_coord_string, _get_iml_bounds_from_vuln_file, _lower_bound, _upper_bound)
 
 
+class JobConfigWriterTestCase(unittest.TestCase):
+    """
+    This suite contains general tests for the
+    :py:class:`utils.oqrunner.config_writer.JobConfigWriter` class.
+    """
+
+    def test_constructor_raises(self):
+        """
+        The JobConfigWriter constructor should raise an AssertionError if the
+        'num_of_derived_imls' parameter is specified with an invalid value.
+        """
+        fake_job_id = 1234
+
+        self.assertRaises(AssertionError, config_writer.JobConfigWriter, fake_job_id,
+            derive_imls_from_vuln=True, num_of_derived_imls=0)
+        self.assertRaises(AssertionError, config_writer.JobConfigWriter, fake_job_id,
+            derive_imls_from_vuln=True, num_of_derived_imls=1)
+        self.assertRaises(AssertionError, config_writer.JobConfigWriter, fake_job_id,
+            derive_imls_from_vuln=True, num_of_derived_imls=-1)
+
+
+    def test_constructor_with_valid_input(self):
+        """
+        Test that the JobConfigWriter constructor does not throw any errors with known-good
+        input combinations.
+        """
+        config_writer.JobConfigWriter(1234, derive_imls_from_vuln=True, num_of_derived_imls=2)
+        config_writer.JobConfigWriter(1234, derive_imls_from_vuln=True, num_of_derived_imls=25)
+        # num_of_derived_imls should be ignored if derive_imls_from_vuln is not set to True
+        config_writer.JobConfigWriter(1234, num_of_derived_imls=-2)
+
+
 class JobConfigWriterClassicalTestCase(unittest.TestCase):
     """
     This suite of tests exercises funcionality related to the generation of
