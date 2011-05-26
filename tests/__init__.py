@@ -23,4 +23,5 @@ import os
 TEST_DATA_BASE_PATH = "tests/data"
 
 test_data_path = lambda file: os.path.join(TEST_DATA_BASE_PATH, file)
-test_fail_data_path = lambda file: os.path.join(TEST_DATA_BASE_PATH, "failures", file)
+test_fail_data_path = lambda file: os.path.join(
+    TEST_DATA_BASE_PATH, "failures", file)
