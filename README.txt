@@ -5,6 +5,7 @@ Dependencies
 
  * django
  * psycopg2
+ * lxml
  * nose (for running tests)
 
 Package Structure

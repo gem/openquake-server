@@ -31,13 +31,14 @@ import simplejson
 import subprocess
 from urlparse import urljoin
 
+import utils
+
 from django.conf import settings
 from django.contrib.gis.geos import GEOSGeometry
 from django.http import HttpResponse, Http404
 from django.views.decorators.csrf import csrf_exempt
 
 from geonode.mtapi.models import Input, OqJob, OqParams, Upload
-from geonode.mtapi import utils
 
 
 @csrf_exempt
@@ -394,11 +395,11 @@ def oq_job_result(request, job_id):
             else:
                 job.status = "failed"
                 job.save()
-                result = prepare_job_result(job)
+                result = simplejson.dumps(prepare_job_result(job))
                 print "OpenQuake job failed, process not found.."
                 return HttpResponse(result, status=500, mimetype="text/html")
         else:
-            result = prepare_job_result(job)
+            result = simplejson.dumps(prepare_job_result(job))
             if job.status == "failed":
                 print "OpenQuake job failed.."
                 return HttpResponse(result, status=500, mimetype="text/html")
@@ -430,7 +431,7 @@ def prepare_job_result(job):
         result['files'] = files
 
     print("result: %s\n" % pprint.pformat(result))
-    return simplejson.dumps(result)
+    return result
 
 
 def prepare_map_result(output):

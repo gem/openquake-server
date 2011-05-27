@@ -27,10 +27,11 @@ import mock
 import os
 import unittest
 
+import utils
+
 from django.conf import settings
 
 from geonode.mtapi.models import OqJob, Upload
-from geonode.mtapi import utils
 from geonode.mtapi.views import (
     prepare_job, prepare_job_result, prepare_map_result, start_job)
 
@@ -57,7 +58,7 @@ def get_post_params(additional_fields=None):
             "component": "average",
             "imt": "pga",
             "truncation_type": "none",
-            "truncation_level": 3,
+            "truncation_level": None,
             "reference_v30_value": 800,
             "imls": [0.2, 0.02, 0.01],
             "poes": [0.2, 0.02, 0.01],
@@ -89,8 +90,8 @@ class PrepareJobResultTestCase(unittest.TestCase, DbTestMixin):
         self.upload = job.oq_params.upload
         job.status = "failed"
         self.assertEqual(
-            '{"msg": "Calculation failed", "status": "failure", '
-            '"id": %s}' % job.id,
+            {"msg": "Calculation failed", "status": "failure",
+             "id": job.id},
             prepare_job_result(job))
 
     def test_prepare_job_result_with_succeeded_no_maps(self):
@@ -103,8 +104,8 @@ class PrepareJobResultTestCase(unittest.TestCase, DbTestMixin):
         self.upload = job.oq_params.upload
         job.status = "succeeded"
         self.assertEqual(
-            '{"msg": "Calculation succeeded", "status": "success", '
-            '"id": %s, "files": []}' % job.id,
+            {"msg": "Calculation succeeded", "status": "success",
+            "id": job.id, "files": []},
             prepare_job_result(job))
 
     def test_prepare_job_result_with_succeeded_and_map_wo_shapefile(self):
@@ -116,8 +117,8 @@ class PrepareJobResultTestCase(unittest.TestCase, DbTestMixin):
         self.job_to_teardown = job = hazard_map.oq_job
         job.status = "succeeded"
         self.assertEqual(
-            '{"msg": "Calculation succeeded", "status": "success", '
-            '"id": %s, "files": []}' % job.id,
+            {"msg": "Calculation succeeded", "status": "success",
+            "id": job.id, "files": []},
             prepare_job_result(job))
 
     def test_prepare_job_result_with_succeeded_and_maps(self):
@@ -138,21 +139,27 @@ class PrepareJobResultTestCase(unittest.TestCase, DbTestMixin):
             os.path.basename(loss_map.shapefile_path))
         loss_file = os.path.basename(loss_map.path)
         job.status = "succeeded"
-        expected = (
-            '{"msg": "Calculation succeeded", "status": "success", "id": %s, '
-            '"files": [{"layer": {"layer": "geonode:%s", "ows": '
-            '"http://gemsun02.ethz.ch/geoserver-geonode-dev/ows"}, "name": '
-            '"%s", "min": %s, "max": %s, "type": "hazard map", "id": %s}, '
-            '{"layer": {"layer": "geonode:%s", "ows": '
-            '"http://gemsun02.ethz.ch/geoserver-geonode-dev/ows"}, "name": '
-            '"%s", "min": %s, "max": %s, "type": "loss map", "id": %s}]}'
-                % (job.id, hazard_layer, hazard_file,
-                   utils.round_float(hazard_map.min_value),
-                   utils.round_float(hazard_map.max_value),
-                   hazard_map.id,
-                   loss_layer, loss_file,
-                   utils.round_float(loss_map.min_value),
-                   utils.round_float(loss_map.max_value), loss_map.id))
+        expected = {'files': [
+            {'id': hazard_map.id,
+            'layer': {'layer': u'geonode:%s' % hazard_layer,
+                      'ows': \
+                        'http://gemsun02.ethz.ch/geoserver-geonode-dev/ows'},
+            'max': utils.round_float(hazard_map.max_value),
+            'min': utils.round_float(hazard_map.min_value),
+            'name': u'%s' % hazard_file,
+            'type': u'hazard map'},
+            {'id': loss_map.id,
+            'layer': {'layer': u'geonode:%s' % loss_layer,
+                      'ows': \
+                        'http://gemsun02.ethz.ch/geoserver-geonode-dev/ows'},
+            'max': utils.round_float(loss_map.max_value),
+            'min': utils.round_float(loss_map.min_value),
+            'name': u'%s' % loss_file,
+            'type': u'loss map'}],
+            'id': job.id,
+            'msg': u'Calculation succeeded',
+            'status': 'success'}
+
         actual = prepare_job_result(job)
         self.assertEqual(expected, actual)
 

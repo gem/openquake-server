@@ -26,174 +26,54 @@ import uuid
 
 from ConfigParser import ConfigParser
 from django.contrib.gis import geos
-from geonode.mtapi import models as mt_models
-from geonode.mtapi import utils
 from utils.oqrunner import config_writer
+from utils.oqrunner.config_writer import (_enum_translate,
+    _float_list_to_str, _polygon_to_coord_string,
+    _get_iml_bounds_from_vuln_file, _lower_bound, _upper_bound)
 
 
-TEST_OWNER_ID = 1
-TEST_OUTPUT_BASE_PATH = "tests/output/"
-TEST_JOB_PID = 1
-
-TEST_PARAMS = {
-    'CALCULATION_MODE': 'classical',
-    'REGION_VERTEX': geos.Polygon(
-        ((-122.2, 38.0), (-121.7, 38.0), (-121.7, 37.5),
-         (-122.2, 37.5), (-122.2, 38.0))),
-    'REGION_GRID_SPACING': 0.01,
-    'MINIMUM_MAGNITUDE': 5.0,
-    'INVESTIGATION_TIME': 50.0,
-    'COMPONENT': 'gmroti50',
-    'INTENSITY_MEASURE_TYPE': 'pga',
-    'GMPE_TRUNCATION_TYPE': 'twosided',
-    'TRUNCATION_LEVEL': '3',
-    'REFERENCE_VS30_VALUE': '760.0',
-    'INTENSITY_MEASURE_LEVELS': [0.005, 0.007, 0.0098, 0.0137, 0.0192,
-        0.0269, 0.0376, 0.0527, 0.0738, 0.103, 0.145, 0.203, 0.284,
-        0.397, 0.556, 0.778],
-    'POES': [0.01, 0.10],
-    'NUMBER_OF_LOGIC_TREE_SAMPLES': 1}
-
-
-# This is a pre-existing example file we'll use to validate the file we create
-EXPECTED_OUTPUT_FILE = "data/expected-config.gem"
-
-# Upload dir
-upload_dir_path = lambda upload_uuid: os.path.join(
-    TEST_OUTPUT_BASE_PATH, upload_uuid)
-
-# A file in the input dir
-upload_file_path = lambda upload_uuid, file: os.path.join(
-    upload_dir_path(upload_uuid), file)
-
-# Job folder within the upload dir
-job_dir_path = lambda upload_uuid, job_id: os.path.join(
-    upload_dir_path(upload_uuid), job_id)
-
-
-def create_inputs(upload_uuid):
+class JobConfigWriterTestCase(unittest.TestCase):
     """
-    Create some sample :py:class:`geonode.mtapi.models.Input` objects for the
-    test case.
-
-    This function will copy the input files from the base data directory
-    to a unique temporary directory for the test.
+    This suite contains general tests for the
+    :py:class:`utils.oqrunner.config_writer.JobConfigWriter` class.
     """
-    exposure_path = upload_file_path(upload_uuid, 'exposure.xml')
-    exposure = mt_models.Input(
-        owner_id=TEST_OWNER_ID,
-        path=exposure_path,
-        input_type='exposure')
 
-    vuln_path = upload_file_path(upload_uuid, 'vulnerability.xml')
-    vuln = mt_models.Input(
-        owner_id=TEST_OWNER_ID,
-        path=vuln_path,
-        input_type='vulnerability')
+    def test_constructor_raises(self):
+        """
+        The JobConfigWriter constructor should raise an AssertionError if the
+        'num_of_derived_imls' parameter is specified with an invalid value.
+        """
+        fake_job_id = 1234
 
-    src_ltree_path = upload_file_path(
-        upload_uuid, 'source-model-logic-tree.xml')
-    src_ltree = mt_models.Input(
-        owner_id=TEST_OWNER_ID,
-        path=src_ltree_path,
-        input_type='lt_source')
+        self.assertRaises(AssertionError, config_writer.JobConfigWriter,
+            fake_job_id, derive_imls_from_vuln=True, num_of_derived_imls=0)
+        self.assertRaises(AssertionError, config_writer.JobConfigWriter,
+            fake_job_id, derive_imls_from_vuln=True, num_of_derived_imls=1)
+        self.assertRaises(AssertionError, config_writer.JobConfigWriter,
+            fake_job_id, derive_imls_from_vuln=True, num_of_derived_imls=-1)
 
-    gmpe_ltree_path = upload_file_path(upload_uuid, 'gmpe-logic-tree.xml')
-    gmpe_ltree = mt_models.Input(
-        owner_id=TEST_OWNER_ID,
-        path=gmpe_ltree_path,
-        input_type='lt_gmpe')
-
-    source_path = upload_file_path(upload_uuid, 'source-model.xml')
-    source = mt_models.Input(
-        owner_id=TEST_OWNER_ID,
-        path=source_path,
-        input_type='source')
-
-    inputs = (exposure, vuln, src_ltree, gmpe_ltree, source)
-
-    # copy the files to the test location and get the file size
-    for i in inputs:
-        file_name = os.path.basename(i.path)
-        file_path = tests.test_data_path(file_name)
-        shutil.copy(file_path, i.path)
-        i.size = os.path.getsize(i.path)
-
-    return inputs
+    def test_constructor_with_valid_input(self):
+        """
+        Test that the JobConfigWriter constructor does not throw any errors
+        with known-good input combinations.
+        """
+        config_writer.JobConfigWriter(
+            1234, derive_imls_from_vuln=True, num_of_derived_imls=2)
+        config_writer.JobConfigWriter(
+            1234, derive_imls_from_vuln=True, num_of_derived_imls=25)
+        # num_of_derived_imls should be ignored if derive_imls_from_vuln is not
+        # set to True
+        config_writer.JobConfigWriter(1234, num_of_derived_imls=-2)
 
 
 class JobConfigWriterClassicalTestCase(unittest.TestCase):
     """
-    This suite of tests exercises the generation of config.gem files for
-    'Classical' calculations.
+    This suite of tests exercises funcionality related to the generation of
+    config.gem files for 'Classical' calculations. This suite does not include
+    tests which require database interaction. See
+    :py:module:`db_tests.config_writer_unittest` for the corresponding database
+    tests.
     """
-
-    @classmethod
-    def setUpClass(cls):
-        """
-        One-time setup for test data.
-        """
-
-        cls.upload_uuid = str(uuid.uuid4())
-        cls.upload_dir = upload_dir_path(cls.upload_uuid)
-        # create the unique upload dir
-        os.mkdir(cls.upload_dir)
-
-        # this sets up the basic params for a Classical PSHA calculation
-        cls.oqparams = mt_models.OqParams(
-            job_type=TEST_PARAMS['CALCULATION_MODE'],
-            region=TEST_PARAMS['REGION_VERTEX'],
-            region_grid_spacing=TEST_PARAMS['REGION_GRID_SPACING'],
-            min_magnitude=TEST_PARAMS['MINIMUM_MAGNITUDE'],
-            investigation_time=TEST_PARAMS['INVESTIGATION_TIME'],
-            component=TEST_PARAMS['COMPONENT'],
-            imt=TEST_PARAMS['INTENSITY_MEASURE_TYPE'],
-            truncation_type=TEST_PARAMS['GMPE_TRUNCATION_TYPE'],
-            truncation_level=TEST_PARAMS['TRUNCATION_LEVEL'],
-            reference_vs30_value=TEST_PARAMS['REFERENCE_VS30_VALUE'],
-            imls=TEST_PARAMS['INTENSITY_MEASURE_LEVELS'],
-            poes=TEST_PARAMS['POES'],
-            realizations=TEST_PARAMS['NUMBER_OF_LOGIC_TREE_SAMPLES'])
-
-        cls.oqjob = mt_models.OqJob(
-            owner_id=TEST_OWNER_ID,
-            description='Test job for upload %s' % cls.upload_uuid,
-            job_pid=TEST_JOB_PID,
-            job_type='classical')
-
-        cls.upload = \
-            mt_models.Upload(
-                owner_id=TEST_OWNER_ID,
-                path=cls.upload_dir,
-                job_pid=TEST_JOB_PID)
-
-        # load the test data into the db
-        # once some of the pieces are saved, we'll need to set ids
-        # of subsequent records to resolve foreign key dependencies
-
-        cls.upload.save()
-
-        cls.oqparams.upload_id = cls.upload.id
-        cls.oqparams.save()
-
-        cls.oqjob.oq_params_id = cls.oqparams.id
-        cls.oqjob.save()
-
-        # now that we have a oq_job.id, set the job path to upload_path/job_id:
-        cls.oqjob.path = os.path.join(cls.upload.path, str(cls.oqjob.id))
-        # update the oq_job record
-        cls.oqjob.save()
-
-        # Create the job folder underneath the upload folder.
-        # The folder structure needs to be in place before the config writer
-        # goes to work.
-        cls.job_dir = os.path.join(cls.upload_dir, str(cls.oqjob.id))
-        os.mkdir(cls.job_dir)
-
-        cls.inputs = create_inputs(cls.upload_uuid)
-        for item in cls.inputs:
-            item.upload_id = cls.upload.id
-            item.save()
 
     def test_write_params(self):
         """
@@ -220,61 +100,22 @@ class JobConfigWriterClassicalTestCase(unittest.TestCase):
                 # we expected the str equivalent of whatever the value is
                 self.assertEqual(str(v), cfg_parser.get(section, k))
 
-    def test_classical_config_file_generation(self):
-        """
-        This is somewhat of a 'blackbox' test. We have an existing 'expected'
-        config file; given our sample data (which this test suite has loaded
-        into the database), we simply generate a config file and compare it to
-        the expected file.
-        """
-        out_path = os.path.join(self.job_dir, 'config.gem')
-        expected_config = tests.test_data_path('expected_config.gem')
-
-        cfg_writer = config_writer.JobConfigWriter(self.oqjob.id)
-
-        path_to_new_cfg_file = cfg_writer.serialize()
-
-        # check that the result directory is what we specified
-        self.assertEqual(
-            os.path.abspath(out_path),
-            os.path.abspath(path_to_new_cfg_file))
-
-        # now compare the new file with the expected file
-        exp_parser = ConfigParser()
-        exp_fh = open(expected_config, 'r')
-        exp_parser.readfp(exp_fh)
-
-        actual_parser = ConfigParser()
-        act_fh = open(out_path, 'r')
-        actual_parser.readfp(act_fh)
-
-        # now compare the actual configuration items
-        for section in ('general', 'HAZARD', 'RISK'):
-            exp_items = exp_parser.items(section)
-            actual_items = actual_parser.items(section)
-
-            exp_items.sort()
-            actual_items.sort()
-
-            for ctr, _ in enumerate(exp_items):
-                exp = exp_items[ctr]
-                act = actual_items[ctr]
-                self.assertEqual(exp, act)
-
-            exp_fh.close()
-            act_fh.close()
-
 
 class ConfigWriterUtilsTestCase(unittest.TestCase):
     """
     Exercises the module-level utility functions of
     :py:module:`oqrunner.config_writer`.
     """
-    def test_polygon_to_coord_string(self):
-        expected_str = '38.0, -122.2, 38.0, -121.7, 37.5, -121.7, 37.5, -122.2'
-        polygon = TEST_PARAMS['REGION_VERTEX']
 
-        actual_str = config_writer.polygon_to_coord_string(polygon)
+    def test_polygon_to_coord_string(self):
+        # Note that the lon,lat order is reversed in the expected string
+        # (compared to the polygon below).
+        expected_str = '38.0, -122.2, 38.0, -121.7, 37.5, -121.7, 37.5, -122.2'
+        polygon = geos.Polygon(
+            ((-122.2, 38.0), (-121.7, 38.0), (-121.7, 37.5),
+             (-122.2, 37.5), (-122.2, 38.0)))
+
+        actual_str = _polygon_to_coord_string(polygon)
         self.assertEqual(expected_str, actual_str)
 
     def test_float_list_to_str(self):
@@ -282,7 +123,7 @@ class ConfigWriterUtilsTestCase(unittest.TestCase):
         delimiter = '~! '
 
         expected = '0.1~! 0.3~! -0.666666~! 3.14159~! -2.17828'
-        self.assertEqual(expected, config_writer.float_list_to_str(
+        self.assertEqual(expected, _float_list_to_str(
             floats, delimiter))
 
     def test_enum_translate(self):
@@ -307,4 +148,100 @@ class ConfigWriterUtilsTestCase(unittest.TestCase):
 
         for ctr, in_item in enumerate(in_list):
             self.assertEqual(
-                config_writer.enum_translate(in_item), out_list[ctr])
+                _enum_translate(in_item), out_list[ctr])
+
+
+class VulnerabilityIMLsTestCase(unittest.TestCase):
+
+    TEST_VULN_GOOD = tests.test_data_path('vulnerability.xml')
+
+    # Doesn't not contain enough IML values
+    TEST_VULN_NOT_ENOUGH_IMLS = tests.test_fail_data_path(
+        'vuln_not_enough_imls.xml')
+
+    # Contains improperly ordered IML values
+    TEST_VULN_BAD_IML_ORDER = tests.test_fail_data_path(
+        'vuln_bad_iml_order.xml')
+
+    # Contains negative and 0.0 IML values
+    TEST_VULN_BAD_IMLS = tests.test_fail_data_path('vuln_bad_imls.xml')
+
+    def test_lower_bound(self):
+        """
+        Test _lower_bound with known-good inputs.
+        """
+        expected_lower_bound = 0.0657675
+
+        lower_bound = _lower_bound(0.0672981496848, 0.0703593786689)
+
+        self.assertEqual(expected_lower_bound, lower_bound)
+
+    def test_lower_bound_raises(self):
+        """
+        Test that the _lower_bound function raises an AssertionError when the
+        computed lower_bound value is <= 0.0.
+        """
+        # gives a lower bound of 0.0
+        self.assertRaises(AssertionError, _lower_bound, 1, 3)
+        # gives a negative lower bound
+        self.assertRaises(AssertionError, _lower_bound, 1, 5)
+
+    def test_upper_bound(self):
+        """
+        Test _upper_bound with known-good inputs.
+        """
+        expected_upper_bound = 5.62235
+
+        upper_bound = _upper_bound(5.50264416787, 5.26323253716)
+
+        self.assertEqual(expected_upper_bound, upper_bound)
+
+    def test_upper_bound_raises(self):
+        """
+        Test that the _upper_bound function raises an AssertionError when the
+        computed upper_bound value is <= 0.0.
+        """
+        # gives an upper bound of 0.0
+        self.assertRaises(AssertionError, _upper_bound, 2, 6)
+        # gives a negative upper bound
+        self.assertRaises(AssertionError, _upper_bound, 1, 5)
+
+    def test_get_iml_bounds_with_good_vuln_file(self):
+        """
+        Test calculation of IML bounds from a known-good vulnerability file.
+        """
+        exp_lb = 0.07414
+        exp_ub = 1.62586
+
+        actual_lb, actual_ub = _get_iml_bounds_from_vuln_file(
+            self.TEST_VULN_GOOD)
+
+        self.assertEqual(exp_lb, actual_lb)
+        self.assertEqual(exp_ub, actual_ub)
+
+    def test_get_iml_bounds_raises_when_not_enough_imls(self):
+        """
+        If a vulnerability file contains less than 2 IMLs values in a given IML
+        set, an AssertionError should be raised.
+        """
+        self.assertRaises(
+            AssertionError, _get_iml_bounds_from_vuln_file,
+            self.TEST_VULN_NOT_ENOUGH_IMLS)
+
+    def test_get_iml_bounds_raises_when_imls_are_not_in_asc_order(self):
+        """
+        If the IMLs in a given IML set are not arranged in ascending order
+        (where no two values are equal), an AssertionError should be raised.
+        """
+        self.assertRaises(
+            AssertionError, _get_iml_bounds_from_vuln_file,
+            self.TEST_VULN_BAD_IML_ORDER)
+
+    def test_get_iml_bounds_raises_on_invalid_imls(self):
+        """
+        If a vulnerability file contains IML values <= 0.0, an AssertionError
+        should be raised.
+        """
+        self.assertRaises(
+            AssertionError, _get_iml_bounds_from_vuln_file,
+            self.TEST_VULN_BAD_IMLS)

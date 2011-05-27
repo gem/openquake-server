@@ -41,10 +41,12 @@ import os
 import pprint
 import re
 import sys
+
+import utils
+
 from urlparse import urljoin
 
 from django.conf import settings
-from geonode.mtapi import utils
 from geonode.mtapi.models import OqJob, Output
 from utils.oqrunner import config_writer
 

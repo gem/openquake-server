@@ -28,7 +28,7 @@ import os
 import random
 import shutil
 
-from geonode.mtapi import utils
+import utils
 from geonode.mtapi.models import Input, OqJob, OqParams, Output, Upload
 
 from tests.helpers import TestMixin
@@ -54,7 +54,7 @@ class DbTestMixin(TestMixin):
             ("source_model2.xml", "source"),
             ("source_model_logic_tree.xml", "lt_source"),
             ("vulnerability.xml", "vulnerability")]
-        upload = utils.prepare_upload("/tmp")
+        upload = utils.prepare_upload()
         for file, type in files:
             path = os.path.join(upload.path, file)
             # This is equivalent to what the touch command does.
