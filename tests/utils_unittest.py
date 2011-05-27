@@ -48,27 +48,47 @@ class ScalesTestCase(unittest.TestCase):
 
         self.assertEqual(expected_scale, scale)
 
-    def test_log_scale_raises_on_invalid_input(self):
+    def test_log_scale_raises_when_n_lt_2(self):
         """
         This test ensures that :py:function:`utils.log_scale` raises
-        errors on invalid input.
+        errors when 'n' is less than two ('n' indicates the length of the
+        generated scale).
         """
         # args are in the order: lower_bound, upper_bound, n (num of elements)
+        self.assertRaises(AssertionError, log_scale, 0.01, 0.1, 1)
 
-        # lower_bound cannot be 0
+    def test_log_scale_raises_when_lb_is_0(self):
+        """
+        This test ensures that :py:function:`utils.log_scale` raises
+        errors when lower bound is 0.0.
+        """
         self.assertRaises(AssertionError, log_scale, 0, 3.14, 10)
 
-        # upper_bound cannot be 0
+    def test_log_scale_raises_when_ub_is_0(self):
+        """
+        This test ensures that :py:function:`utils.log_scale` raises
+        errors when upper bound is 0.0.
+        """
         self.assertRaises(AssertionError, log_scale, 0.1, 0, 10)
 
-        # lower_bound and upperbound cannot both be 0
+    def test_log_scale_raises_when_bounds_are_0(self):
+        """
+        This test ensures that :py:function:`utils.log_scale` raises
+        errors when lower bound and upper bound are both 0.0.
+        """
         self.assertRaises(AssertionError, log_scale, 0, 0, 10)
 
-        # upper_bound must be > lower_bound
-        # test: lower_bound > upper_bound
+    def test_log_scale_raises_when_lb_gt_ub(self):
+        """
+        This test ensures that :py:function:`utils.log_scale` raises
+        errors when lower bound > the upper bound.
+        """
         self.assertRaises(AssertionError, log_scale, 0.1, 0.01, 10)
-        # test: lower_bound == upper_bound
+
+    def test_log_scale_raises_when_lb_eq_ub(self):
+        """
+        This test ensures that :py:function:`utils.log_scale` raises
+        errors when lower bound == upper bound
+        """
         self.assertRaises(AssertionError, log_scale, 0.1, 0.1, 10)
 
-        # n must be >= 2
-        self.assertRaises(AssertionError, log_scale, 0.01, 0.1, 1)
