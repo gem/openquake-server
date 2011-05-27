@@ -24,6 +24,7 @@ Unit tests for the geonode/mtapi/utils.py module.
 
 
 import subprocess
+import sys
 import unittest
 
 from geonode.mtapi.utils import is_process_running, run_cmd
@@ -38,7 +39,10 @@ class IsProcessRunningTestCase(unittest.TestCase):
 
     def test_is_process_running_with_matching_pattern(self):
         """pid and name pattern should match the init process."""
-        self.assertTrue(is_process_running(1, "init"))
+        if sys.platform == "darwin":
+            self.assertTrue(is_process_running(1, "launchd"))
+        else:
+            self.assertTrue(is_process_running(1, "init"))
 
     def test_is_process_running_with_non_matching_pattern(self):
         """
@@ -66,22 +70,50 @@ class RunCmdTestCase(unittest.TestCase):
         self.assertEqual("", err)
 
     def test_run_cmd_with_errors(self):
-        """Invoke a command with errors."""
+        """
+        Invoke a command with errors.
+
+        This is handled in a slightly diferent way depending on the platform.
+
+        In Linux, the command we will test is considered a 'misuse of shell
+        built-ins' resulting in a exit code 2, according to this source:
+        http://tldp.org/LDP/abs/html/exitcodes.html
+
+        However, OSX considers this be a general error and returns an exit code
+        of 1. Also, the actual error message is slightly different.
+        """
+        if sys.platform == "darwin":
+            expected_msg = (
+                "['ls', '-AF', '/this/does/not/exist'] terminated with "
+                "exit code: 1\nls: /this/does/not/exist: No "
+                "such file or directory\n")
+        else:
+            expected_msg = (
+                "['ls', '-AF', '/this/does/not/exist'] terminated with "
+                "exit code: 2\nls: cannot access /this/does/not/exist: No "
+                "such file or directory\n")
+
         try:
             code, out, err = run_cmd(["ls", "-AF", "/this/does/not/exist"])
         except Exception, e:
-            self.assertEqual(
-                "['ls', '-AF', '/this/does/not/exist'] terminated with exit "
-                "code: 2\nls: cannot access /this/does/not/exist: No such "
-                "file or directory\n", e.args[0])
+            self.assertEqual(expected_msg, e.args[0])
         else:
             raise Exception("exception not raised")
 
     def test_run_cmd_with_errors_and_ignore_exit_code(self):
         """Invoke a command with errors but ignore the exit code."""
+        if sys.platform == "darwin":
+            expected_code = 1
+            expected_msg = \
+                "ls: /this/does/not/exist: No such file or directory\n"
+        else:
+            expected_code = 2
+            expected_msg = (
+                "ls: cannot access /this/does/not/exist: No such "
+                "file or directory\n")
+
         code, out, err = run_cmd(
             ["ls", "-AF", "/this/does/not/exist"], ignore_exit_code=True)
-        self.assertEqual(2, code)
+        self.assertEqual(expected_code, code)
         self.assertEqual("", out)
-        self.assertEqual("ls: cannot access /this/does/not/exist: No such "
-                         "file or directory\n", err)
+        self.assertEqual(expected_msg, err)

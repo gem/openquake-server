@@ -87,7 +87,7 @@ class ExtractResultsTestCase(unittest.TestCase):
     def test_extract_results_with_malformed_stdout(self):
         """The minimum/maximum values are extracted correctly."""
         sample = "malformed stdout"
-        self.assertIs(None, extract_results(sample))
+        self.assertTrue(extract_results(sample) is None)
 
 
 class DetectOutputTypeTestCase(unittest.TestCase):

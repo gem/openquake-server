@@ -20,7 +20,7 @@
 
 import unittest
 
-from utils import log_scale
+from num_utils import log_scale
 
 
 class ScalesTestCase(unittest.TestCase):

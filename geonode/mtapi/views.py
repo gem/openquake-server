@@ -396,11 +396,11 @@ def oq_job_result(request, job_id):
             else:
                 job.status = "failed"
                 job.save()
-                result = prepare_job_result(job)
+                result = simplejson.dumps(prepare_job_result(job))
                 print "OpenQuake job failed, process not found.."
                 return HttpResponse(result, status=500, mimetype="text/html")
         else:
-            result = prepare_job_result(job)
+            result = simplejson.dumps(prepare_job_result(job))
             if job.status == "failed":
                 print "OpenQuake job failed.."
                 return HttpResponse(result, status=500, mimetype="text/html")
@@ -432,7 +432,7 @@ def prepare_job_result(job):
         result['files'] = files
 
     print("result: %s\n" % pprint.pformat(result))
-    return simplejson.dumps(result)
+    return result
 
 
 def prepare_map_result(output):
