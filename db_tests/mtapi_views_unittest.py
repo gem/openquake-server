@@ -27,7 +27,7 @@ import mock
 import os
 import unittest
 
-import utils
+import num_utils
 
 from django.conf import settings
 
@@ -58,7 +58,7 @@ def get_post_params(additional_fields=None):
             "component": "average",
             "imt": "pga",
             "truncation_type": "none",
-            "truncation_level": 3,
+            "truncation_level": None,
             "reference_v30_value": 800,
             "imls": [0.2, 0.02, 0.01],
             "poes": [0.2, 0.02, 0.01],
@@ -148,12 +148,12 @@ class PrepareJobResultTestCase(unittest.TestCase, DbTestMixin):
             '"http://gemsun02.ethz.ch/geoserver-geonode-dev/ows"}, "name": '
             '"%s", "min": %s, "max": %s, "type": "loss map", "id": %s}]}'
                 % (job.id, hazard_layer, hazard_file,
-                   utils.round_float(hazard_map.min_value),
-                   utils.round_float(hazard_map.max_value),
+                   num_utils.round_float(hazard_map.min_value),
+                   num_utils.round_float(hazard_map.max_value),
                    hazard_map.id,
                    loss_layer, loss_file,
-                   utils.round_float(loss_map.min_value),
-                   utils.round_float(loss_map.max_value), loss_map.id))
+                   num_utils.round_float(loss_map.min_value),
+                   num_utils.round_float(loss_map.max_value), loss_map.id))
         actual = prepare_job_result(job)
         self.assertEqual(expected, actual)
 
@@ -268,8 +268,8 @@ class PrepareMapResultTestCase(unittest.TestCase, DbTestMixin):
                 "layer": "geonode:%s" % layer,
                 "ows": "http://gemsun02.ethz.ch/geoserver-geonode-dev/ows"},
             "name": name,
-            "min": utils.round_float(self.output.min_value),
-            "max": utils.round_float(self.output.max_value),
+            "min": num_utils.round_float(self.output.min_value),
+            "max": num_utils.round_float(self.output.max_value),
             "type": type,
             "id": self.output.id}
 
@@ -295,8 +295,8 @@ class PrepareMapResultTestCase(unittest.TestCase, DbTestMixin):
                 "layer": "geonode:%s" % layer,
                 "ows": "http://gemsun02.ethz.ch/geoserver-geonode-dev/ows"},
             "name": name,
-            "min": utils.round_float(self.output.min_value),
-            "max": utils.round_float(self.output.max_value),
+            "min": num_utils.round_float(self.output.min_value),
+            "max": num_utils.round_float(self.output.max_value),
             "type": type,
             "id": self.output.id}
 
