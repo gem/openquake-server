@@ -27,7 +27,7 @@ import subprocess
 import sys
 import unittest
 
-from geonode.mtapi.utils import is_process_running, run_cmd
+from utils import is_process_running, run_cmd
 
 
 class IsProcessRunningTestCase(unittest.TestCase):

@@ -28,7 +28,7 @@ import os
 import random
 import shutil
 
-from geonode.mtapi import utils
+import utils
 from geonode.mtapi.models import Input, OqJob, OqParams, Output, Upload
 
 from tests.helpers import TestMixin

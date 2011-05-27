@@ -25,7 +25,7 @@ This module provides utilities for generating OpenQuake job config files.
 
 import os
 
-import num_utils
+import utils
 
 from ConfigParser import ConfigParser
 from lxml import etree
@@ -220,10 +220,10 @@ def _lower_bound(iml_1, iml_2):
     :type iml_1: float
     :type iml_2: float
 
-    :py:function:`num_utils.round_float` is used with the calculated bound
+    :py:function:`utils.round_float` is used with the calculated bound
     values to maintain reasonable limits on precision.
     """
-    lower_bound = num_utils.round_float(iml_1 - ((iml_2 - iml_1) / 2))
+    lower_bound = utils.round_float(iml_1 - ((iml_2 - iml_1) / 2))
 
     assert lower_bound > 0.0, \
         "Invalid lower bound '%s': must be > 0.0" % lower_bound
@@ -239,10 +239,10 @@ def _upper_bound(iml_n, iml_n_1):
     :type iml_n: float
     :type iml_n_1: float
 
-    :py:function:`num_utils.round_float` is used with the calculated bound
+    :py:function:`utils.round_float` is used with the calculated bound
     values to maintain reasonable limits on precision.
     """
-    upper_bound = num_utils.round_float(iml_n + ((iml_n - iml_n_1) / 2))
+    upper_bound = utils.round_float(iml_n + ((iml_n - iml_n_1) / 2))
 
     assert upper_bound > 0.0, \
         "Invalid upper bound '%s': must be > 0.0" % upper_bound
@@ -335,6 +335,11 @@ class JobConfigWriter(object):
         num_of_derived_imls=DEFAULT_NUM_OF_DERIVED_IMLS):
         """
 
+
+        :param job_id: ID of a job stored in the uiapi.oq_job table for which
+            we want to generate a job config file.
+        :type job_id: int
+
         :param derive_imls_from_vuln: If True, the INTENSITY_MEASURE_LEVELS
             parameter in the [HAZARD] section of the config file will be
             derived from the IML values in the job vulnerability file. The
@@ -353,11 +358,8 @@ class JobConfigWriter(object):
             NOTE: This parameter should be used only for Classical PSHA
             calculations.    
         :type num_of_derived_imls: int
-
-        :param job_id: ID of a job stored in the uiapi.oq_job table for which
-            we want to generate a job config file.
-        :type job_id: int
         """
+
         self.job_id = job_id
 
         self.derive_imls_from_vuln = derive_imls_from_vuln
@@ -458,7 +460,7 @@ class JobConfigWriter(object):
         lower_bound, upper_bound = \
             _get_iml_bounds_from_vuln_file(vuln_input.path)
 
-        iml_scale = num_utils.log_scale(
+        iml_scale = utils.log_scale(
             lower_bound, upper_bound, self.num_of_derived_imls)
 
         # format the new IML scale properly for the config file

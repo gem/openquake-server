@@ -20,13 +20,13 @@
 
 import unittest
 
-from num_utils import log_scale
+from utils import log_scale
 
 
 class ScalesTestCase(unittest.TestCase):
     """
     This test suite exercise the number scale generation in the
-    :py:module:`utils.scales` module.
+    :py:module:`utils` module.
     """
 
     def test_log_scale(self):
@@ -50,7 +50,7 @@ class ScalesTestCase(unittest.TestCase):
 
     def test_log_scale_raises_on_invalid_input(self):
         """
-        This test ensures that :py:function:`utils.scales.log_scale` raises
+        This test ensures that :py:function:`utils.log_scale` raises
         errors on invalid input.
         """
         # args are in the order: lower_bound, upper_bound, n (num of elements)

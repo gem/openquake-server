@@ -40,7 +40,7 @@ class UpdateLayersTestCase(unittest.TestCase):
     def test_register_shapefiles_in_location(self):
         """run_cmd() is called correctly."""
         expected = settings.OQ_UPDATE_LAYERS_PATH
-        with mock.patch('geonode.mtapi.utils.run_cmd') as mock_func:
+        with mock.patch('utils.run_cmd') as mock_func:
             mock_func.return_value = (0, "", "")
             update_layers()
             self.assertEqual(1, mock_func.call_count)
@@ -62,7 +62,7 @@ class RegisterShapefilesInLocationTestCase(unittest.TestCase):
         expected = (
             "curl -v -u 'admin:@dm1n' -XPUT -H 'Content-type: text/plain' "
             "-d 'file:///a/b/c' '%s'" % url)
-        with mock.patch('geonode.mtapi.utils.run_cmd') as mock_func:
+        with mock.patch('utils.run_cmd') as mock_func:
             mock_func.return_value = (0, "", "")
             register_shapefiles_in_location(location, datastore)
             self.assertEqual(1, mock_func.call_count)

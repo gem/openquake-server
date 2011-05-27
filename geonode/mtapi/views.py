@@ -31,7 +31,6 @@ import simplejson
 import subprocess
 from urlparse import urljoin
 
-import num_utils
 import utils
 
 from django.conf import settings
@@ -455,7 +454,7 @@ def prepare_map_result(output):
     ows = urljoin(settings.GEOSERVER_BASE_URL, "ows")
     result = dict(
         id=output.id, name=os.path.basename(output.path),
-        type=map_type, min=num_utils.round_float(output.min_value),
-        max=num_utils.round_float(output.max_value),
+        type=map_type, min=utils.round_float(output.min_value),
+        max=utils.round_float(output.max_value),
         layer=dict(ows=ows, layer="geonode:%s" % layer_name))
     return result

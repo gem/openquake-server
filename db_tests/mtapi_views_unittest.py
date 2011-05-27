@@ -27,7 +27,7 @@ import mock
 import os
 import unittest
 
-import num_utils
+import utils
 
 from django.conf import settings
 
@@ -144,16 +144,16 @@ class PrepareJobResultTestCase(unittest.TestCase, DbTestMixin):
             'layer': {'layer': u'geonode:%s' % hazard_layer,
                       'ows': \
                         'http://gemsun02.ethz.ch/geoserver-geonode-dev/ows'},
-            'max': num_utils.round_float(hazard_map.max_value),
-            'min': num_utils.round_float(hazard_map.min_value),
+            'max': utils.round_float(hazard_map.max_value),
+            'min': utils.round_float(hazard_map.min_value),
             'name': u'%s' % hazard_file,
             'type': u'hazard map'},
             {'id': loss_map.id,
             'layer': {'layer': u'geonode:%s' % loss_layer,
                       'ows': \
                         'http://gemsun02.ethz.ch/geoserver-geonode-dev/ows'},
-            'max': num_utils.round_float(loss_map.max_value),
-            'min': num_utils.round_float(loss_map.min_value),
+            'max': utils.round_float(loss_map.max_value),
+            'min': utils.round_float(loss_map.min_value),
             'name': u'%s' % loss_file,
             'type': u'loss map'}],
             'id': job.id,
@@ -274,8 +274,8 @@ class PrepareMapResultTestCase(unittest.TestCase, DbTestMixin):
                 "layer": "geonode:%s" % layer,
                 "ows": "http://gemsun02.ethz.ch/geoserver-geonode-dev/ows"},
             "name": name,
-            "min": num_utils.round_float(self.output.min_value),
-            "max": num_utils.round_float(self.output.max_value),
+            "min": utils.round_float(self.output.min_value),
+            "max": utils.round_float(self.output.max_value),
             "type": type,
             "id": self.output.id}
 
@@ -301,8 +301,8 @@ class PrepareMapResultTestCase(unittest.TestCase, DbTestMixin):
                 "layer": "geonode:%s" % layer,
                 "ows": "http://gemsun02.ethz.ch/geoserver-geonode-dev/ows"},
             "name": name,
-            "min": num_utils.round_float(self.output.min_value),
-            "max": num_utils.round_float(self.output.max_value),
+            "min": utils.round_float(self.output.min_value),
+            "max": utils.round_float(self.output.max_value),
             "type": type,
             "id": self.output.id}
 
