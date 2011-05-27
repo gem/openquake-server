@@ -34,7 +34,7 @@ from django.contrib.gis import geos
 
 TEST_OWNER_ID = 1
 TEST_JOB_PID = 1
-TEST_OUTPUT_BASE_PATH = "tests/output/"
+TEST_OUTPUT_BASE_PATH = "/tmp/oqserver_tests"
 
 TEST_PARAMS = {
     'CALCULATION_MODE': 'classical',
@@ -133,7 +133,7 @@ class JobConfigWriterClassicalTestCase(unittest.TestCase):
         cls.upload_uuid = str(uuid.uuid4())
         cls.upload_dir = upload_dir_path(cls.upload_uuid)
         # create the unique upload dir
-        os.mkdir(cls.upload_dir)
+        os.makedirs(cls.upload_dir)
 
         # this sets up the basic params for a Classical PSHA calculation
         cls.oqparams = mt_models.OqParams(
@@ -184,12 +184,19 @@ class JobConfigWriterClassicalTestCase(unittest.TestCase):
         # The folder structure needs to be in place before the config writer
         # goes to work.
         cls.job_dir = os.path.join(cls.upload_dir, str(cls.oqjob.id))
-        os.mkdir(cls.job_dir)
+        os.makedirs(cls.job_dir)
 
         cls.inputs = create_inputs(cls.upload_uuid)
         for item in cls.inputs:
             item.upload_id = cls.upload.id
             item.save()
+
+    @classmethod
+    def tearDownClass(cls):
+        """
+        Remove temporary files created for the tests.
+        """
+        shutil.rmtree(cls.upload_dir, ignore_errors=True)
 
     def test_classical_config_file_generation(self):
         """

@@ -201,9 +201,9 @@ class ProcessMapTestCase(unittest.TestCase, DbTestMixin):
             mock_func.return_value = (
                 1, "", "failed to generate shapefile")
             process_map(hazard_map)
-            self.assertIs(None, hazard_map.shapefile_path)
-            self.assertIs(None, hazard_map.min_value)
-            self.assertIs(None, hazard_map.max_value)
+            self.assertTrue(hazard_map.shapefile_path is None)
+            self.assertTrue(hazard_map.min_value is None)
+            self.assertTrue(hazard_map.max_value is None)
 
 
 class FindMapsTestCase(unittest.TestCase, DbTestMixin):
