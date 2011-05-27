@@ -341,11 +341,17 @@ class JobConfigWriter(object):
             scale of IMLs will be logarithmic.
 
             This parameter is optional. Default is False.
+
+            NOTE: This parameter should be used only for Classical PSHA
+            calculations.
         :type derive_imls_from_vuln: bool
 
         :param num_of_derived_imls: If derive_imls_from_vuln is True, the
             number of derived IMLs can be specified. If derive_imls_from_vuln
             is False, this parameter will be ignored.
+
+            NOTE: This parameter should be used only for Classical PSHA
+            calculations.    
         :type num_of_derived_imls: int
 
         :param job_id: ID of a job stored in the uiapi.oq_job table for which
