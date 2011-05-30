@@ -229,3 +229,31 @@ class Output(models.Model):
 
     class Meta:
         db_table = 'uiapi\".\"output'
+
+
+class HazardMapData(models.Model):
+    """This corresponds to the uiapi.hazard_map_data table."""
+    output = models.ForeignKey(Output)
+    location = models.PointField(srid=4326)
+    value = models.FloatField()
+
+    def __str__(self):
+        return smart_str(
+            ":hazard_map_data: %s, %s" % (self.location, self.value))
+
+    class Meta:
+        db_table = 'uiapi\".\"hazard_map_data'
+
+
+class LossMapData(models.Model):
+    """This corresponds to the uiapi.loss_map_data table."""
+    output = models.ForeignKey(Output)
+    location = models.PointField(srid=4326)
+    value = models.FloatField()
+
+    def __str__(self):
+        return smart_str(
+            ":loss_map_data: %s, %s" % (self.location, self.value))
+
+    class Meta:
+        db_table = 'uiapi\".\"loss_map_data'
