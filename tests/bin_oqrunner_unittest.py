@@ -42,7 +42,7 @@ class UpdateLayersTestCase(unittest.TestCase):
         Popen() is called correctly if no "updatelayers" process is running.
         """
         popen_mock = mock.MagicMock(name="mock:subprocess.Popen")
-        with mock.patch('geonode.mtapi.utils.is_process_running') as mock_func:
+        with mock.patch('utils.is_process_running') as mock_func:
             mock_func.return_value = False
             with mock.patch('subprocess.Popen', new=popen_mock):
                 update_layers()
@@ -55,7 +55,7 @@ class UpdateLayersTestCase(unittest.TestCase):
         Popen() is not called if an "updatelayers" process is running already.
         """
         popen_mock = mock.MagicMock(name="mock:subprocess.Popen")
-        with mock.patch('geonode.mtapi.utils.is_process_running') as mock_func:
+        with mock.patch('utils.is_process_running') as mock_func:
             mock_func.return_value = True
             with mock.patch('subprocess.Popen', new=popen_mock):
                 update_layers()
