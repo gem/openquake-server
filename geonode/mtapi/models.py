@@ -239,7 +239,8 @@ class HazardMapData(models.Model):
 
     def __str__(self):
         return smart_str(
-            ":hazard_map_data: %s, %s" % (self.location, self.value))
+            ":hazard_map_data: %s, %s (:output: %s)" % (
+            self.location, self.value, self.output.id))
 
     class Meta:
         db_table = 'uiapi\".\"hazard_map_data'
@@ -253,7 +254,8 @@ class LossMapData(models.Model):
 
     def __str__(self):
         return smart_str(
-            ":loss_map_data: %s, %s" % (self.location, self.value))
+            ":loss_map_data: %s, %s (:output: %s)" % (
+            self.location, self.value, self.output.id))
 
     class Meta:
         db_table = 'uiapi\".\"loss_map_data'
