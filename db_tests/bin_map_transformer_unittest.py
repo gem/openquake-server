@@ -23,9 +23,6 @@ Database unit tests for the bin/map_transformer.py tool.
 """
 
 
-import mock
-import operator
-import os
 import unittest
 
 from django.core.exceptions import ObjectDoesNotExist
