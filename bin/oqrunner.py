@@ -20,17 +20,15 @@
 
 
 """
-Run the OpenQuake engine to perform a calculation. If all goes well we will
-generate a shapefile for each resulting hazard/loss map and register the
-former with the geonode server.
+Run the OpenQuake engine to perform a calculation. If all goes well the
+hazard/loss map data will either be written to
+    - the database (default behaviour) or to
+    - shapefiles (one per map) and these be registered with the
+      geonode server
 
+  -d | --write2db   : write to db as opposed to shapefiles [default behaviour]
   -h | --help       : prints this help string
-       --host H     : database host machine name [default: localhost]
-  -d | --db D       : database to use [default: openquake]
   -j | --jobid J    : database key of the associated oq_job record
-  -U | --user U     : database user to use [default: oq_pshai_etl]
-  -W | --password W : password for the database user
-
 """
 
 
@@ -331,15 +329,14 @@ def main(cargs):
         return arg.split('-')[-1]
 
     mandatory_args = ["jobid"]
-    config = dict(db="openquake", host="localhost", user=None, password=None,
-                  jobid=None)
+    config = dict(write2db=True, jobid=None)
     longopts = ["%s" % k if isinstance(v, bool) else "%s=" % k
                 for k, v in config.iteritems()] + ["help"]
     # Translation between short/long command line arguments.
-    s2l = dict(d="db", U="user", W="password", j="jobid")
+    s2l = dict(d="write2db", j="jobid")
 
     try:
-        opts, _ = getopt.getopt(cargs[1:], "hd:U:W:j:", longopts)
+        opts, _ = getopt.getopt(cargs[1:], "hdj:", longopts)
     except getopt.GetoptError, e:
         # User supplied unknown argument(?); print help and exit.
         print e
