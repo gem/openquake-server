@@ -23,7 +23,7 @@
 Write hazard/loss map data to a shapefile. If all goes well the tool will
 print the minimum and maximum value(*) seen to the standard output.
 
-  -d | --write2db   : write to db as opposed to shapefiles
+  -d | --write2db   : write to db as opposed to shapefiles [default behaviour]
   -h | --help       : prints this help string
   -k | --key K      : database key of the hazard/loss map
   -l | --layer L    : shapefile layer name
