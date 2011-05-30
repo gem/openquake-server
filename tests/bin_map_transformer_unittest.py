@@ -19,7 +19,7 @@
 
 
 """
-Unit tests for the bin/gen_shapefile.py tool.
+Unit tests for the bin/map_transformer.py tool.
 """
 
 
@@ -29,11 +29,11 @@ import os
 import unittest
 
 
-from bin.gen_shapefile import (
+from bin.map_transformer import (
     calculate_loss_data, extract_hazardmap_data, extract_lossmap_data,
     extract_position, find_min_max, create_shapefile,
     create_shapefile_from_hazard_map, create_shapefile_from_loss_map,
-    tag_extractor)
+    tag_extractor, write_map_data_to_db)
 
 from tests.helpers import TestMixin
 
@@ -63,7 +63,7 @@ def patch_ogr():
 
 class CreateLossShapefileTestCase(unittest.TestCase, TestMixin):
     """
-    Tests the behaviour of gen_shapefile.create_shapefile_from_loss_map().
+    Tests the behaviour of map_transformer.create_shapefile_from_loss_map().
     """
     CONTENT = '''
         <LMNode gml:id="lmn_3">
@@ -145,7 +145,7 @@ class CreateLossShapefileTestCase(unittest.TestCase, TestMixin):
 
 class CreateHazardShapefileTestCase(unittest.TestCase, TestMixin):
     """
-    Tests the behaviour of gen_shapefile.create_shapefile_from_hazard_map().
+    Tests the behaviour of map_transformer.create_shapefile_from_hazard_map().
     """
     CONTENT = '''
         <HMNode gml:id="n_3">
@@ -220,7 +220,7 @@ class CreateHazardShapefileTestCase(unittest.TestCase, TestMixin):
 
 
 class CreateShapefileTestCase(unittest.TestCase, TestMixin):
-    """Tests the behaviour of gen_shapefile.create_shapefile()."""
+    """Tests the behaviour of map_transformer.create_shapefile()."""
 
     def setUp(self):
         self.map_file = self.touch()
@@ -253,7 +253,7 @@ class CreateShapefileTestCase(unittest.TestCase, TestMixin):
         """
         config = dict(key="17", layer="", output="", path=self.map_file,
                       type="hazard")
-        with mock.patch('bin.gen_shapefile.create_shapefile_from_hazard_map') \
+        with mock.patch('bin.map_transformer.create_shapefile_from_hazard_map') \
             as mock_func:
             mock_func.return_value = ("", 0, 1)
             create_shapefile(config)
@@ -274,7 +274,7 @@ class CreateShapefileTestCase(unittest.TestCase, TestMixin):
         map_file2 = self.touch(prefix="we.love.dots.")
         config = dict(key="18", layer="", output="", path=map_file2,
                       type="hazard")
-        with mock.patch('bin.gen_shapefile.create_shapefile_from_hazard_map') \
+        with mock.patch('bin.map_transformer.create_shapefile_from_hazard_map') \
             as mock_func:
             mock_func.return_value = ("", 0, 1)
             create_shapefile(config)
@@ -315,7 +315,7 @@ class CreateShapefileTestCase(unittest.TestCase, TestMixin):
         """
         config = dict(key="21", layer="", output="", path=self.map_file,
                       type="hazard")
-        with mock.patch('bin.gen_shapefile.create_shapefile_from_hazard_map') \
+        with mock.patch('bin.map_transformer.create_shapefile_from_hazard_map') \
             as mock_func:
             mock_func.return_value = ("", 0, 1)
             create_shapefile(config)
@@ -327,7 +327,7 @@ class CreateShapefileTestCase(unittest.TestCase, TestMixin):
         """
         config = dict(key="22", layer="", output="", path=self.map_file,
                       type="loss")
-        with mock.patch('bin.gen_shapefile.create_shapefile_from_loss_map') \
+        with mock.patch('bin.map_transformer.create_shapefile_from_loss_map') \
             as mock_func:
             mock_func.return_value = ("", 0, 1)
             create_shapefile(config)
@@ -343,7 +343,7 @@ class CreateShapefileTestCase(unittest.TestCase, TestMixin):
 
 
 class CalculateLossDataTestCase(unittest.TestCase):
-    """Tests the behaviour of gen_shapefile.calculate_loss_data()."""
+    """Tests the behaviour of map_transformer.calculate_loss_data()."""
 
     def test_calculate_loss_data(self):
         """
@@ -371,7 +371,7 @@ class CalculateLossDataTestCase(unittest.TestCase):
 
 
 class FindMinMaxTestCase(unittest.TestCase):
-    """Tests the behaviour of gen_shapefile.find_min_max()."""
+    """Tests the behaviour of map_transformer.find_min_max()."""
 
     def test_find_min_max_for_hazard_maps(self):
         """
@@ -410,7 +410,7 @@ class FindMinMaxTestCase(unittest.TestCase):
 
 
 class ExtractHazardmapDataTestCase(unittest.TestCase):
-    """Tests the behaviour of gen_shapefile.extract_hazardmap_data()."""
+    """Tests the behaviour of map_transformer.extract_hazardmap_data()."""
 
     def test_extract_hazardmap_data(self):
         """
@@ -430,7 +430,7 @@ class ExtractHazardmapDataTestCase(unittest.TestCase):
 
 
 class ExtractLossmapDataTestCase(unittest.TestCase):
-    """Tests the behaviour of gen_shapefile.extract_lossmap_data()."""
+    """Tests the behaviour of map_transformer.extract_lossmap_data()."""
 
     def test_extract_lossmap_data(self):
         """
@@ -458,7 +458,7 @@ class ExtractLossmapDataTestCase(unittest.TestCase):
 
 
 class ExtractPositionTestCase(unittest.TestCase):
-    """Tests the behaviour of gen_shapefile.extract_position()."""
+    """Tests the behaviour of map_transformer.extract_position()."""
 
     def test_extract_position_with_expected_srid(self):
         """
@@ -503,7 +503,7 @@ class ExtractPositionTestCase(unittest.TestCase):
 
 
 class TagExtractorTestCase(unittest.TestCase):
-    """Tests the behaviour of gen_shapefile.tag_extractor()."""
+    """Tests the behaviour of map_transformer.tag_extractor()."""
 
     def test_tag_extractor_with_hazard_map(self):
         """
@@ -608,3 +608,55 @@ class TagExtractorTestCase(unittest.TestCase):
         for idx, hmnode in enumerate(tag_extractor(
             "LMNode", "tests/data/loss-map-0fcfdbc7.xml")):
             self.assertEqual(expected_data[idx], hmnode)
+
+
+class WriteMapDataToDbTestCase(unittest.TestCase):
+    """Tests the behaviour of map_transformer.write_map_data_to_db()."""
+
+    def test_write_map_data_to_db_with_hazard_data(self):
+        """
+        extract_hazardmap_data() is called for hazard maps.
+        """
+        config = {
+            "key": "78", "layer": "78-hazardmap-0.01-quantile-0.25",
+            "output": "tests/78",
+            "path": "tests/data/hazardmap-0.1-quantile-0.25.xml",
+            "type": "hazard"}
+        with mock.patch("bin.map_transformer.extract_hazardmap_data") as mf:
+            mf.return_value = []
+            write_map_data_to_db(config)
+            self.assertEqual(1, mf.call_count)
+            args, _ = mf.call_args
+            self.assertEqual((config,), args)
+
+    def test_write_map_data_to_db_with_loss_data(self):
+        """
+        extract_lossmap_data() and calculate_loss_data()
+        are called for loss maps.
+        """
+        config = {
+            "key": "77", "layer": "77-lossmap-0.01-quantile-0.25",
+            "output": "tests/77", "path": "tests/data/loss-map-0fcfdbc7.xml",
+            "type": "loss"}
+        with mock.patch("bin.map_transformer.extract_lossmap_data") as eld:
+            with mock.patch("bin.map_transformer.calculate_loss_data") as cld:
+                cld.return_value = eld.return_value = []
+                write_map_data_to_db(config)
+                self.assertEqual(1, eld.call_count)
+                args, _ = eld.call_args
+                self.assertEqual((config,), args)
+                self.assertEqual(1, cld.call_count)
+                args, _ = cld.call_args
+                self.assertEqual(([],), args)
+
+    def test_write_map_data_to_db_with_unknown_type(self):
+        """
+        Calling write_map_data_to_db() with an unknown map type results in an
+        AssertionError.
+        """
+        config = {
+            "key": "77", "layer": "77-nauticalmap-0.01-quantile-0.25",
+            "output": "tests/77",
+            "path": "tests/data/nautical-map-0fcfdbc7.xml",
+            "type": "nautical"}
+        self.assertRaises(Exception, write_map_data_to_db, config)
