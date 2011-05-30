@@ -46,12 +46,12 @@ def round_float(value):
     :returns: the input value rounded to a hard-coded fixed number of decimal
     places
     """
-    FLOAT_DECIMAL_PLACES = 7
-    QUANTIZE_STR = '0.' + '0' * FLOAT_DECIMAL_PLACES
+    float_decimal_places = 7
+    quantize_str = '0.' + '0' * float_decimal_places
 
     return float(
         decimal.Decimal(str(value)).quantize(
-            decimal.Decimal(QUANTIZE_STR),
+            decimal.Decimal(quantize_str),
             rounding=decimal.ROUND_HALF_EVEN))
 
 
@@ -131,41 +131,45 @@ def run_cmd(cmds, ignore_exit_code=False, shell=False):
     return (process.returncode, out, err)
 
 
-def is_process_running(pid, name_pattern=None):
+def is_process_running(pid=None, pattern=None):
     """Is the process with the given `pid` still running?
 
     :param int pid: the process ID (pid) to check
-    :param str name_pattern: a string that must occur in the command of the
+    :param str pattern: a string that must occur in the command of the
         process with the given `pid`.
     :returns: `True` if process is still running, `False` otherwise.
     """
+    assert pid or pattern, "Either 'pid' or 'pattern' must be set."
+    result = False
+
     code, out, _ = run_cmd(["ps ax"], shell=True)
     if code != 0:
-        return False
+        return result
+
     #  PID TTY      STAT   TIME COMMAND
     #    1 ?        Ss     0:02 /sbin/init
     #    2 ?        S      0:00 [kthreadd]
     #    3 ?        S      0:07 [ksoftirqd/0]
     #26206 pts/17   Sl     0:54 evince postgresql-8.4.6-A4.pdf
     #26211 ?        Sl     0:00 /usr/lib/evince/evinced
-    result = False
-    pid = str(pid)
-    # Only consider lines that contain the given pid.
-    lines = [line for line in out.split('\n')[1:] if line.find(pid) > -1]
+
+    if pid:
+        line_pattern = pid = str(pid)
+    else:
+        line_pattern = pattern
+
+    # Only consider lines that contain the given pid or pattern.
+    lines = [l for l in out.splitlines()[1:] if l.find(line_pattern) > -1]
+
     for line in lines:
         line = line.strip()
         if not line:
             continue
-        data = line.split()
-        if data[0] != pid:
+        data = line.split(None, 4)
+        if pid and data[0] != pid:
             continue
-        if name_pattern:
-            # Is the pattern present in the command the process at hand is
-            # running?
-            if " ".join(data[4:]).find(name_pattern) > -1:
-                result = True
-                break
-        else:
-            result = True
-            break
+        if pattern and data[4].find(pattern) < 0:
+            continue
+        result = True
+        break
     return result

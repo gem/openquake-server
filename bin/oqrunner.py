@@ -40,6 +40,7 @@ import logging
 import os
 import pprint
 import re
+import subprocess
 import sys
 
 import utils
@@ -201,17 +202,26 @@ def register_shapefiles_in_location(location, datastore):
 def update_layers():
     """Updates the geonode layers, called after shapefile registration."""
     logger.info("> update_layers")
+
     command = settings.OQ_UPDATE_LAYERS_PATH
     logger.info("command: %s" % command)
+
+    if utils.is_process_running(pattern=command):
+        logger.info("A process that updates layers is already running..")
+        return
+
+    # Our default python path breaks the virtualenv running the "updatelayers"
+    # command.
     python_path = os.environ["PYTHONPATH"]
     logger.info("PYTHONPATH: '%s'" % python_path)
     os.environ["PYTHONPATH"] = ""
-    code, out, err = utils.run_cmd(command, ignore_exit_code=True)
-    logger.info("code: '%s'" % code)
-    logger.info("out: '%s'" % out)
-    logger.info("err: '%s'" % err)
-    logger.info("< update_layers")
+
+    # Run the "updatelayers" command in asynchronous fashion.
+    subprocess.Popen(command, env=os.environ)
+
+    # Restore python path.
     os.environ["PYTHONPATH"] = python_path
+    logger.info("< update_layers")
 
 
 def process_results(job):
