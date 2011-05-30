@@ -37,15 +37,29 @@ from bin.oqrunner import (
 class UpdateLayersTestCase(unittest.TestCase):
     """Tests the behaviour of oqrunner.update_layers()."""
 
-    def test_register_shapefiles_in_location(self):
-        """run_cmd() is called correctly."""
-        expected = settings.OQ_UPDATE_LAYERS_PATH
-        with mock.patch('utils.run_cmd') as mock_func:
-            mock_func.return_value = (0, "", "")
-            update_layers()
-            self.assertEqual(1, mock_func.call_count)
-            [command], _ = mock_func.call_args
-            self.assertEqual(expected, command)
+    def test_update_layers(self):
+        """
+        Popen() is called correctly if no "updatelayers" process is running.
+        """
+        popen_mock = mock.MagicMock(name="mock:subprocess.Popen")
+        with mock.patch('geonode.mtapi.utils.is_process_running') as mock_func:
+            mock_func.return_value = False
+            with mock.patch('subprocess.Popen', new=popen_mock):
+                update_layers()
+                self.assertEqual(1, popen_mock.call_count)
+                args, _kwargs = popen_mock.call_args
+                self.assertEqual((settings.OQ_UPDATE_LAYERS_PATH,), args)
+
+    def test_update_layers_with_process_already_running(self):
+        """
+        Popen() is not called if an "updatelayers" process is running already.
+        """
+        popen_mock = mock.MagicMock(name="mock:subprocess.Popen")
+        with mock.patch('geonode.mtapi.utils.is_process_running') as mock_func:
+            mock_func.return_value = True
+            with mock.patch('subprocess.Popen', new=popen_mock):
+                update_layers()
+                self.assertEqual(0, popen_mock.call_count)
 
 
 class RegisterShapefilesInLocationTestCase(unittest.TestCase):

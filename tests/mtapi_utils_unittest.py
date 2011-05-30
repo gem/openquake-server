@@ -25,6 +25,7 @@ Unit tests for the geonode/mtapi/utils.py module.
 
 import subprocess
 import sys
+import time
 import unittest
 
 from utils import is_process_running, run_cmd
@@ -57,6 +58,31 @@ class IsProcessRunningTestCase(unittest.TestCase):
         """
         p = subprocess.Popen("sleep 5", shell=True)
         self.assertTrue(is_process_running(p.pid, "p 5"))
+
+    def test_is_process_running_with_no_pid(self):
+        """
+        The name pattern should match a process even though no pid is given.
+        """
+        the_time = str(time.time())
+        subprocess.Popen("sleep 5; echo %s >/dev/null" % the_time, shell=True)
+        self.assertTrue(is_process_running(pattern=the_time))
+
+    def test_is_process_running_with_no_pid_and_multi_match(self):
+        """
+        The name pattern should match in case where we have multiple process
+        and no pid is given.
+        """
+        the_time = str(time.time())
+        subprocess.Popen("sleep 5; echo %s >/dev/null" % the_time, shell=True)
+        subprocess.Popen("sleep 6; echo %s >/dev/null" % the_time, shell=True)
+        self.assertTrue(is_process_running(pattern=the_time))
+
+    def test_is_process_running_with_neither_pid_nor_pattern(self):
+        """
+        One or both parameters must be passed. Otherwise an AssertionError is
+        raised.
+        """
+        self.assertRaises(AssertionError, is_process_running)
 
 
 class RunCmdTestCase(unittest.TestCase):
