@@ -91,6 +91,7 @@ class CreateLossShapefileTestCase(unittest.TestCase, TestMixin):
             </loss>
         </LMNode>
         '''
+
     def tearDown(self):
         os.unlink(self.loss_map)
 
@@ -253,13 +254,13 @@ class CreateShapefileTestCase(unittest.TestCase, TestMixin):
         """
         config = dict(key="17", layer="", output="", path=self.map_file,
                       type="hazard")
-        with mock.patch('bin.map_transformer.create_shapefile_from_hazard_map') \
-            as mock_func:
-            mock_func.return_value = ("", 0, 1)
+        with mock.patch(
+            'bin.map_transformer.create_shapefile_from_hazard_map') as mf:
+            mf.return_value = ("", 0, 1)
             create_shapefile(config)
             basename = os.path.basename(self.map_file)
             expected_layer = "%s-%s" % (config["key"], basename)
-            [actual_config], _kwargs = mock_func.call_args
+            [actual_config], _kwargs = mf.call_args
             self.assertEqual(expected_layer, actual_config["layer"])
             dirname = os.path.dirname(self.map_file)
             self.assertEqual(
@@ -274,15 +275,15 @@ class CreateShapefileTestCase(unittest.TestCase, TestMixin):
         map_file2 = self.touch(prefix="we.love.dots.")
         config = dict(key="18", layer="", output="", path=map_file2,
                       type="hazard")
-        with mock.patch('bin.map_transformer.create_shapefile_from_hazard_map') \
-            as mock_func:
-            mock_func.return_value = ("", 0, 1)
+        with mock.patch(
+            'bin.map_transformer.create_shapefile_from_hazard_map') as mf:
+            mf.return_value = ("", 0, 1)
             create_shapefile(config)
             basename = os.path.basename(map_file2)
             basename, _ = os.path.splitext(basename)
             expected_layer = (
                 "%s-%s" % (config["key"], basename.replace(".", "-")))
-            [actual_config], _kwargs = mock_func.call_args
+            [actual_config], _kwargs = mf.call_args
             self.assertEqual(expected_layer, actual_config["layer"])
             dirname = os.path.dirname(self.map_file)
             self.assertEqual(
@@ -315,11 +316,11 @@ class CreateShapefileTestCase(unittest.TestCase, TestMixin):
         """
         config = dict(key="21", layer="", output="", path=self.map_file,
                       type="hazard")
-        with mock.patch('bin.map_transformer.create_shapefile_from_hazard_map') \
-            as mock_func:
-            mock_func.return_value = ("", 0, 1)
+        with mock.patch(
+            'bin.map_transformer.create_shapefile_from_hazard_map') as mf:
+            mf.return_value = ("", 0, 1)
             create_shapefile(config)
-            self.assertEqual(1, mock_func.call_count)
+            self.assertEqual(1, mf.call_count)
 
     def test_create_shapefile_with_loss_map(self):
         """
@@ -327,11 +328,11 @@ class CreateShapefileTestCase(unittest.TestCase, TestMixin):
         """
         config = dict(key="22", layer="", output="", path=self.map_file,
                       type="loss")
-        with mock.patch('bin.map_transformer.create_shapefile_from_loss_map') \
-            as mock_func:
-            mock_func.return_value = ("", 0, 1)
+        with mock.patch(
+            'bin.map_transformer.create_shapefile_from_loss_map') as mf:
+            mf.return_value = ("", 0, 1)
             create_shapefile(config)
-            self.assertEqual(1, mock_func.call_count)
+            self.assertEqual(1, mf.call_count)
 
     def test_create_shapefile_with_unknown_map(self):
         """
@@ -631,8 +632,8 @@ class WriteMapDataToDbTestCase(unittest.TestCase):
 
     def test_write_map_data_to_db_with_loss_data(self):
         """
-        extract_lossmap_data() and calculate_loss_data()
-        are called for loss maps.
+        extract_lossmap_data() and calculate_loss_data() are called for loss
+        maps.
         """
         config = {
             "key": "77", "layer": "77-lossmap-0.01-quantile-0.25",

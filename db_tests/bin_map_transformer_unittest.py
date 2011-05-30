@@ -19,7 +19,7 @@
 
 
 """
-Unit tests for the bin/map_transformer.py tool.
+Database unit tests for the bin/map_transformer.py tool.
 """
 
 
@@ -28,53 +28,130 @@ import operator
 import os
 import unittest
 
+from django.core.exceptions import ObjectDoesNotExist
 
 from bin.map_transformer import write_map_data_to_db
-
-from tests.helpers import DbTestMixin
+from db_tests.helpers import DbTestMixin
+import utils
 
 
 class WriteMapDataToDbDbTestCase(unittest.TestCase, DbTestMixin):
     """Tests the behaviour of map_transformer.write_map_data_to_db()."""
 
-    def test_write_map_data_to_db_with_hazard_data(self):
-        """
-        extract_hazardmap_data() is called for hazard maps.
-        """
-
-    def test_write_map_data_to_db_with_loss_data(self):
-        """
-        extract_lossmap_data() and calculate_loss_data()
-        are called for loss maps.
-        """
-
-    def test_write_map_data_to_db_with_unknown_type(self):
-        """
-        Calling write_map_data_to_db() with an unknown map type results in an
-        AssertionError.
-        """
+    def tearDown(self):
+        if hasattr(self, "job_to_tear_down") and self.job_to_tear_down:
+            self.teardown_job(self.job_to_tear_down)
 
     def test_write_map_data_to_db_with_loss_hazard_mismatch(self):
         """
         Writing loss data for a hazard map results in an AssertionError.
         """
+        hazard_map = self.setup_output()
+        self.job_to_tear_down = hazard_map.oq_job
+        config = {
+            "key": "%s" % hazard_map.id,
+            "layer": "77-lossmap-0.01-quantile-0.25", "output": "tests/77",
+            "path": "tests/data/loss-map-0fcfdbc7.xml", "type": "loss"}
+        try:
+            write_map_data_to_db(config)
+        except AssertionError, e:
+            self.assertEqual(
+                "Invalid map type ('hazard_map') for the given data ('loss')",
+                e.args[0])
 
     def test_write_map_data_to_db_with_hazard_loss_mismatch(self):
         """
         Writing hazard data for a loss map results in an AssertionError.
         """
+        loss_map = self.setup_output(output_type="loss_map")
+        self.job_to_tear_down = loss_map.oq_job
+        config = {
+            "key": "%s" % loss_map.id,
+            "layer": "78-hazardmap-0.01-quantile-0.25",
+            "output": "tests/78",
+            "path": "tests/data/hazardmap-0.1-quantile-0.25.xml",
+            "type": "hazard"}
+        try:
+            write_map_data_to_db(config)
+        except AssertionError, e:
+            self.assertEqual(
+                "Invalid map type ('loss_map') for the given data ('hazard')",
+                e.args[0])
 
     def test_write_map_data_to_db_with_invalid_output_key(self):
         """
-        Not being able to find the output record results in an AssertionError.
+        Not being able to find the output record results in an
+        ObjectDoesNotExist error.
         """
+        config = {
+            "key": "-111",
+            "layer": "77-lossmap-0.01-quantile-0.25", "output": "tests/77",
+            "path": "tests/data/loss-map-0fcfdbc7.xml", "type": "loss"}
+        try:
+            write_map_data_to_db(config)
+        except ObjectDoesNotExist, e:
+            self.assertEqual(
+                "Output matching query does not exist.", e.args[0])
 
     def test_write_map_data_to_db_with_hazard_map(self):
         """
         Writing hazard map data works.
         """
+        expected_hazard_data = [
+            ([-121.8, 37.9], 1.23518683436),
+            ([-122.0, 37.5], 1.19244541041),
+            ([-122.1, 38.0], 1.1905288226)]
+
+        def coords(idx):
+            """Access the point coordinates."""
+            return tuple(expected_hazard_data[idx][0])
+
+        def value(idx):
+            """Access the hazard value."""
+            return utils.round_float(expected_hazard_data[idx][1])
+
+        hazard_map = self.setup_output(output_type="hazard_map")
+        self.job_to_tear_down = hazard_map.oq_job
+        config = {
+            "key": "%s" % hazard_map.id,
+            "layer": "78-hazardmap-0.01-quantile-0.25",
+            "output": "tests/78",
+            "path": "tests/data/hazardmap-0.1-quantile-0.25.xml",
+            "type": "hazard"}
+        write_map_data_to_db(config)
+        self.assertEqual(0, len(hazard_map.lossmapdata_set.all()))
+        self.assertEqual(3, len(hazard_map.hazardmapdata_set.all()))
+        for idx, hazard in enumerate(hazard_map.hazardmapdata_set.all()):
+            self.assertEqual(coords(idx), hazard.location.coords)
+            self.assertEqual(value(idx), utils.round_float(hazard.value))
 
     def test_write_map_data_to_db_with_loss_map(self):
         """
         Writing hazard loss data works.
         """
+        expected_loss_data = [
+            ([-118.229726, 34.050622], 16.04934554846202),
+            ([-118.241243, 34.061557], 629.323267954),
+            ([-118.245388, 34.055984], 245.9928520658)]
+
+        def coords(idx):
+            """Access the point coordinates."""
+            return tuple(expected_loss_data[idx][0])
+
+        def value(idx):
+            """Access the loss value."""
+            return utils.round_float(expected_loss_data[idx][1])
+
+        loss_map = self.setup_output(output_type="loss_map")
+        self.job_to_tear_down = loss_map.oq_job
+        config = {
+            "key": "%s" % loss_map.id,
+            "layer": "77-lossmap-0.01-quantile-0.25",
+            "output": "tests/77", "path": "tests/data/loss-map-0fcfdbc7.xml",
+            "type": "loss"}
+        write_map_data_to_db(config)
+        self.assertEqual(0, len(loss_map.hazardmapdata_set.all()))
+        self.assertEqual(3, len(loss_map.lossmapdata_set.all()))
+        for idx, loss in enumerate(loss_map.lossmapdata_set.all()):
+            self.assertEqual(coords(idx), loss.location.coords)
+            self.assertEqual(value(idx), utils.round_float(loss.value))

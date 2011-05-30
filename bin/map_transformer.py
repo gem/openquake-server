@@ -402,11 +402,11 @@ def write_map_data_to_db(config):
     minmax_values = (0.0, 0.0)
     if config["type"] == "hazard":
         data = extract_hazardmap_data(config)
-        Constructor = HazardMapData
+        klass = HazardMapData
     elif  config["type"] == "loss":
         data = extract_lossmap_data(config)
         data = calculate_loss_data(data)
-        Constructor = LossMapData
+        klass = LossMapData
     else:
         error = "unknown map type: '%s'" % config["type"]
         logger.error(error)
@@ -425,7 +425,7 @@ def write_map_data_to_db(config):
             output.output_type, config["type"]))
 
     for [lon, lat], value in data:
-        datum = Constructor(output=output, value=value)
+        datum = klass(output=output, value=value)
         datum.location = GEOSGeometry('POINT(%s %s)' % (lon, lat))
         datum.save()
 
