@@ -295,6 +295,7 @@ def find_maps(job):
     :returns: a list of :py:class:`geonode.mtapi.models.Output` instances, one
         per map.
     """
+    logger.info("> find_maps")
     results = []
     maps = list(sorted(glob.glob(
         "%s/*map*.xml" % os.path.join(job.path, "computed_output"))))
@@ -307,6 +308,10 @@ def find_maps(job):
                         oq_job=job, path=path, size=os.path.getsize(path))
         output.save()
         results.append(output)
+
+    logger.info("results = %s" % results)
+    logger.info("< find_maps")
+
     return results
 
 
