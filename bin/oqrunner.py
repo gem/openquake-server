@@ -134,7 +134,7 @@ def run_calculation(config):
         job.save()
         sys.exit(code)
     process_results(job, config)
-    if config["shapefiles"]:
+    if config.get("shapefiles"):
         register_shapefiles(job)
     job.status = "succeeded"
     job.save()
