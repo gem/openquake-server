@@ -40,12 +40,11 @@ import re
 import subprocess
 import sys
 
-import utils
-
 from urlparse import urljoin
 
 from django.conf import settings
 from geonode.mtapi.models import OqJob, Output
+from geonode.mtapi import view_utils
 from utils.oqrunner import config_writer
 
 
@@ -105,7 +104,7 @@ def run_engine(job):
     cmds.append("--config_file")
     cmds.append(os.path.join(job.path, "config.gem"))
     logger.info("cmds: %s" % cmds)
-    code, out, err = utils.run_cmd(cmds, ignore_exit_code=True)
+    code, out, err = view_utils.run_cmd(cmds, ignore_exit_code=True)
     logger.info("code: '%s'" % code)
     logger.info("out: '%s'" % out)
     if code != 0:
@@ -185,7 +184,8 @@ def register_shapefiles_in_location(location, datastore):
     logger.info("url: '%s'" % url)
     logger.info("command: %s" % command)
 
-    code, out, err = utils.run_cmd(command, ignore_exit_code=True, shell=True)
+    code, out, err = view_utils.run_cmd(
+        command, ignore_exit_code=True, shell=True)
 
     logger.info("code: '%s'" % code)
     logger.info("out: '%s'" % out)
@@ -200,7 +200,7 @@ def update_layers():
     command = settings.OQ_UPDATE_LAYERS_PATH
     logger.info("command: %s" % command)
 
-    if utils.is_process_running(pattern=command):
+    if view_utils.is_process_running(pattern=command):
         logger.info("A process that updates layers is already running..")
         return
 
@@ -245,7 +245,7 @@ def process_map(a_map, config):
         commands.append("--shapefile")
     commands.append("-t")
     commands.append("hazard" if a_map.output_type == "hazard_map" else "loss")
-    code, out, _ = utils.run_cmd(commands, ignore_exit_code=True)
+    code, out, _ = view_utils.run_cmd(commands, ignore_exit_code=True)
     if code == 0:
         # All went well
         if config.get("shapefile"):

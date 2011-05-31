@@ -42,7 +42,7 @@ class UpdateLayersTestCase(unittest.TestCase):
         Popen() is called correctly if no "updatelayers" process is running.
         """
         popen_mock = mock.MagicMock(name="mock:subprocess.Popen")
-        with mock.patch('utils.is_process_running') as mock_func:
+        with mock.patch('geonode.mtapi.view_utils.is_process_running') as mock_func:
             mock_func.return_value = False
             with mock.patch('subprocess.Popen', new=popen_mock):
                 update_layers()
@@ -55,7 +55,7 @@ class UpdateLayersTestCase(unittest.TestCase):
         Popen() is not called if an "updatelayers" process is running already.
         """
         popen_mock = mock.MagicMock(name="mock:subprocess.Popen")
-        with mock.patch('utils.is_process_running') as mock_func:
+        with mock.patch('geonode.mtapi.view_utils.is_process_running') as mock_func:
             mock_func.return_value = True
             with mock.patch('subprocess.Popen', new=popen_mock):
                 update_layers()
@@ -76,7 +76,7 @@ class RegisterShapefilesInLocationTestCase(unittest.TestCase):
         expected = (
             "curl -v -u 'admin:@dm1n' -XPUT -H 'Content-type: text/plain' "
             "-d 'file:///a/b/c' '%s'" % url)
-        with mock.patch('utils.run_cmd') as mock_func:
+        with mock.patch('geonode.mtapi.view_utils.run_cmd') as mock_func:
             mock_func.return_value = (0, "", "")
             register_shapefiles_in_location(location, datastore)
             self.assertEqual(1, mock_func.call_count)

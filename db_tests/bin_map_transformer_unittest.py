@@ -29,7 +29,7 @@ from django.core.exceptions import ObjectDoesNotExist
 
 from bin.map_transformer import write_map_data_to_db
 from db_tests.helpers import DbTestMixin
-import utils
+from geonode.mtapi import view_utils
 
 
 class WriteMapDataToDbDbTestCase(unittest.TestCase, DbTestMixin):
@@ -105,7 +105,7 @@ class WriteMapDataToDbDbTestCase(unittest.TestCase, DbTestMixin):
 
         def value(idx):
             """Access the hazard value."""
-            return utils.round_float(expected_hazard_data[idx][1])
+            return view_utils.round_float(expected_hazard_data[idx][1])
 
         hazard_map = self.setup_output(output_type="hazard_map")
         self.job_to_tear_down = hazard_map.oq_job
@@ -120,7 +120,7 @@ class WriteMapDataToDbDbTestCase(unittest.TestCase, DbTestMixin):
         self.assertEqual(3, len(hazard_map.hazardmapdata_set.all()))
         for idx, hazard in enumerate(hazard_map.hazardmapdata_set.all()):
             self.assertEqual(coords(idx), hazard.location.coords)
-            self.assertEqual(value(idx), utils.round_float(hazard.value))
+            self.assertEqual(value(idx), view_utils.round_float(hazard.value))
 
     def test_write_map_data_to_db_with_loss_map(self):
         """
@@ -137,7 +137,7 @@ class WriteMapDataToDbDbTestCase(unittest.TestCase, DbTestMixin):
 
         def value(idx):
             """Access the loss value."""
-            return utils.round_float(expected_loss_data[idx][1])
+            return view_utils.round_float(expected_loss_data[idx][1])
 
         loss_map = self.setup_output(output_type="loss_map")
         self.job_to_tear_down = loss_map.oq_job
@@ -151,7 +151,7 @@ class WriteMapDataToDbDbTestCase(unittest.TestCase, DbTestMixin):
         self.assertEqual(3, len(loss_map.lossmapdata_set.all()))
         for idx, loss in enumerate(loss_map.lossmapdata_set.all()):
             self.assertEqual(coords(idx), loss.location.coords)
-            self.assertEqual(value(idx), utils.round_float(loss.value))
+            self.assertEqual(value(idx), view_utils.round_float(loss.value))
 
     def test_write_map_data_to_db_results_with_hazard_map(self):
         """
@@ -168,7 +168,7 @@ class WriteMapDataToDbDbTestCase(unittest.TestCase, DbTestMixin):
 
         def value(idx):
             """Access the hazard value."""
-            return utils.round_float(expected_hazard_data[idx][1])
+            return view_utils.round_float(expected_hazard_data[idx][1])
 
         hazard_map = self.setup_output(output_type="hazard_map")
         self.job_to_tear_down = hazard_map.oq_job
@@ -182,10 +182,10 @@ class WriteMapDataToDbDbTestCase(unittest.TestCase, DbTestMixin):
         self.assertEqual(config["key"], db_key)
         self.assertEqual(
             min(value(idx) for idx in range(len(expected_hazard_data))),
-            utils.round_float(minimum))
+            view_utils.round_float(minimum))
         self.assertEqual(
             max(value(idx) for idx in range(len(expected_hazard_data))),
-            utils.round_float(maximum))
+            view_utils.round_float(maximum))
 
     def test_write_map_data_to_db_results_with_loss_map(self):
         """
@@ -202,7 +202,7 @@ class WriteMapDataToDbDbTestCase(unittest.TestCase, DbTestMixin):
 
         def value(idx):
             """Access the loss value."""
-            return utils.round_float(expected_loss_data[idx][1])
+            return view_utils.round_float(expected_loss_data[idx][1])
 
         loss_map = self.setup_output(output_type="loss_map")
         self.job_to_tear_down = loss_map.oq_job
@@ -215,7 +215,7 @@ class WriteMapDataToDbDbTestCase(unittest.TestCase, DbTestMixin):
         self.assertEqual(config["key"], db_key)
         self.assertEqual(
             min(value(idx) for idx in range(len(expected_loss_data))),
-            utils.round_float(minimum))
+            view_utils.round_float(minimum))
         self.assertEqual(
             max(value(idx) for idx in range(len(expected_loss_data))),
-            utils.round_float(maximum))
+            view_utils.round_float(maximum))

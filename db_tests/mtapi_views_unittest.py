@@ -27,13 +27,12 @@ import mock
 import os
 import unittest
 
-import utils
-
 from django.conf import settings
 
 from geonode.mtapi.models import OqJob, Upload
 from geonode.mtapi.views import (
     prepare_job, prepare_job_result, prepare_map_result, start_job)
+from geonode.mtapi import view_utils
 
 from db_tests.helpers import DbTestMixin
 
@@ -149,8 +148,8 @@ class PrepareJobResultTestCase(unittest.TestCase, DbTestMixin):
                     "layer": "geonode:hazardmap",
                     "filter": "output_id=%s" % hazard_map.id,
                     "ows": "http://gemsun02.ethz.ch/geoserver-geonode-dev/ows"},
-                "min": utils.round_float(hazard_map.min_value),
-                "max": utils.round_float(hazard_map.max_value),
+                "min": view_utils.round_float(hazard_map.min_value),
+                "max": view_utils.round_float(hazard_map.max_value),
                 "name": "%s" % hazard_file,
                 "type": "hazard map"},
                 {"id": loss_map.id,
@@ -158,8 +157,8 @@ class PrepareJobResultTestCase(unittest.TestCase, DbTestMixin):
                     "layer": "geonode:lossmap",
                     "filter": "output_id=%s" % loss_map.id,
                     "ows": "http://gemsun02.ethz.ch/geoserver-geonode-dev/ows"},
-                "min": utils.round_float(loss_map.min_value),
-                "max": utils.round_float(loss_map.max_value),
+                "min": view_utils.round_float(loss_map.min_value),
+                "max": view_utils.round_float(loss_map.max_value),
                 "name": "%s" % loss_file,
                 "type": "loss map"}]}
 
@@ -275,8 +274,8 @@ class PrepareMapResultTestCase(unittest.TestCase, DbTestMixin):
                 "filter": "output_id=%s" % self.output.id,
                 "ows": "http://gemsun02.ethz.ch/geoserver-geonode-dev/ows"},
             "name": name,
-            "min": utils.round_float(self.output.min_value),
-            "max": utils.round_float(self.output.max_value),
+            "min": view_utils.round_float(self.output.min_value),
+            "max": view_utils.round_float(self.output.max_value),
             "type": map_type,
             "id": self.output.id}
 
@@ -300,8 +299,8 @@ class PrepareMapResultTestCase(unittest.TestCase, DbTestMixin):
                 "filter": "output_id=%s" % self.output.id,
                 "ows": "http://gemsun02.ethz.ch/geoserver-geonode-dev/ows"},
             "name": name,
-            "min": utils.round_float(self.output.min_value),
-            "max": utils.round_float(self.output.max_value),
+            "min": view_utils.round_float(self.output.min_value),
+            "max": view_utils.round_float(self.output.max_value),
             "type": map_type,
             "id": self.output.id}
 

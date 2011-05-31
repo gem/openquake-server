@@ -23,7 +23,7 @@ import sys
 import time
 import unittest
 
-from utils import is_process_running, log_scale, run_cmd
+from geonode.mtapi.view_utils import is_process_running, log_scale, run_cmd
 
 
 class IsProcessRunningTestCase(unittest.TestCase):
