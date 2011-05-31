@@ -432,7 +432,7 @@ def write_map_data_to_db(config):
         datum.save()
 
     minmax_values = find_min_max(data, operator.itemgetter(1))
-    return minmax_values
+    return (config["key"],) + minmax_values
 
 
 def create_shapefile(config):

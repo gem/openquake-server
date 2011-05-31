@@ -152,3 +152,70 @@ class WriteMapDataToDbDbTestCase(unittest.TestCase, DbTestMixin):
         for idx, loss in enumerate(loss_map.lossmapdata_set.all()):
             self.assertEqual(coords(idx), loss.location.coords)
             self.assertEqual(value(idx), utils.round_float(loss.value))
+
+    def test_write_map_data_to_db_results_with_hazard_map(self):
+        """
+        The write_map_data_to_db() return values are correct for hazard maps.
+        """
+        expected_hazard_data = [
+            ([-121.8, 37.9], 1.23518683436),
+            ([-122.0, 37.5], 1.19244541041),
+            ([-122.1, 38.0], 1.1905288226)]
+
+        def coords(idx):
+            """Access the point coordinates."""
+            return tuple(expected_hazard_data[idx][0])
+
+        def value(idx):
+            """Access the hazard value."""
+            return utils.round_float(expected_hazard_data[idx][1])
+
+        hazard_map = self.setup_output(output_type="hazard_map")
+        self.job_to_tear_down = hazard_map.oq_job
+        config = {
+            "key": "%s" % hazard_map.id,
+            "layer": "78-hazardmap-0.01-quantile-0.25",
+            "output": "tests/78",
+            "path": "tests/data/hazardmap-0.1-quantile-0.25.xml",
+            "type": "hazard"}
+        db_key, minimum, maximum = write_map_data_to_db(config)
+        self.assertEqual(config["key"], db_key)
+        self.assertEqual(
+            min(value(idx) for idx in range(len(expected_hazard_data))),
+            utils.round_float(minimum))
+        self.assertEqual(
+            max(value(idx) for idx in range(len(expected_hazard_data))),
+            utils.round_float(maximum))
+
+    def test_write_map_data_to_db_results_with_loss_map(self):
+        """
+        The write_map_data_to_db() return values are correct for loss maps.
+        """
+        expected_loss_data = [
+            ([-118.229726, 34.050622], 16.04934554846202),
+            ([-118.241243, 34.061557], 629.323267954),
+            ([-118.245388, 34.055984], 245.9928520658)]
+
+        def coords(idx):
+            """Access the point coordinates."""
+            return tuple(expected_loss_data[idx][0])
+
+        def value(idx):
+            """Access the loss value."""
+            return utils.round_float(expected_loss_data[idx][1])
+
+        loss_map = self.setup_output(output_type="loss_map")
+        self.job_to_tear_down = loss_map.oq_job
+        config = {
+            "key": "%s" % loss_map.id,
+            "layer": "77-lossmap-0.01-quantile-0.25",
+            "output": "tests/77", "path": "tests/data/loss-map-0fcfdbc7.xml",
+            "type": "loss"}
+        db_key, minimum, maximum = write_map_data_to_db(config)
+        self.assertEqual(config["key"], db_key)
+        self.assertEqual(
+            min(value(idx) for idx in range(len(expected_loss_data))),
+            utils.round_float(minimum))
+        self.assertEqual(
+            max(value(idx) for idx in range(len(expected_loss_data))),
+            utils.round_float(maximum))
