@@ -118,10 +118,12 @@ class ProcessMapTestCase(unittest.TestCase, DbTestMixin):
     def tearDown(self):
         self.teardown_job(self.job)
 
-    def test_process_map_calls_shapefile_gen_correctly_with_hazard(self):
+    def test_process_map_calls_map_transformer_correctly_with_hazard(self):
         """
-        The shapefile generator tool is invoked correctly for a hazard map.
+        The map transformer is invoked correctly for a hazard map that is to be
+        written to a shapefile.
         """
+        config = {'jobid': self.job.id, 'shapefile': True}
         maps = find_maps(self.job)
         self.assertEqual(2, len(maps))
         [hazard_map, _] = maps
@@ -130,19 +132,22 @@ class ProcessMapTestCase(unittest.TestCase, DbTestMixin):
         with mock.patch('utils.run_cmd') as mock_func:
             mock_func.return_value = (
                 0, "RESULT: ('/a/b/c', 16.04934554846202, 629.323267954)", "")
-            process_map(hazard_map)
+            process_map(hazard_map, config)
+            args, kwargs = mock_func.call_args
             expected = (
-                (['%s/bin/gen_shapefile.py' % settings.OQ_APIAPP_DIR,
-                  '-k', str(hazard_map.id),
-                  '-p', '%s/computed_output/%s' % (self.job.path, basename),
-                  '-t', 'hazard'],),
-                {'ignore_exit_code': True})
-            self.assertEqual(expected, mock_func.call_args)
+                ['%s/bin/map_transformer.py' % settings.OQ_APIAPP_DIR,
+                 '-k', str(hazard_map.id),
+                 '-p', '%s/computed_output/%s' % (self.job.path, basename),
+                 '--shapefile', '-t', 'hazard'],)
+            self.assertEqual(expected, args)
+            self.assertEqual({'ignore_exit_code': True}, kwargs)
 
-    def test_process_map_calls_shapefile_gen_correctly_with_loss(self):
+    def test_process_map_calls_map_transformer_correctly_with_loss(self):
         """
-        The shapefile generator tool is invoked correctly for a loss map.
+        The map transformer is invoked correctly for a loss map that is to be
+        written to a shapefile.
         """
+        config = {'jobid': self.job.id, 'shapefile': True}
         maps = find_maps(self.job)
         self.assertEqual(2, len(maps))
         [_, loss_map] = maps
@@ -151,17 +156,19 @@ class ProcessMapTestCase(unittest.TestCase, DbTestMixin):
         with mock.patch('utils.run_cmd') as mock_func:
             mock_func.return_value = (
                 0, "RESULT: ('/d/e/f', 61.4039544548262, 926.3032629745)", "")
-            process_map(loss_map)
+            process_map(loss_map, config)
+            args, kwargs = mock_func.call_args
             expected = (
-                (['%s/bin/gen_shapefile.py' % settings.OQ_APIAPP_DIR,
-                  '-k', str(loss_map.id),
-                  '-p', '%s/computed_output/%s' % (self.job.path, basename),
-                  '-t', 'loss'],),
-                {'ignore_exit_code': True})
-            self.assertEqual(expected, mock_func.call_args)
+                ['%s/bin/map_transformer.py' % settings.OQ_APIAPP_DIR,
+                 '-k', str(loss_map.id),
+                 '-p', '%s/computed_output/%s' % (self.job.path, basename),
+                 '--shapefile', '-t', 'loss'],)
+            self.assertEqual(expected, args)
+            self.assertEqual({'ignore_exit_code': True}, kwargs)
 
-    def test_process_map_shapefile_generated_correctly_with_hazard(self):
+    def test_process_map_with_shapefile_and_hazard(self):
         """The db record for the hazard map is updated."""
+        config = {'jobid': self.job.id, 'shapefile': True}
         maps = find_maps(self.job)
         self.assertEqual(2, len(maps))
         [hazard_map, _] = maps
@@ -169,13 +176,14 @@ class ProcessMapTestCase(unittest.TestCase, DbTestMixin):
         with mock.patch('utils.run_cmd') as mock_func:
             mock_func.return_value = (
                 0, "RESULT: ('/g/h/i', 17.17, 18.18)", "")
-            process_map(hazard_map)
+            process_map(hazard_map, config)
             self.assertEqual("/g/h/i", hazard_map.shapefile_path)
             self.assertEqual(17.17, hazard_map.min_value)
             self.assertEqual(18.18, hazard_map.max_value)
 
-    def test_process_map_shapefile_generated_correctly_with_loss(self):
+    def test_process_map_with_shapefile_and_loss(self):
         """The db record for the loss map is updated."""
+        config = {'jobid': self.job.id, 'shapefile': True}
         maps = find_maps(self.job)
         self.assertEqual(2, len(maps))
         [_, loss_map] = maps
@@ -183,16 +191,47 @@ class ProcessMapTestCase(unittest.TestCase, DbTestMixin):
         with mock.patch('utils.run_cmd') as mock_func:
             mock_func.return_value = (
                 0, "RESULT: ('/j/k/l', 19.19, 21.21)", "")
-            process_map(loss_map)
+            process_map(loss_map, config)
             self.assertEqual("/j/k/l", loss_map.shapefile_path)
             self.assertEqual(19.19, loss_map.min_value)
             self.assertEqual(21.21, loss_map.max_value)
 
-    def test_process_map_with_shapefile_generator_error(self):
+    def test_process_map_with_shapefile_and_hazard_to_db(self):
+        """The db record for the hazard map is updated."""
+        config = {'jobid': self.job.id}
+        maps = find_maps(self.job)
+        self.assertEqual(2, len(maps))
+        [hazard_map, _] = maps
+        self.assertEqual("hazard_map", hazard_map.output_type)
+        with mock.patch('utils.run_cmd') as mock_func:
+            mock_func.return_value = (
+                0, "RESULT: (98, 17.17, 18.18)", "")
+            process_map(hazard_map, config)
+            self.assertIs(None, hazard_map.shapefile_path)
+            self.assertEqual(17.17, hazard_map.min_value)
+            self.assertEqual(18.18, hazard_map.max_value)
+
+    def test_process_map_with_shapefile_and_loss_to_db(self):
+        """The db record for the loss map is updated."""
+        config = {'jobid': self.job.id}
+        maps = find_maps(self.job)
+        self.assertEqual(2, len(maps))
+        [_, loss_map] = maps
+        self.assertEqual("loss_map", loss_map.output_type)
+        with mock.patch('utils.run_cmd') as mock_func:
+            mock_func.return_value = (
+                0, "RESULT: (99, 19.19, 21.21)", "")
+            process_map(loss_map, config)
+            self.assertIs(None, loss_map.shapefile_path)
+            self.assertEqual(19.19, loss_map.min_value)
+            self.assertEqual(21.21, loss_map.max_value)
+
+    def test_process_map_with_map_transformer_error(self):
         """
         If the shapefile generation fails for a map the db record is *not*
         updated.
         """
+        config = {'jobid': self.job.id, 'shapefile': True}
         maps = find_maps(self.job)
         self.assertEqual(2, len(maps))
         [hazard_map, _] = maps
@@ -200,10 +239,60 @@ class ProcessMapTestCase(unittest.TestCase, DbTestMixin):
         with mock.patch('utils.run_cmd') as mock_func:
             mock_func.return_value = (
                 1, "", "failed to generate shapefile")
-            process_map(hazard_map)
+            process_map(hazard_map, config)
             self.assertTrue(hazard_map.shapefile_path is None)
             self.assertTrue(hazard_map.min_value is None)
             self.assertTrue(hazard_map.max_value is None)
+
+    def test_process_map_calls_map_transformer_correctly_with_hzrd_to_db(self):
+        """
+        The map transformer is invoked correctly for a hazard map that is to be
+        written to the database.
+        Specifically: the '--shapefile' command line argument is not supplied.
+        """
+        config = {'jobid': self.job.id}
+        maps = find_maps(self.job)
+        self.assertEqual(2, len(maps))
+        [hazard_map, _] = maps
+        basename = os.path.basename(hazard_map.path)
+        self.assertEqual("hazard_map", hazard_map.output_type)
+        with mock.patch('utils.run_cmd') as mock_func:
+            mock_func.return_value = (
+                0, "RESULT: ('/a/b/c', 16.04934554846202, 629.323267954)", "")
+            process_map(hazard_map, config)
+            args, kwargs = mock_func.call_args
+            expected = (
+                ['%s/bin/map_transformer.py' % settings.OQ_APIAPP_DIR,
+                 '-k', str(hazard_map.id),
+                 '-p', '%s/computed_output/%s' % (self.job.path, basename),
+                 '-t', 'hazard'],)
+            self.assertEqual(expected, args)
+            self.assertEqual({'ignore_exit_code': True}, kwargs)
+
+    def test_process_map_calls_map_transformer_correctly_with_loss_to_db(self):
+        """
+        The map transformer is invoked correctly for a loss map that is to be
+        written to the database.
+        Specifically: the '--shapefile' command line argument is not supplied.
+        """
+        config = {'jobid': self.job.id}
+        maps = find_maps(self.job)
+        self.assertEqual(2, len(maps))
+        [_, loss_map] = maps
+        basename = os.path.basename(loss_map.path)
+        self.assertEqual("loss_map", loss_map.output_type)
+        with mock.patch('utils.run_cmd') as mock_func:
+            mock_func.return_value = (
+                0, "RESULT: ('/d/e/f', 61.4039544548262, 926.3032629745)", "")
+            process_map(loss_map, config)
+            args, kwargs = mock_func.call_args
+            expected = (
+                ['%s/bin/map_transformer.py' % settings.OQ_APIAPP_DIR,
+                 '-k', str(loss_map.id),
+                 '-p', '%s/computed_output/%s' % (self.job.path, basename),
+                 '-t', 'loss'],)
+            self.assertEqual(expected, args)
+            self.assertEqual({'ignore_exit_code': True}, kwargs)
 
 
 class FindMapsTestCase(unittest.TestCase, DbTestMixin):
@@ -369,9 +458,7 @@ class CreateInputFileDirTestCase(unittest.TestCase, DbTestMixin):
         An <upload_path>/<jobid> directory will be created with 0777
         permissions.
         """
-        config = {
-            'db': 'openquake', 'host': 'localhost', 'jobid': self.job.id,
-            'password': 'xxx', 'user': 'oq_uiapi_writer'}
+        config = {'jobid': self.job.id}
 
         self.assertEqual("pending", self.job.status)
         job = create_input_file_dir(config)

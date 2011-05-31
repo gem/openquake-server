@@ -23,13 +23,15 @@
 Write hazard/loss map data to a shapefile. If all goes well the tool will
 print the minimum and maximum value(*) seen to the standard output.
 
-  -d | --write2db   : write to db as opposed to shapefiles [default behaviour]
+!! Please note: the hazard/loss map data is written to database by default.
+
   -h | --help       : prints this help string
   -k | --key K      : database key of the hazard/loss map
   -l | --layer L    : shapefile layer name
   -o | --output O   : path to the resulting shapefile, do *not* use dot
                       characters in shapefile names!
   -p | --path P     : path to the hazard/loss map file to be processed
+  -s | --shapefile  : write map data to shapefiles as opposed to database
   -t | --type T     : map type: may be one of hazard/loss
   -z | --zeroes     : do not discard zero values from shapefile
 
@@ -507,16 +509,16 @@ def main(cargs):
         return arg.split('-')[-1]
 
     mandatory_args = ["key", "path"]
-    config = dict(key="", layer="", output="", path="", type="hazard",
-                  zeroes=False, write2db=True)
+    config = dict(key="", layer="", output="", path="", shapefile=False,
+                  type="hazard", zeroes=False)
     longopts = ["%s" % k if isinstance(v, bool) else "%s=" % k
                 for k, v in config.iteritems()] + ["help"]
     # Translation between short/long command line arguments.
-    s2l = dict(d="write2db", k="key", l="layer", o="output", p="path",
+    s2l = dict(k="key", l="layer", o="output", p="path", s="shapefile",
                t="type", z="zeroes")
 
     try:
-        opts, _ = getopt.getopt(cargs[1:], "dhk:l:o:p:t:z", longopts)
+        opts, _ = getopt.getopt(cargs[1:], "hk:l:o:p:st:z", longopts)
     except getopt.GetoptError, e:
         # User supplied unknown argument(?); print help and exit.
         print e
@@ -553,10 +555,10 @@ def main(cargs):
             print __doc__
             sys.exit(103)
 
-    if config["write2db"]:
-        path_and_minmax_values = write_map_data_to_db(config)
-    else:
+    if config["shapefile"]:
         path_and_minmax_values = create_shapefile(config)
+    else:
+        path_and_minmax_values = write_map_data_to_db(config)
 
     if path_and_minmax_values:
         print "RESULT: %s" % str(path_and_minmax_values)

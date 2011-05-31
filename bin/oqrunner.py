@@ -23,12 +23,11 @@
 Run the OpenQuake engine to perform a calculation. If all goes well the
 hazard/loss map data will either be written to
     - the database (default behaviour) or to
-    - shapefiles (one per map) and these be registered with the
-      geonode server
+    - shapefiles and these be registered with the geonode server
 
-  -d | --write2db   : write to db as opposed to shapefiles [default behaviour]
   -h | --help       : prints this help string
   -j | --jobid J    : database key of the associated oq_job record
+  -s | --shapefile  : write map data to shapefiles as opposed to database
 """
 
 
@@ -69,11 +68,8 @@ def create_input_file_dir(config):
     updated with the path created.
 
     :param dict config: a dictionary with the following configuration data:
-        - host (the database host)
-        - db (the database name)
         - jobid (the database key of the associated oq_job record)
-        - user (the database user)
-        - password (the database user password)
+        - shapefile (whether map data should be written to shapefiles)
     :returns: the :py:class:`geonode.mtapi.models.OqJob` instance
     """
     [job] = OqJob.objects.filter(id=config["jobid"])
@@ -126,10 +122,9 @@ def run_calculation(config):
         - generating the config.gem file in EIFD
         - symlinking all the input files (uploaded by the user) in EIFD
         - running the engine
-        - generating a shapefile for each hazard/loss map once the engine
-          finishes and register these shapefiles with the geonode server
-        - creating a database record for each hazard/loss map and capture the
-          associated shapefile.
+        - creating a database record for each hazard/loss map
+        - write hazard/loss map data to database or to shapefiles (and
+          register the latter with the geonode server)
     """
     job = create_input_file_dir(config)
     prepare_inputs(job)
@@ -139,8 +134,9 @@ def run_calculation(config):
         job.status = "failed"
         job.save()
         sys.exit(code)
-    process_results(job)
-    register_shapefiles(job)
+    process_results(job, config)
+    if config["shapefiles"]:
+        register_shapefiles(job)
     job.status = "succeeded"
     job.save()
 
@@ -222,17 +218,17 @@ def update_layers():
     logger.info("< update_layers")
 
 
-def process_results(job):
+def process_results(job, config):
     """Generates a shapefile for each hazard/loss map.
 
     :param job: the :py:class:`geonode.mtapi.models.OqJob` instance in question
     """
     maps = find_maps(job)
     for a_map in maps:
-        process_map(a_map)
+        process_map(a_map, config)
 
 
-def process_map(a_map):
+def process_map(a_map, config):
     """Creates shapefile from a map. Updates the respective db record.
 
     The minimum/maximum values as well as the shapefile path/URL will be
@@ -240,18 +236,23 @@ def process_map(a_map):
 
     :param a_map: :py:class:`geonode.mtapi.models.Output` instance in question
     """
-    commands = ["%s/bin/gen_shapefile.py" % settings.OQ_APIAPP_DIR]
+    commands = ["%s/bin/map_transformer.py" % settings.OQ_APIAPP_DIR]
     commands.append("-k")
     commands.append(str(a_map.id))
     commands.append("-p")
     commands.append(a_map.path)
+    if config.get("shapefile"):
+        commands.append("--shapefile")
     commands.append("-t")
     commands.append("hazard" if a_map.output_type == "hazard_map" else "loss")
     code, out, _ = utils.run_cmd(commands, ignore_exit_code=True)
     if code == 0:
         # All went well
-        a_map.shapefile_path, a_map.min_value, a_map.max_value = \
-            extract_results(out)
+        if config.get("shapefile"):
+            a_map.shapefile_path, a_map.min_value, a_map.max_value = \
+                extract_results(out)
+        else:
+            _, a_map.min_value, a_map.max_value = extract_results(out)
         a_map.save()
 
 
@@ -260,18 +261,28 @@ def extract_results(stdout):
     standard output.
 
     This is what the stdout will look like in case of success:
-      "RESULT: ('/path', 1.9016084306, 1.95760904991)"
+      - for shapefiles:
+            "RESULT: ('/path', 1.9016084306, 1.95760904991)"
+      - for hazard/loss map data in database
+            "RESULT: (99, 2.8016084306, 2.75760904991)"
 
     :param string stdout: the standard output produced by the shapefile
     generator.
     :returns: a ('/path', minimum, maximum) triple in case of success or None
         in case of failure.
     """
-    regex = re.compile("RESULT:\s+\('([^']+)',\s+([^,]+),\s+([^)]+)\)")
-    match = regex.search(stdout)
+    shapefile_regex = re.compile(
+        "RESULT:\s+\('([^']+)',\s+([^,]+),\s+([^)]+)\)")
+    database_regex = re.compile(
+        "RESULT:\s+\((\d+),\s+([^,]+),\s+([^)]+)\)")
+    match = shapefile_regex.search(stdout)
     if match:
         path, minimum, maximum = match.groups()
         return (path, float(minimum), float(maximum))
+    match = database_regex.search(stdout)
+    if match:
+        map_data_key, minimum, maximum = match.groups()
+        return (int(map_data_key), float(minimum), float(maximum))
 
 
 def find_maps(job):
@@ -329,14 +340,14 @@ def main(cargs):
         return arg.split('-')[-1]
 
     mandatory_args = ["jobid"]
-    config = dict(write2db=True, jobid=None)
+    config = dict(jobid=None, shapefile=False)
     longopts = ["%s" % k if isinstance(v, bool) else "%s=" % k
                 for k, v in config.iteritems()] + ["help"]
     # Translation between short/long command line arguments.
-    s2l = dict(d="write2db", j="jobid")
+    s2l = dict(j="jobid", s="shapefile")
 
     try:
-        opts, _ = getopt.getopt(cargs[1:], "hdj:", longopts)
+        opts, _ = getopt.getopt(cargs[1:], "hj:s", longopts)
     except getopt.GetoptError, e:
         # User supplied unknown argument(?); print help and exit.
         print e

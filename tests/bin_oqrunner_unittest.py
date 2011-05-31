@@ -87,7 +87,7 @@ class RegisterShapefilesInLocationTestCase(unittest.TestCase):
 class ExtractResultsTestCase(unittest.TestCase):
     """Tests the behaviour of oqrunner.extract_results()."""
 
-    def test_extract_results(self):
+    def test_extract_results_with_shapefile(self):
         """The minimum/maximum values are extracted correctly."""
         sample = "RESULT: ('/path', 16.04934554846202, 629.323267954)"
         path, minimum, maximum = extract_results(sample)
@@ -97,6 +97,17 @@ class ExtractResultsTestCase(unittest.TestCase):
         self.assertEqual(16.04934554846202, minimum)
         self.assertTrue(isinstance(maximum, float))
         self.assertEqual(629.323267954, maximum)
+
+    def test_extract_results_with_db(self):
+        """The minimum/maximum values are extracted correctly."""
+        sample = "RESULT: (99, 61.04934554846202, 269.323267954)"
+        map_data_key, minimum, maximum = extract_results(sample)
+        self.assertTrue(isinstance(map_data_key, int))
+        self.assertEqual(99, map_data_key)
+        self.assertTrue(isinstance(minimum, float))
+        self.assertEqual(61.04934554846202, minimum)
+        self.assertTrue(isinstance(maximum, float))
+        self.assertEqual(269.323267954, maximum)
 
     def test_extract_results_with_malformed_stdout(self):
         """The minimum/maximum values are extracted correctly."""
