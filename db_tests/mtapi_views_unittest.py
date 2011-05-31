@@ -83,7 +83,7 @@ class PrepareJobResultTestCase(unittest.TestCase, DbTestMixin):
 
     def test_prepare_job_result_with_failed(self):
         """
-        The json for failed OpenQuake jobs is prepared correctly.
+        The result dictionary for failed OpenQuake jobs is prepared correctly.
         """
         post_params = get_post_params()
         job = prepare_job(post_params)
@@ -96,8 +96,8 @@ class PrepareJobResultTestCase(unittest.TestCase, DbTestMixin):
 
     def test_prepare_job_result_with_succeeded_no_maps(self):
         """
-        The json for succeeded OpenQuake jobs (w/o hazard/loss maps) is
-        prepared correctly.
+        The result dictionary for succeeded OpenQuake jobs (w/o hazard/loss
+        maps) is prepared correctly.
         """
         post_params = get_post_params()
         job = prepare_job(post_params)
@@ -110,8 +110,8 @@ class PrepareJobResultTestCase(unittest.TestCase, DbTestMixin):
 
     def test_prepare_job_result_with_succeeded_and_map_wo_shapefile(self):
         """
-        Hazard/loss maps without a shapefile are not listed in the json
-        returned by prepare_job_result().
+        Hazard/loss maps without a shapefile are not listed in the result
+        dictionary returned by prepare_job_result().
         """
         hazard_map = self.setup_output()
         self.job_to_teardown = job = hazard_map.oq_job
@@ -123,8 +123,8 @@ class PrepareJobResultTestCase(unittest.TestCase, DbTestMixin):
 
     def test_prepare_job_result_with_succeeded_and_maps(self):
         """
-        The json for succeeded OpenQuake jobs (w/o hazard/loss maps) is
-        prepared correctly.
+        The result dictionary for succeeded OpenQuake jobs (w/o hazard/loss
+        maps) is prepared correctly.
         """
         hazard_map = self.setup_output()
         self.job_to_teardown = job = hazard_map.oq_job
@@ -139,26 +139,29 @@ class PrepareJobResultTestCase(unittest.TestCase, DbTestMixin):
             os.path.basename(loss_map.shapefile_path))
         loss_file = os.path.basename(loss_map.path)
         job.status = "succeeded"
-        expected = {'files': [
-            {'id': hazard_map.id,
-            'layer': {'layer': u'geonode:%s' % hazard_layer,
-                      'ows': \
-                        'http://gemsun02.ethz.ch/geoserver-geonode-dev/ows'},
-            'max': utils.round_float(hazard_map.max_value),
-            'min': utils.round_float(hazard_map.min_value),
-            'name': u'%s' % hazard_file,
-            'type': u'hazard map'},
-            {'id': loss_map.id,
-            'layer': {'layer': u'geonode:%s' % loss_layer,
-                      'ows': \
-                        'http://gemsun02.ethz.ch/geoserver-geonode-dev/ows'},
-            'max': utils.round_float(loss_map.max_value),
-            'min': utils.round_float(loss_map.min_value),
-            'name': u'%s' % loss_file,
-            'type': u'loss map'}],
-            'id': job.id,
-            'msg': u'Calculation succeeded',
-            'status': 'success'}
+        expected = {
+            "id": job.id,
+            "msg": "Calculation succeeded",
+            "status": "success",
+            "files": [
+                {"id": hazard_map.id,
+                 "layer": {
+                    "layer": "geonode:hazardmap",
+                    "filter": "output_id=%s" % hazard_map.id,
+                    "ows": "http://gemsun02.ethz.ch/geoserver-geonode-dev/ows"},
+                "min": utils.round_float(hazard_map.min_value),
+                "max": utils.round_float(hazard_map.max_value),
+                "name": "%s" % hazard_file,
+                "type": "hazard map"},
+                {"id": loss_map.id,
+                 "layer": {
+                    "layer": "geonode:lossmap",
+                    "filter": "output_id=%s" % loss_map.id,
+                    "ows": "http://gemsun02.ethz.ch/geoserver-geonode-dev/ows"},
+                "min": utils.round_float(loss_map.min_value),
+                "max": utils.round_float(loss_map.max_value),
+                "name": "%s" % loss_file,
+                "type": "loss map"}]}
 
         actual = prepare_job_result(job)
         self.assertEqual(expected, actual)
@@ -257,26 +260,24 @@ class PrepareMapResultTestCase(unittest.TestCase, DbTestMixin):
 
     def test_prepare_map_result_with_hazard(self):
         """
-        prepare_map_result() returns a correct json fragment for a
+        prepare_map_result() returns a correct result dictionary for a
         hazard map.
         """
         self.output = self.setup_output()
-        self.add_shapefile_data(self.output)
+        self.output.min_value, self.output.max_value = (10.0, 20.0)
 
-        layer, _ = os.path.splitext(
-            os.path.basename(self.output.shapefile_path))
         name = os.path.basename(self.output.path)
-        type = ("hazard map" if self.output.output_type == "hazard_map"
+        map_type = ("hazard map" if self.output.output_type == "hazard_map"
                              else "loss map")
-
         expected = {
             "layer": {
-                "layer": "geonode:%s" % layer,
+                "layer": "geonode:hazardmap",
+                "filter": "output_id=%s" % self.output.id,
                 "ows": "http://gemsun02.ethz.ch/geoserver-geonode-dev/ows"},
             "name": name,
             "min": utils.round_float(self.output.min_value),
             "max": utils.round_float(self.output.max_value),
-            "type": type,
+            "type": map_type,
             "id": self.output.id}
 
         actual = prepare_map_result(self.output)
@@ -284,26 +285,24 @@ class PrepareMapResultTestCase(unittest.TestCase, DbTestMixin):
 
     def test_prepare_map_result_with_loss(self):
         """
-        prepare_map_result() returns a correct json fragment for a
+        prepare_map_result() returns a correct result dictionary for a
         hazard map.
         """
         self.output = self.setup_output(output_type="loss_map")
-        self.add_shapefile_data(self.output)
+        self.output.min_value, self.output.max_value = (30.0, 40.0)
 
-        layer, _ = os.path.splitext(
-            os.path.basename(self.output.shapefile_path))
         name = os.path.basename(self.output.path)
-        type = ("loss map" if self.output.output_type == "loss_map"
+        map_type = ("loss map" if self.output.output_type == "loss_map"
                              else "loss map")
-
         expected = {
             "layer": {
-                "layer": "geonode:%s" % layer,
+                "layer": "geonode:lossmap",
+                "filter": "output_id=%s" % self.output.id,
                 "ows": "http://gemsun02.ethz.ch/geoserver-geonode-dev/ows"},
             "name": name,
             "min": utils.round_float(self.output.min_value),
             "max": utils.round_float(self.output.max_value),
-            "type": type,
+            "type": map_type,
             "id": self.output.id}
 
         actual = prepare_map_result(self.output)
