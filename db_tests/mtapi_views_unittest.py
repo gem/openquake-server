@@ -107,19 +107,6 @@ class PrepareJobResultTestCase(unittest.TestCase, DbTestMixin):
             "id": job.id, "files": []},
             prepare_job_result(job))
 
-    def test_prepare_job_result_with_succeeded_and_map_wo_shapefile(self):
-        """
-        Hazard/loss maps without a shapefile are not listed in the result
-        dictionary returned by prepare_job_result().
-        """
-        hazard_map = self.setup_output()
-        self.job_to_teardown = job = hazard_map.oq_job
-        job.status = "succeeded"
-        self.assertEqual(
-            {"msg": "Calculation succeeded", "status": "success",
-            "id": job.id, "files": []},
-            prepare_job_result(job))
-
     def test_prepare_job_result_with_succeeded_and_maps(self):
         """
         The result dictionary for succeeded OpenQuake jobs (w/o hazard/loss

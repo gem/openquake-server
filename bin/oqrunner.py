@@ -236,6 +236,9 @@ def process_map(a_map, config):
 
     :param a_map: :py:class:`geonode.mtapi.models.Output` instance in question
     """
+    logger.info("> process_map")
+    logger.info("map = %s" % a_map)
+
     commands = ["%s/bin/map_transformer.py" % settings.OQ_APIAPP_DIR]
     commands.append("-k")
     commands.append(str(a_map.id))
@@ -254,6 +257,7 @@ def process_map(a_map, config):
         else:
             _, a_map.min_value, a_map.max_value = extract_results(out)
         a_map.save()
+    logger.info("< process_map")
 
 
 def extract_results(stdout):

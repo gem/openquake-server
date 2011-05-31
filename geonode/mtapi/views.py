@@ -425,8 +425,7 @@ def prepare_job_result(job):
     if job.status == "succeeded":
         files = []
         for output in job.output_set.all().order_by("id"):
-            if output.shapefile_path:
-                files.append(prepare_map_result(output))
+            files.append(prepare_map_result(output))
         result['files'] = files
 
     print("result: %s\n" % pprint.pformat(result))
