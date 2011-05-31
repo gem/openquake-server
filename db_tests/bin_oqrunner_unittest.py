@@ -258,7 +258,7 @@ class ProcessMapTestCase(unittest.TestCase, DbTestMixin):
         self.assertEqual("hazard_map", hazard_map.output_type)
         with mock.patch('geonode.mtapi.view_utils.run_cmd') as mock_func:
             mock_func.return_value = (
-                0, "RESULT: ('/a/b/c', 16.04934554846202, 629.323267954)", "")
+                0, "RESULT: (%s, 17.17, 18.18)" % hazard_map.id, "")
             process_map(hazard_map, config)
             args, kwargs = mock_func.call_args
             expected = (
@@ -283,7 +283,7 @@ class ProcessMapTestCase(unittest.TestCase, DbTestMixin):
         self.assertEqual("loss_map", loss_map.output_type)
         with mock.patch('geonode.mtapi.view_utils.run_cmd') as mock_func:
             mock_func.return_value = (
-                0, "RESULT: ('/d/e/f', 61.4039544548262, 926.3032629745)", "")
+                0, "RESULT: (%s, 19.19, 21.21)" % loss_map.id, "")
             process_map(loss_map, config)
             args, kwargs = mock_func.call_args
             expected = (
