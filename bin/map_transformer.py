@@ -401,6 +401,7 @@ def write_map_data_to_db(config):
             - path (map file to be processed)
             - type (map type, hazard or loss)
     """
+    logger.info("> write_map_data_to_db")
     minmax_values = (0.0, 0.0)
     if config["type"] == "hazard":
         data = extract_hazardmap_data(config)
@@ -432,7 +433,10 @@ def write_map_data_to_db(config):
         datum.save()
 
     minmax_values = find_min_max(data, operator.itemgetter(1))
-    return (config["key"],) + minmax_values
+    result = (config["key"],) + minmax_values
+    logger.info("result = %s" % repr(result))
+    logger.info("< write_map_data_to_db")
+    return result
 
 
 def create_shapefile(config):
