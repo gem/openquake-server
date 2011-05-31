@@ -448,7 +448,10 @@ def prepare_map_result(output):
     :returns: a dictionary with data needed to produce the json above.
     """
     map_type = dict(output.OUTPUT_TYPE_CHOICES)[output.output_type].lower()
-    layer_name = map_type.replace(' ', '')
+    if output.output_type == "hazard_map":
+        layer_name = "hazard_map_data"
+    else:
+        layer_name = "loss_map_data"
     ows = urljoin(settings.GEOSERVER_BASE_URL, "ows")
     result = dict(
         id=output.id, name=os.path.basename(output.path),

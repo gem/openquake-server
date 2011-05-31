@@ -132,7 +132,7 @@ class PrepareJobResultTestCase(unittest.TestCase, DbTestMixin):
             "files": [
                 {"id": hazard_map.id,
                  "layer": {
-                    "layer": "geonode:hazardmap",
+                    "layer": "geonode:hazard_map_data",
                     "filter": "output_id=%s" % hazard_map.id,
                     "ows": "http://gemsun02.ethz.ch/geoserver-geonode-dev/ows"},
                 "min": view_utils.round_float(hazard_map.min_value),
@@ -141,7 +141,7 @@ class PrepareJobResultTestCase(unittest.TestCase, DbTestMixin):
                 "type": "hazard map"},
                 {"id": loss_map.id,
                  "layer": {
-                    "layer": "geonode:lossmap",
+                    "layer": "geonode:loss_map_data",
                     "filter": "output_id=%s" % loss_map.id,
                     "ows": "http://gemsun02.ethz.ch/geoserver-geonode-dev/ows"},
                 "min": view_utils.round_float(loss_map.min_value),
@@ -257,7 +257,7 @@ class PrepareMapResultTestCase(unittest.TestCase, DbTestMixin):
                              else "loss map")
         expected = {
             "layer": {
-                "layer": "geonode:hazardmap",
+                "layer": "geonode:hazard_map_data",
                 "filter": "output_id=%s" % self.output.id,
                 "ows": "http://gemsun02.ethz.ch/geoserver-geonode-dev/ows"},
             "name": name,
@@ -282,7 +282,7 @@ class PrepareMapResultTestCase(unittest.TestCase, DbTestMixin):
                              else "loss map")
         expected = {
             "layer": {
-                "layer": "geonode:lossmap",
+                "layer": "geonode:loss_map_data",
                 "filter": "output_id=%s" % self.output.id,
                 "ows": "http://gemsun02.ethz.ch/geoserver-geonode-dev/ows"},
             "name": name,
