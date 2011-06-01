@@ -23,14 +23,17 @@
 Write hazard/loss map data to a shapefile. If all goes well the tool will
 print the minimum and maximum value(*) seen to the standard output.
 
+!! Please note: the hazard/loss map data is written to database by default.
+
   -h | --help       : prints this help string
   -k | --key K      : database key of the hazard/loss map
   -l | --layer L    : shapefile layer name
   -o | --output O   : path to the resulting shapefile, do *not* use dot
                       characters in shapefile names!
   -p | --path P     : path to the hazard/loss map file to be processed
+  -s | --shapefile  : write map data to shapefiles as opposed to database
   -t | --type T     : map type: may be one of hazard/loss
-  -z | --zeroes     : do not discard zero values (linear colour scale)
+  -z | --zeroes     : do not discard zero values from shapefile
 
 (*) IML and loss mean for hazard and loss maps respectively.
 """
@@ -45,8 +48,12 @@ import pprint
 import re
 import sys
 
+from django.contrib.gis.geos import GEOSGeometry
 
-logger = logging.getLogger('gen_shapefile')
+from geonode.mtapi.models import HazardMapData, LossMapData, Output
+
+
+logger = logging.getLogger('map_transformer')
 logger.setLevel(logging.DEBUG)
 ch = logging.StreamHandler()
 ch.setLevel(logging.DEBUG)
@@ -385,6 +392,52 @@ def create_shapefile_from_loss_map(config):
     return (path,) + find_min_max(data, operator.itemgetter(1))
 
 
+def write_map_data_to_db(config):
+    """Write hazard/loss map data to the database.
+
+    :param dict config: a configuration `dict` with the following data
+        items:
+            - key (db key of the hazard/loss map file (map_db_key))
+            - path (map file to be processed)
+            - type (map type, hazard or loss)
+    :returns: a (map_db_key, minimum, maximum) triple
+    """
+    logger.info("> write_map_data_to_db")
+    if config["type"] == "hazard":
+        data = extract_hazardmap_data(config)
+        klass = HazardMapData
+    elif  config["type"] == "loss":
+        data = extract_lossmap_data(config)
+        data = calculate_loss_data(data)
+        klass = LossMapData
+    else:
+        error = "unknown map type: '%s'" % config["type"]
+        logger.error(error)
+        raise Exception(error)
+
+    if not data:
+        return (config["key"], 0.0, 0.0)
+
+    output = Output.objects.get(id=config["key"])
+
+    assert (
+        (config["type"] == "hazard" and output.output_type == "hazard_map") or
+        (config["type"] == "loss" and output.output_type == "loss_map")), (
+        "Invalid map type ('%s') for the given data ('%s')" % (
+            output.output_type, config["type"]))
+
+    for [lon, lat], value in data:
+        datum = klass(output=output, value=value)
+        datum.location = GEOSGeometry('POINT(%s %s)' % (lon, lat))
+        datum.save()
+
+    minmax_values = find_min_max(data, operator.itemgetter(1))
+    result = (config["key"],) + minmax_values
+    logger.info("result = %s" % repr(result))
+    logger.info("< write_map_data_to_db")
+    return result
+
+
 def create_shapefile(config):
     """Create a shapefile for a hazard/loss map as appropriate.
 
@@ -459,15 +512,16 @@ def main(cargs):
         return arg.split('-')[-1]
 
     mandatory_args = ["key", "path"]
-    config = dict(key="", layer="", output="", path="", type="hazard",
-                  zeroes=False)
+    config = dict(key="", layer="", output="", path="", shapefile=False,
+                  type="hazard", zeroes=False)
     longopts = ["%s" % k if isinstance(v, bool) else "%s=" % k
                 for k, v in config.iteritems()] + ["help"]
     # Translation between short/long command line arguments.
-    s2l = dict(k="key", l="layer", o="output", p="path", t="type", z="zeroes")
+    s2l = dict(k="key", l="layer", o="output", p="path", s="shapefile",
+               t="type", z="zeroes")
 
     try:
-        opts, _ = getopt.getopt(cargs[1:], "hk:l:o:p:t:z", longopts)
+        opts, _ = getopt.getopt(cargs[1:], "hk:l:o:p:st:z", longopts)
     except getopt.GetoptError, e:
         # User supplied unknown argument(?); print help and exit.
         print e
@@ -504,7 +558,10 @@ def main(cargs):
             print __doc__
             sys.exit(103)
 
-    path_and_minmax_values = create_shapefile(config)
+    if config["shapefile"]:
+        path_and_minmax_values = create_shapefile(config)
+    else:
+        path_and_minmax_values = write_map_data_to_db(config)
 
     if path_and_minmax_values:
         print "RESULT: %s" % str(path_and_minmax_values)

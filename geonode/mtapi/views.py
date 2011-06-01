@@ -31,14 +31,13 @@ import simplejson
 import subprocess
 from urlparse import urljoin
 
-import utils
-
 from django.conf import settings
 from django.contrib.gis.geos import GEOSGeometry
 from django.http import HttpResponse, Http404
 from django.views.decorators.csrf import csrf_exempt
 
 from geonode.mtapi.models import Input, OqJob, OqParams, Upload
+from geonode.mtapi import view_utils
 
 
 @csrf_exempt
@@ -67,7 +66,7 @@ def input_upload_result(request, upload_id):
     if request.method == "GET":
         [upload] = Upload.objects.filter(id=int(upload_id))
         if upload.status == "running":
-            processor_is_alive = utils.is_process_running(
+            processor_is_alive = view_utils.is_process_running(
                 upload.job_pid, settings.NRML_RUNNER_PATH)
             if processor_is_alive:
                 print "Upload processing in progress.."
@@ -104,7 +103,7 @@ def input_upload(request):
     """
     print("request.FILES: %s\n" % pprint.pformat(request.FILES))
     if request.method == "POST":
-        upload = utils.prepare_upload()
+        upload = view_utils.prepare_upload()
         for uploaded_file in request.FILES.getlist('input_files'):
             handle_uploaded_file(upload, uploaded_file)
         load_source_files(upload)
@@ -387,7 +386,7 @@ def oq_job_result(request, job_id):
     if request.method == "GET":
         job = OqJob.objects.get(id=int(job_id))
         if job.status == "running":
-            oqrunner_is_alive = utils.is_process_running(
+            oqrunner_is_alive = view_utils.is_process_running(
                 job.job_pid, settings.OQRUNNER_PATH)
             if oqrunner_is_alive:
                 print "OpenQuake job in progress.."
@@ -426,8 +425,7 @@ def prepare_job_result(job):
     if job.status == "succeeded":
         files = []
         for output in job.output_set.all().order_by("id"):
-            if output.shapefile_path:
-                files.append(prepare_map_result(output))
+            files.append(prepare_map_result(output))
         result['files'] = files
 
     print("result: %s\n" % pprint.pformat(result))
@@ -449,12 +447,16 @@ def prepare_map_result(output):
         in question
     :returns: a dictionary with data needed to produce the json above.
     """
-    layer_name, _ = os.path.splitext(os.path.basename(output.shapefile_path))
     map_type = dict(output.OUTPUT_TYPE_CHOICES)[output.output_type].lower()
+    if output.output_type == "hazard_map":
+        layer_name = "hazard_map_data"
+    else:
+        layer_name = "loss_map_data"
     ows = urljoin(settings.GEOSERVER_BASE_URL, "ows")
     result = dict(
         id=output.id, name=os.path.basename(output.path),
-        type=map_type, min=utils.round_float(output.min_value),
-        max=utils.round_float(output.max_value),
-        layer=dict(ows=ows, layer="geonode:%s" % layer_name))
+        type=map_type, min=view_utils.round_float(output.min_value),
+        max=view_utils.round_float(output.max_value),
+        layer=dict(ows=ows, layer="geonode:%s" % layer_name,
+                   filter="output_id=%s" % output.id))
     return result

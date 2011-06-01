@@ -28,7 +28,7 @@ import stat
 import unittest
 
 from geonode.mtapi.models import Upload
-from utils import prepare_upload
+from geonode.mtapi.view_utils import prepare_upload
 
 
 class PrepareUploadTestCase(unittest.TestCase):
