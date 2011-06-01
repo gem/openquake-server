@@ -402,7 +402,6 @@ def write_map_data_to_db(config):
             - type (map type, hazard or loss)
     """
     logger.info("> write_map_data_to_db")
-    minmax_values = (0.0, 0.0)
     if config["type"] == "hazard":
         data = extract_hazardmap_data(config)
         klass = HazardMapData
@@ -416,9 +415,8 @@ def write_map_data_to_db(config):
         raise Exception(error)
 
     if not data:
-        return minmax_values
+        return (config["key"], 0.0, 0.0)
 
-    minmax_values = find_min_max(data, operator.itemgetter(1))
     output = Output.objects.get(id=config["key"])
 
     assert (
