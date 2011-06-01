@@ -397,9 +397,10 @@ def write_map_data_to_db(config):
 
     :param dict config: a configuration `dict` with the following data
         items:
-            - key (db key of the hazard map file)
+            - key (db key of the hazard/loss map file (map_db_key))
             - path (map file to be processed)
             - type (map type, hazard or loss)
+    :returns: a (map_db_key, minimum, maximum) triple
     """
     logger.info("> write_map_data_to_db")
     if config["type"] == "hazard":

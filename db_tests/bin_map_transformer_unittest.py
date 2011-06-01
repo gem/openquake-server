@@ -55,6 +55,8 @@ class WriteMapDataToDbDbTestCase(unittest.TestCase, DbTestMixin):
             self.assertEqual(
                 "Invalid map type ('hazard_map') for the given data ('loss')",
                 e.args[0])
+        else:
+            self.fail("AssertionError not raised")
 
     def test_write_map_data_to_db_with_hazard_loss_mismatch(self):
         """
@@ -74,6 +76,8 @@ class WriteMapDataToDbDbTestCase(unittest.TestCase, DbTestMixin):
             self.assertEqual(
                 "Invalid map type ('loss_map') for the given data ('hazard')",
                 e.args[0])
+        else:
+            self.fail("AssertionError not raised")
 
     def test_write_map_data_to_db_with_invalid_output_key(self):
         """
@@ -89,6 +93,8 @@ class WriteMapDataToDbDbTestCase(unittest.TestCase, DbTestMixin):
         except ObjectDoesNotExist, e:
             self.assertEqual(
                 "Output matching query does not exist.", e.args[0])
+        else:
+            self.fail("ObjectDoesNotExist not raised")
 
     def test_write_map_data_to_db_with_hazard_map(self):
         """

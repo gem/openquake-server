@@ -222,6 +222,9 @@ def process_results(job, config):
     """Generates a shapefile for each hazard/loss map.
 
     :param job: the :py:class:`geonode.mtapi.models.OqJob` instance in question
+    :param dict config: a dictionary with the following configuration data:
+        - jobid (the database key of the associated oq_job record)
+        - shapefile (whether map data should be written to shapefiles)
     """
     maps = find_maps(job)
     for a_map in maps:
@@ -251,12 +254,16 @@ def process_map(a_map, config):
     code, out, _ = view_utils.run_cmd(commands, ignore_exit_code=True)
     if code == 0:
         # All went well
-        if config.get("shapefile"):
-            a_map.shapefile_path, a_map.min_value, a_map.max_value = \
-                extract_results(out)
+        results = extract_results(out)
+        if results is None:
+            logger.error("Failed to parse map_transformer stdout ('%s')" % out)
         else:
-            _, a_map.min_value, a_map.max_value = extract_results(out)
-        a_map.save()
+            if config.get("shapefile"):
+                a_map.shapefile_path, a_map.min_value, a_map.max_value = \
+                    results
+            else:
+                _, a_map.min_value, a_map.max_value = results
+            a_map.save()
     logger.info("< process_map")
 
 

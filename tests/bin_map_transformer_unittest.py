@@ -630,6 +630,21 @@ class WriteMapDataToDbTestCase(unittest.TestCase):
             args, _ = mf.call_args
             self.assertEqual((config,), args)
 
+    def test_write_map_data_to_db_with_no_hazard_data(self):
+        """
+        In case that no hazard map data is found, a (map_db_key, 0.0, 0.0)
+        triple will be returned.
+        """
+        config = {
+            "key": "78", "layer": "78-hazardmap-0.01-quantile-0.25",
+            "output": "tests/78",
+            "path": "tests/data/hazardmap-0.1-quantile-0.25.xml",
+            "type": "hazard"}
+        with mock.patch("bin.map_transformer.extract_hazardmap_data") as mf:
+            mf.return_value = []
+            results = write_map_data_to_db(config)
+            self.assertEqual((config["key"], 0.0, 0.0), results)
+
     def test_write_map_data_to_db_with_loss_data(self):
         """
         extract_lossmap_data() and calculate_loss_data() are called for loss
@@ -649,6 +664,21 @@ class WriteMapDataToDbTestCase(unittest.TestCase):
                 self.assertEqual(1, cld.call_count)
                 args, _ = cld.call_args
                 self.assertEqual(([],), args)
+
+    def test_write_map_data_to_db_with_no_loss_data(self):
+        """
+        In case that no loss map data is found, a (map_db_key, 0.0, 0.0)
+        triple will be returned.
+        """
+        config = {
+            "key": "77", "layer": "77-lossmap-0.01-quantile-0.25",
+            "output": "tests/77", "path": "tests/data/loss-map-0fcfdbc7.xml",
+            "type": "loss"}
+        with mock.patch("bin.map_transformer.extract_lossmap_data") as eld:
+            with mock.patch("bin.map_transformer.calculate_loss_data") as cld:
+                cld.return_value = eld.return_value = []
+                results = write_map_data_to_db(config)
+                self.assertEqual((config["key"], 0.0, 0.0), results)
 
     def test_write_map_data_to_db_with_unknown_type(self):
         """
