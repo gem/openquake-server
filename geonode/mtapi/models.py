@@ -149,7 +149,7 @@ class OqParams(models.Model):
         (u"twosided", u"Two-sided"),
     )
     truncation_type = models.TextField(choices=TRUNCATION_TYPE_CHOICES)
-    truncation_level = models.FloatField(default=0.0)
+    truncation_level = models.FloatField(default=3.0)
     reference_vs30_value = models.FloatField()
     imls = FloatArrayField(null=True, verbose_name="Intensity measure levels")
     poes = FloatArrayField(
