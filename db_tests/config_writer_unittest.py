@@ -218,7 +218,7 @@ class JobConfigWriterClassicalTestCase(unittest.TestCase):
             os.path.abspath(path_to_new_cfg_file))
 
         self._test_config_files_are_the_same(
-            expected_config, path_to_new_cfg_file)
+            expected_config, path_to_new_cfg_file, oqjob_id=self.oqjob.id)
 
     def test_classical_config_file_generation_with_vuln_imls(self):
         """
@@ -235,12 +235,36 @@ class JobConfigWriterClassicalTestCase(unittest.TestCase):
         path_to_new_cfg_file = cfg_writer.serialize()
 
         self._test_config_files_are_the_same(
-            expected_config, path_to_new_cfg_file)
+            expected_config, path_to_new_cfg_file, oqjob_id=self.oqjob.id)
 
-    def _test_config_files_are_the_same(self, expected_file, actual_file):
+    def test_classical_config_file_generation_no_serialize_maps_to_db(self):
+        """
+        By default, config files are generated with the [general] parameter
+        SERIALIZE_MAPS_TO_DB set to True. This test exercises config file
+        creation with the parameter set to False.
+        """
+        expected_config = tests.test_data_path('config_no_serialize_to_db.gem')
+
+        cfg_writer = config_writer.JobConfigWriter(
+            self.oqjob.id,
+            serialize_maps_to_db=False)
+
+        path_to_new_cfg_file = cfg_writer.serialize()
+
+        self._test_config_files_are_the_same(
+            expected_config, path_to_new_cfg_file, self.oqjob.id)
+
+    def _test_config_files_are_the_same(self, expected_file, actual_file,
+        oqjob_id=None):
         """
         Given two *.gem config files, compare their contents and use test
         assertions to determine if they are the same.
+
+        :param expected_file: path to the expected output
+        :param actual_file: path to the actual output
+        :param oqjob_id: If specified, check that the OPENQUAKE_JOB_ID
+            parameter in the acutal_file is equal to this value. Otherwise just
+            compare the files exactly.
         """
         # now compare the new file with the expected file
         exp_parser = ConfigParser()
@@ -259,10 +283,12 @@ class JobConfigWriterClassicalTestCase(unittest.TestCase):
             exp_items.sort()
             actual_items.sort()
 
-            for ctr, _ in enumerate(exp_items):
-                exp = exp_items[ctr]
-                act = actual_items[ctr]
-                self.assertEqual(exp, act)
+            for ctr, (key, _value) in enumerate(exp_items):
+                # if we specified a job_id to compare too, handle that here
+                if key.upper() == "OPENQUAKE_JOB_ID" and oqjob_id:
+                    self.assertEqual((key, str(oqjob_id)), actual_items[ctr])
+                else:  # otherwise, just compare exactly what is in the files
+                    self.assertEqual(exp_items[ctr], actual_items[ctr])
 
             exp_fh.close()
             act_fh.close()
