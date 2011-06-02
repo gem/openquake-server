@@ -224,6 +224,15 @@ def run_oq_job(request):
     if request.method == "POST":
         params = request.POST
         params = simplejson.loads(params.keys().pop())
+        job_type = params["fields"].get("job_type")
+        if job_type is None:
+            return HttpResponse(simplejson.dumps({
+                "status": "failure", "msg": "Calculation type not set",
+                "id": -1}), status=500)
+        elif job_type != "classical":
+            return HttpResponse(simplejson.dumps({
+                "status": "failure", "msg": "Currently only the classical "
+                "calculator is supported", "id": -1}), status=500)
         job = prepare_job(params)
         start_job(job)
         return HttpResponse(simplejson.dumps({
