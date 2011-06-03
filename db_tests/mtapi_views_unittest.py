@@ -57,7 +57,7 @@ def get_post_params(additional_fields=None):
             "component": "average",
             "imt": "pga",
             "truncation_type": "none",
-            "truncation_level": None,
+            "truncation_level": 3.0,
             "reference_v30_value": 800,
             "imls": [0.2, 0.02, 0.01],
             "poes": [0.2, 0.02, 0.01],
@@ -137,7 +137,7 @@ class PrepareJobResultTestCase(unittest.TestCase, DbTestMixin):
                     "ows": "http://gemsun02.ethz.ch/geoserver-geonode-dev/ows"},
                 "min": view_utils.round_float(hazard_map.min_value),
                 "max": view_utils.round_float(hazard_map.max_value),
-                "name": "%s" % hazard_file,
+                "name": "%s-%s" % (job.id, hazard_file),
                 "type": "hazard map"},
                 {"id": loss_map.id,
                  "layer": {
@@ -146,7 +146,7 @@ class PrepareJobResultTestCase(unittest.TestCase, DbTestMixin):
                     "ows": "http://gemsun02.ethz.ch/geoserver-geonode-dev/ows"},
                 "min": view_utils.round_float(loss_map.min_value),
                 "max": view_utils.round_float(loss_map.max_value),
-                "name": "%s" % loss_file,
+                "name": "%s-%s" % (job.id, loss_file),
                 "type": "loss map"}]}
 
         actual = prepare_job_result(job)
@@ -260,7 +260,7 @@ class PrepareMapResultTestCase(unittest.TestCase, DbTestMixin):
                 "layer": "geonode:hazard_map_data",
                 "filter": "output_id=%s" % self.output.id,
                 "ows": "http://gemsun02.ethz.ch/geoserver-geonode-dev/ows"},
-            "name": name,
+            "name": "%s-%s" % (self.output.oq_job.id, name),
             "min": view_utils.round_float(self.output.min_value),
             "max": view_utils.round_float(self.output.max_value),
             "type": map_type,
@@ -285,7 +285,7 @@ class PrepareMapResultTestCase(unittest.TestCase, DbTestMixin):
                 "layer": "geonode:loss_map_data",
                 "filter": "output_id=%s" % self.output.id,
                 "ows": "http://gemsun02.ethz.ch/geoserver-geonode-dev/ows"},
-            "name": name,
+            "name": "%s-%s" % (self.output.oq_job.id, name),
             "min": view_utils.round_float(self.output.min_value),
             "max": view_utils.round_float(self.output.max_value),
             "type": map_type,
