@@ -129,3 +129,6 @@ APIAPP_PYTHONPATH += ":%s:%s" % (OQ_ENGINE_DIR, OQ_APIAPP_DIR)
 SITEURL = "http://gemsun02.ethz.ch/"
 GEOSERVER_BASE_URL = SITEURL + "geoserver-geonode-dev/"
 os.environ["MPLCONFIGDIR"] = "/tmp"
+os.environ["OQ_ENGINE_DB_USER"] = os.environ.get(
+    "OQ_MTAPI_USER", "oq_uiapi_writer")
+os.environ["OQ_ENGINE_DB_PASSWORD"] = os.environ.get("OQ_MTAPI_PASSWORD")
