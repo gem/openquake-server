@@ -331,7 +331,8 @@ class JobConfigWriter(object):
     DEFAULT_NUM_OF_DERIVED_IMLS = 10
 
     def __init__(self, job_id, derive_imls_from_vuln=False,
-        num_of_derived_imls=DEFAULT_NUM_OF_DERIVED_IMLS):
+        num_of_derived_imls=DEFAULT_NUM_OF_DERIVED_IMLS,
+        serialize_maps_to_db=True):
         """
 
 
@@ -355,8 +356,18 @@ class JobConfigWriter(object):
             is False, this parameter will be ignored.
 
             NOTE: This parameter should be used only for Classical PSHA
-            calculations.    
+            calculations.
         :type num_of_derived_imls: int
+
+        :param serialize_maps_to_db: If set to True, a SERIALIZE_MAPS_TO_DB
+            param will be written to the [general] section of the config file
+            which will indicate to the OpenQuake engine to write map data to
+            the database.
+
+            If set to False, maps will be serialized to XML instead.
+
+            Default value is True.
+        :type serialize_maps_to_db: bool
         """
 
         self.job_id = job_id
@@ -366,6 +377,10 @@ class JobConfigWriter(object):
             assert num_of_derived_imls >= 2, \
                 "There must be at least 2 IML values"
             self.num_of_derived_imls = num_of_derived_imls
+
+        self.serialize_maps_to_db = serialize_maps_to_db
+        assert isinstance(self.serialize_maps_to_db, bool), \
+            "Expected a boolean value"
 
         # this will be used to build the config file
         self.cfg_parser = ConfigParser()
@@ -434,6 +449,11 @@ class JobConfigWriter(object):
 
         if self.derive_imls_from_vuln:
             self._derive_imls_from_vulnerability(upload)
+
+        self.cfg_parser.set(
+            'general', 'SERIALIZE_MAPS_TO_DB', self.serialize_maps_to_db)
+        self.cfg_parser.set(
+            'general', 'OPENQUAKE_JOB_ID', self.job_id)
 
         # write and close
         self.cfg_parser.write(output_fh)
