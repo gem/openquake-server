@@ -329,7 +329,6 @@ class JobConfigWriter(object):
         'deterministic': None}
 
     DEFAULT_NUM_OF_DERIVED_IMLS = 10
-    DEFAULT_OQ_USER_ID = 1
 
     def __init__(self, job_id, derive_imls_from_vuln=False,
         num_of_derived_imls=DEFAULT_NUM_OF_DERIVED_IMLS,
