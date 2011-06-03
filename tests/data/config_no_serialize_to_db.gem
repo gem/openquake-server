@@ -6,7 +6,7 @@ REGION_VERTEX = 38.0, -122.2, 38.0, -121.7, 37.5, -121.7, 37.5, -122.2
 # degrees
 REGION_GRID_SPACING = 0.01
 
-SERIALIZE_MAPS_TO_DB = True
+SERIALIZE_MAPS_TO_DB = False
 OPENQUAKE_JOB_ID = 1234
 
 [HAZARD]
@@ -115,7 +115,7 @@ SUBDUCTION_RUPTURE_FLOATING_TYPE = Along strike and down dip
 NUMBER_OF_LOGIC_TREE_SAMPLES = 1
 
 # List of quantiles to compute (e.g. 0.25 0.50...)
-QUANTILE_LEVELS = 
+QUANTILE_LEVELS = 0.25 0.50 0.75
 
 # Compute mean hazard curve (true,false)
 COMPUTE_MEAN_HAZARD_CURVE = true

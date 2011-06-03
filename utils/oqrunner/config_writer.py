@@ -25,12 +25,11 @@ This module provides utilities for generating OpenQuake job config files.
 
 import os
 
-import utils
-
 from ConfigParser import ConfigParser
 from lxml import etree
 
 from geonode.mtapi import models
+from geonode.mtapi import view_utils
 
 
 CLASSICAL_DEFAULTS = {
@@ -220,10 +219,10 @@ def _lower_bound(iml_1, iml_2):
     :type iml_1: float
     :type iml_2: float
 
-    :py:function:`utils.round_float` is used with the calculated bound
+    :py:function:`view_utils.round_float` is used with the calculated bound
     values to maintain reasonable limits on precision.
     """
-    lower_bound = utils.round_float(iml_1 - ((iml_2 - iml_1) / 2))
+    lower_bound = view_utils.round_float(iml_1 - ((iml_2 - iml_1) / 2))
 
     assert lower_bound > 0.0, \
         "Invalid lower bound '%s': must be > 0.0" % lower_bound
@@ -239,10 +238,10 @@ def _upper_bound(iml_n, iml_n_1):
     :type iml_n: float
     :type iml_n_1: float
 
-    :py:function:`utils.round_float` is used with the calculated bound
+    :py:function:`view_utils.round_float` is used with the calculated bound
     values to maintain reasonable limits on precision.
     """
-    upper_bound = utils.round_float(iml_n + ((iml_n - iml_n_1) / 2))
+    upper_bound = view_utils.round_float(iml_n + ((iml_n - iml_n_1) / 2))
 
     assert upper_bound > 0.0, \
         "Invalid upper bound '%s': must be > 0.0" % upper_bound
@@ -332,7 +331,8 @@ class JobConfigWriter(object):
     DEFAULT_NUM_OF_DERIVED_IMLS = 10
 
     def __init__(self, job_id, derive_imls_from_vuln=False,
-        num_of_derived_imls=DEFAULT_NUM_OF_DERIVED_IMLS):
+        num_of_derived_imls=DEFAULT_NUM_OF_DERIVED_IMLS,
+        serialize_maps_to_db=True):
         """
 
 
@@ -356,8 +356,18 @@ class JobConfigWriter(object):
             is False, this parameter will be ignored.
 
             NOTE: This parameter should be used only for Classical PSHA
-            calculations.    
+            calculations.
         :type num_of_derived_imls: int
+
+        :param serialize_maps_to_db: If set to True, a SERIALIZE_MAPS_TO_DB
+            param will be written to the [general] section of the config file
+            which will indicate to the OpenQuake engine to write map data to
+            the database.
+
+            If set to False, maps will be serialized to XML instead.
+
+            Default value is True.
+        :type serialize_maps_to_db: bool
         """
 
         self.job_id = job_id
@@ -367,6 +377,10 @@ class JobConfigWriter(object):
             assert num_of_derived_imls >= 2, \
                 "There must be at least 2 IML values"
             self.num_of_derived_imls = num_of_derived_imls
+
+        self.serialize_maps_to_db = serialize_maps_to_db
+        assert isinstance(self.serialize_maps_to_db, bool), \
+            "Expected a boolean value"
 
         # this will be used to build the config file
         self.cfg_parser = ConfigParser()
@@ -436,6 +450,11 @@ class JobConfigWriter(object):
         if self.derive_imls_from_vuln:
             self._derive_imls_from_vulnerability(upload)
 
+        self.cfg_parser.set(
+            'general', 'SERIALIZE_MAPS_TO_DB', self.serialize_maps_to_db)
+        self.cfg_parser.set(
+            'general', 'OPENQUAKE_JOB_ID', self.job_id)
+
         # write and close
         self.cfg_parser.write(output_fh)
         output_fh.close()
@@ -460,7 +479,7 @@ class JobConfigWriter(object):
         lower_bound, upper_bound = \
             _get_iml_bounds_from_vuln_file(vuln_input.path)
 
-        iml_scale = utils.log_scale(
+        iml_scale = view_utils.log_scale(
             lower_bound, upper_bound, self.num_of_derived_imls)
 
         # format the new IML scale properly for the config file

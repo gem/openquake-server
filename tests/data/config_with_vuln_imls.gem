@@ -6,6 +6,9 @@ REGION_VERTEX = 38.0, -122.2, 38.0, -121.7, 37.5, -121.7, 37.5, -122.2
 # degrees
 REGION_GRID_SPACING = 0.01
 
+SERIALIZE_MAPS_TO_DB = True
+OPENQUAKE_JOB_ID = 1234
+
 [HAZARD]
 
 # CALCULATION MODE (Event Based, Classical, Deterministic)
