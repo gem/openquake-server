@@ -23,15 +23,71 @@ Unit tests for the bin/oqrunner.py module.
 """
 
 
+import mock
 import unittest
+from urlparse import urljoin
 
-from bin.oqrunner import detect_output_type, extract_results
+from django.conf import settings
+
+from bin.oqrunner import (
+    detect_output_type, extract_results, register_shapefiles_in_location,
+    update_layers)
+
+
+class UpdateLayersTestCase(unittest.TestCase):
+    """Tests the behaviour of oqrunner.update_layers()."""
+
+    def test_update_layers(self):
+        """
+        Popen() is called correctly if no "updatelayers" process is running.
+        """
+        popen_mock = mock.MagicMock(name="mock:subprocess.Popen")
+        with mock.patch('geonode.mtapi.view_utils.is_process_running') as mock_func:
+            mock_func.return_value = False
+            with mock.patch('subprocess.Popen', new=popen_mock):
+                update_layers()
+                self.assertEqual(1, popen_mock.call_count)
+                args, _kwargs = popen_mock.call_args
+                self.assertEqual((settings.OQ_UPDATE_LAYERS_PATH,), args)
+
+    def test_update_layers_with_process_already_running(self):
+        """
+        Popen() is not called if an "updatelayers" process is running already.
+        """
+        popen_mock = mock.MagicMock(name="mock:subprocess.Popen")
+        with mock.patch('geonode.mtapi.view_utils.is_process_running') as mock_func:
+            mock_func.return_value = True
+            with mock.patch('subprocess.Popen', new=popen_mock):
+                update_layers()
+                self.assertEqual(0, popen_mock.call_count)
+
+
+class RegisterShapefilesInLocationTestCase(unittest.TestCase):
+    """Tests the behaviour of oqrunner.register_shapefiles_in_location()."""
+
+    def test_register_shapefiles_in_location(self):
+        """curl is called correctly."""
+        location = "/a/b/c"
+        datastore = "hazardmap"
+        url = urljoin(
+            settings.GEOSERVER_BASE_URL,
+            "rest/workspaces/geonode/datastores/%s/external.shp?configure=all"
+            % datastore)
+        expected = (
+            "curl -v -u 'admin:@dm1n' -XPUT -H 'Content-type: text/plain' "
+            "-d 'file:///a/b/c' '%s'" % url)
+        with mock.patch('geonode.mtapi.view_utils.run_cmd') as mock_func:
+            mock_func.return_value = (0, "", "")
+            register_shapefiles_in_location(location, datastore)
+            self.assertEqual(1, mock_func.call_count)
+            [curl_command], _ = mock_func.call_args
+            self.assertEqual(expected, curl_command)
 
 
 class ExtractResultsTestCase(unittest.TestCase):
     """Tests the behaviour of oqrunner.extract_results()."""
 
-    def test_extract_results(self):
+    def test_extract_results_with_shapefile(self):
         """The minimum/maximum values are extracted correctly."""
         sample = "RESULT: ('/path', 16.04934554846202, 629.323267954)"
         path, minimum, maximum = extract_results(sample)
@@ -42,10 +98,21 @@ class ExtractResultsTestCase(unittest.TestCase):
         self.assertTrue(isinstance(maximum, float))
         self.assertEqual(629.323267954, maximum)
 
+    def test_extract_results_with_db(self):
+        """The minimum/maximum values are extracted correctly."""
+        sample = "RESULT: (99, 61.04934554846202, 269.323267954)"
+        map_data_key, minimum, maximum = extract_results(sample)
+        self.assertTrue(isinstance(map_data_key, int))
+        self.assertEqual(99, map_data_key)
+        self.assertTrue(isinstance(minimum, float))
+        self.assertEqual(61.04934554846202, minimum)
+        self.assertTrue(isinstance(maximum, float))
+        self.assertEqual(269.323267954, maximum)
+
     def test_extract_results_with_malformed_stdout(self):
         """The minimum/maximum values are extracted correctly."""
         sample = "malformed stdout"
-        self.assertIs(None, extract_results(sample))
+        self.assertTrue(extract_results(sample) is None)
 
 
 class DetectOutputTypeTestCase(unittest.TestCase):

@@ -26,8 +26,10 @@ This module provides utilities for generating OpenQuake job config files.
 import os
 
 from ConfigParser import ConfigParser
-from geonode.mtapi import utils
+from lxml import etree
+
 from geonode.mtapi import models
+from geonode.mtapi import view_utils
 
 
 CLASSICAL_DEFAULTS = {
@@ -66,7 +68,7 @@ CLASSICAL_DEFAULTS = {
         'SUBDUCTION_FAULT_MAGNITUDE_SCALING_SIGMA': 0.0,
         'SUBDUCTION_RUPTURE_ASPECT_RATIO': 1.5,
         'SUBDUCTION_RUPTURE_FLOATING_TYPE': 'Along strike and down dip',
-        'QUANTILE_LEVELS': '0.25 0.50 0.75',
+        'QUANTILE_LEVELS': '',
         'COMPUTE_MEAN_HAZARD_CURVE': 'true',
         'STANDARD_DEVIATION_TYPE': 'Total'},
     'RISK': {
@@ -85,7 +87,7 @@ CLASSICAL_INPUT = {
         'VULNERABILITY': 'vulnerability'}}
 
 
-def polygon_to_coord_string(polygon):
+def _polygon_to_coord_string(polygon):
     """
     Derive a correctly formatted 'REGION_VERTEX' string from a
     :py:class:`django.contrib.gis.geos.polygon.Polygon`.
@@ -123,7 +125,7 @@ def polygon_to_coord_string(polygon):
     return coord_str
 
 
-def float_list_to_str(float_list, delimiter):
+def _float_list_to_str(float_list, delimiter):
     """
     Convert a list of floats to a string, each number separated by the
     specified delimiter.
@@ -136,7 +138,7 @@ def float_list_to_str(float_list, delimiter):
     return delimiter.join([str(x) for x in float_list])
 
 
-def enum_translate(value):
+def _enum_translate(value):
     """
     Translate a DB enum value to a legal value for the config file.
 
@@ -185,27 +187,122 @@ def get_classical_user_params(oqparams):
     # A bit of translation is needed to convert the db 'enum' values for some
     # attributes to legal values for a config file.
 
-    poes_str = float_list_to_str(oqparams.poes, ' ')
+    poes_str = _float_list_to_str(oqparams.poes, ' ')
 
     params = {
         'general': {
             'REGION_GRID_SPACING': oqparams.region_grid_spacing,
-            'REGION_VERTEX': polygon_to_coord_string(oqparams.region)},
+            'REGION_VERTEX': _polygon_to_coord_string(oqparams.region)},
         'HAZARD': {
             'MINIMUM_MAGNITUDE': oqparams.min_magnitude,
             'INVESTIGATION_TIME': oqparams.investigation_time,
-            'COMPONENT': enum_translate(oqparams.component),
-            'INTENSITY_MEASURE_TYPE': enum_translate(oqparams.imt),
-            'GMPE_TRUNCATION_TYPE': enum_translate(oqparams.truncation_type),
+            'COMPONENT': _enum_translate(oqparams.component),
+            'INTENSITY_MEASURE_TYPE': _enum_translate(oqparams.imt),
+            'GMPE_TRUNCATION_TYPE': _enum_translate(oqparams.truncation_type),
             'TRUNCATION_LEVEL': oqparams.truncation_level,
             'REFERENCE_VS30_VALUE': oqparams.reference_vs30_value,
-            'INTENSITY_MEASURE_LEVELS': float_list_to_str(oqparams.imls, ', '),
+            'INTENSITY_MEASURE_LEVELS': \
+                _float_list_to_str(oqparams.imls, ', '),
             'POES_HAZARD_MAPS': poes_str,
             'NUMBER_OF_LOGIC_TREE_SAMPLES': oqparams.realizations},
         'RISK': {
             'CONDITIONAL_LOSS_POE': poes_str}}
 
     return params
+
+
+def _lower_bound(iml_1, iml_2):
+    """
+    Calculate a lower bound given the first and second values in a
+    vulnerability IML set.
+
+    :type iml_1: float
+    :type iml_2: float
+
+    :py:function:`view_utils.round_float` is used with the calculated bound
+    values to maintain reasonable limits on precision.
+    """
+    lower_bound = view_utils.round_float(iml_1 - ((iml_2 - iml_1) / 2))
+
+    assert lower_bound > 0.0, \
+        "Invalid lower bound '%s': must be > 0.0" % lower_bound
+
+    return lower_bound
+
+
+def _upper_bound(iml_n, iml_n_1):
+    """
+    Calculate an upper bound given the last (n) and second-to-last (n-1) values
+    in a vulnerability IML set.
+
+    :type iml_n: float
+    :type iml_n_1: float
+
+    :py:function:`view_utils.round_float` is used with the calculated bound
+    values to maintain reasonable limits on precision.
+    """
+    upper_bound = view_utils.round_float(iml_n + ((iml_n - iml_n_1) / 2))
+
+    assert upper_bound > 0.0, \
+        "Invalid upper bound '%s': must be > 0.0" % upper_bound
+
+    return upper_bound
+
+
+def _get_iml_bounds_from_vuln_file(path):
+    """
+    Given a path to a vulnerability NRML (XML) file, get the min lowerbound and
+    max upperbound IML values from the vulnerability model.
+
+    :param path: path to a vulnerability NRML (XML) file
+    :type path: str
+
+    :returns: 2-tuple of the lowest lowerbound and highest upperbound values
+    """
+    bad_data_error = "Bad data in vulnerability file '%s'" % path
+
+    # NRML namespace
+    nrml_ns = '{http://openquake.org/xmlns/nrml/0.2}'
+
+    # IMLs in the XML file should be arranged in ascending order; we can use
+    # this to verify:
+    correct_iml_order = \
+        lambda lst: all(lst[i] < lst[i + 1] for i in xrange(len(lst) - 1))
+
+    lower_bounds = []
+    upper_bounds = []
+
+    root_node = etree.parse(path).getroot()
+
+    for vuln_set in root_node.findall(
+        './/%sdiscreteVulnerabilitySet' % nrml_ns):
+
+        # We expect 1 IML set per discreteVulnerabilitySet
+        iml_elem = vuln_set.find('.//%sIML' % nrml_ns)
+
+        imls = [float(x) for x in iml_elem.text.strip().split()]
+
+        assert len(imls) >= 2, \
+            "%s: an IML set must have at least 2 values" % bad_data_error
+
+        assert correct_iml_order(imls), \
+            "%s: IML values are not in ascending order" % bad_data_error
+
+        # Make sure all values are > 0.0
+        assert all([x > 0.0 for x in imls]), \
+            "%s: IML values must be > 0.0" % bad_data_error
+
+        # Collect the upper and lower bounds for this set of imls
+        lower_bounds.append(_lower_bound(imls[0], imls[1]))
+        upper_bounds.append(_upper_bound(imls[-1], imls[-2]))
+
+    min_lb = min(lower_bounds)
+    max_ub = max(upper_bounds)
+
+    assert max_ub > min_lb, \
+        "%s: upper bound must be > lower bound" % bad_data_error
+
+    return min_lb, max_ub
 
 
 class JobConfigWriter(object):
@@ -231,13 +328,59 @@ class JobConfigWriter(object):
         'event_based': None,
         'deterministic': None}
 
-    def __init__(self, job_id):
+    DEFAULT_NUM_OF_DERIVED_IMLS = 10
+
+    def __init__(self, job_id, derive_imls_from_vuln=False,
+        num_of_derived_imls=DEFAULT_NUM_OF_DERIVED_IMLS,
+        serialize_maps_to_db=True):
         """
+
+
         :param job_id: ID of a job stored in the uiapi.oq_job table for which
             we want to generate a job config file.
         :type job_id: int
+
+        :param derive_imls_from_vuln: If True, the INTENSITY_MEASURE_LEVELS
+            parameter in the [HAZARD] section of the config file will be
+            derived from the IML values in the job vulnerability file. The
+            scale of IMLs will be logarithmic.
+
+            This parameter is optional. Default is False.
+
+            NOTE: This parameter should be used only for Classical PSHA
+            calculations.
+        :type derive_imls_from_vuln: bool
+
+        :param num_of_derived_imls: If derive_imls_from_vuln is True, the
+            number of derived IMLs can be specified. If derive_imls_from_vuln
+            is False, this parameter will be ignored.
+
+            NOTE: This parameter should be used only for Classical PSHA
+            calculations.
+        :type num_of_derived_imls: int
+
+        :param serialize_maps_to_db: If set to True, a SERIALIZE_MAPS_TO_DB
+            param will be written to the [general] section of the config file
+            which will indicate to the OpenQuake engine to write map data to
+            the database.
+
+            If set to False, maps will be serialized to XML instead.
+
+            Default value is True.
+        :type serialize_maps_to_db: bool
         """
+
         self.job_id = job_id
+
+        self.derive_imls_from_vuln = derive_imls_from_vuln
+        if self.derive_imls_from_vuln:
+            assert num_of_derived_imls >= 2, \
+                "There must be at least 2 IML values"
+            self.num_of_derived_imls = num_of_derived_imls
+
+        self.serialize_maps_to_db = serialize_maps_to_db
+        assert isinstance(self.serialize_maps_to_db, bool), \
+            "Expected a boolean value"
 
         # this will be used to build the config file
         self.cfg_parser = ConfigParser()
@@ -304,11 +447,45 @@ class JobConfigWriter(object):
         # now write params associated with input files for the job upload
         self._write_input_params(upload, input_params)
 
+        if self.derive_imls_from_vuln:
+            self._derive_imls_from_vulnerability(upload)
+
+        self.cfg_parser.set(
+            'general', 'SERIALIZE_MAPS_TO_DB', self.serialize_maps_to_db)
+        self.cfg_parser.set(
+            'general', 'OPENQUAKE_JOB_ID', self.job_id)
+
         # write and close
         self.cfg_parser.write(output_fh)
         output_fh.close()
 
         return output_path
+
+    def _derive_imls_from_vulnerability(self, upload):
+        """
+        Generates a new scale of IML values from the a job's vulnerability
+        model (if one exists). The new IML values will be written to the
+        INTENSITY_MEASURE_LEVELS config param in the [HAZARD] section of the
+        config file.
+
+        This will override the IML values specified for this job in the
+        uiapi.oq_params.imls DB field.
+
+        :param upload: :py:class:`geonode.mtapi.models.Upload` instance
+            associated with this job
+        """
+        vuln_input = upload.input_set.get(input_type='vulnerability')
+
+        lower_bound, upper_bound = \
+            _get_iml_bounds_from_vuln_file(vuln_input.path)
+
+        iml_scale = view_utils.log_scale(
+            lower_bound, upper_bound, self.num_of_derived_imls)
+
+        # format the new IML scale properly for the config file
+        imls_str = _float_list_to_str(iml_scale, ', ')
+
+        self.cfg_parser.set('HAZARD', 'INTENSITY_MEASURE_LEVELS', imls_str)
 
     def _write_params(self, params):
         """
@@ -357,14 +534,14 @@ class JobConfigWriter(object):
                     'EXPOSURE': 'exposure',
                     'VULNERABILITY': 'vulnerability'}}
         """
-        inputs = upload.input_set.all()
+        inputs = upload.input_set.all().order_by("id")
 
         for section in input_params.keys():
             if not self.cfg_parser.has_section(section):
                 self.cfg_parser.add_section(section)
 
             for key, input_type in input_params[section].items():
-                input_file = inputs.filter(input_type=input_type)[0]
+                input_file = inputs.get(input_type=input_type)
 
                 file_name = os.path.basename(input_file.path)
                 self.cfg_parser.set(section, key, file_name)

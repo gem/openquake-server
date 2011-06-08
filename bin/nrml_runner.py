@@ -33,12 +33,10 @@ pshai schema tables in the database.
 
 import getopt
 import logging
-import os
 import pprint
 import sys
 
 from geonode.mtapi.models import Upload, Input
-from geonode.mtapi import utils
 
 from openquake.utils import db
 from openquake.utils.db import loader
@@ -46,26 +44,15 @@ from openquake.utils.db import loader
 
 logger = logging.getLogger('nrml_loader')
 logger.setLevel(logging.DEBUG)
-# create file handler which logs even debug messages
-LOG_FILE_PATH = "/tmp/nl.log"
-fh = logging.FileHandler(LOG_FILE_PATH)
-fh.setLevel(logging.DEBUG)
 # create console handler with a higher log level
 ch = logging.StreamHandler()
-ch.setLevel(logging.ERROR)
+ch.setLevel(logging.DEBUG)
 # create formatter and add it to the handlers
 formatter = logging.Formatter(
     '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-fh.setFormatter(formatter)
 ch.setFormatter(formatter)
 # add the handlers to the logger
-logger.addHandler(fh)
 logger.addHandler(ch)
-
-os.chmod(LOG_FILE_PATH, 0600)
-
-
-logger.info(pprint.pformat(os.environ))
 
 
 def load_source(config, path, input_id):

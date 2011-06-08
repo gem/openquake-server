@@ -29,6 +29,7 @@ import pprint
 import re
 import simplejson
 import subprocess
+from urlparse import urljoin
 
 from django.conf import settings
 from django.contrib.gis.geos import GEOSGeometry
@@ -36,7 +37,7 @@ from django.http import HttpResponse, Http404
 from django.views.decorators.csrf import csrf_exempt
 
 from geonode.mtapi.models import Input, OqJob, OqParams, Upload
-from geonode.mtapi import utils
+from geonode.mtapi import view_utils
 
 
 @csrf_exempt
@@ -65,7 +66,7 @@ def input_upload_result(request, upload_id):
     if request.method == "GET":
         [upload] = Upload.objects.filter(id=int(upload_id))
         if upload.status == "running":
-            processor_is_alive = utils.is_process_running(
+            processor_is_alive = view_utils.is_process_running(
                 upload.job_pid, settings.NRML_RUNNER_PATH)
             if processor_is_alive:
                 print "Upload processing in progress.."
@@ -102,7 +103,7 @@ def input_upload(request):
     """
     print("request.FILES: %s\n" % pprint.pformat(request.FILES))
     if request.method == "POST":
-        upload = utils.prepare_upload()
+        upload = view_utils.prepare_upload()
         for uploaded_file in request.FILES.getlist('input_files'):
             handle_uploaded_file(upload, uploaded_file)
         load_source_files(upload)
@@ -200,7 +201,6 @@ def load_source_files(upload):
     args = [settings.NRML_RUNNER_PATH, "--db", config["NAME"],
             "-U", config["USER"], "-W", config["PASSWORD"],
             "-u", str(upload.id), "--host", host]
-    print("nrml loader args: %s\n" % pprint.pformat(args))
     env = os.environ
     env["PYTHONPATH"] = settings.APIAPP_PYTHONPATH
     pid = subprocess.Popen(args, env=env).pid
@@ -220,12 +220,23 @@ def run_oq_job(request):
     :param request: the :py:class:`django.http.HttpRequest` object
     :raises Http404: if the request is not a HTTP POST request.
     """
-    print("request: %s\n" % pprint.pformat(request))
+    print("request: %s\n" % pprint.pformat(request.POST))
     if request.method == "POST":
-        job = prepare_job(request.POST)
+        params = request.POST
+        params = simplejson.loads(params.keys().pop())
+        job_type = params["fields"].get("job_type")
+        if job_type is None:
+            return HttpResponse(simplejson.dumps({
+                "status": "failure", "msg": "Calculation type not set",
+                "id": -1}), status=500)
+        elif job_type != "classical":
+            return HttpResponse(simplejson.dumps({
+                "status": "failure", "msg": "Currently only the classical "
+                "calculator is supported", "id": -1}), status=500)
+        job = prepare_job(params)
         start_job(job)
-        return HttpResponse(
-            {"status": "success", "msg": "Calculation started", "id": job.id})
+        return HttpResponse(simplejson.dumps({
+            "status": "success", "msg": "Calculation started", "id": job.id}))
     else:
         raise Http404
 
@@ -240,12 +251,14 @@ def start_job(job):
     :returns: the integer process ID (pid) of the child process that is running
         the oqrunner.py tool.
     """
+    print "> start_job"
     env = os.environ
     env["PYTHONPATH"] = settings.APIAPP_PYTHONPATH
     args = [settings.OQRUNNER_PATH, "-j", str(job.id)]
     proc = subprocess.Popen(args, env=env)
     job.job_pid = proc.pid
     job.save()
+    print "< start_job"
     return proc.pid
 
 
@@ -284,9 +297,24 @@ def prepare_job(params):
 
     :returns: a :py:class:`geonode.mtapi.models.OqJob` instance
     """
-    upload = Upload.objects.get(id=params["upload"])
+    print "> prepare_job"
+
+    upload = params.get("upload")
+    if not upload:
+        print "No upload database key supplied"
+
+    upload = Upload.objects.get(id=upload)
+    if not upload:
+        print "No upload record found"
+    else:
+        print upload
+
     oqp = OqParams(upload=upload)
     trans_tab = dict(reference_v30_value="reference_vs30_value")
+    value_trans_tab = {
+        "truncation_type": {
+            "1-sided": "onesided",
+            "2-sided": "twosided"}}
     param_names = (
         "job_type", "region_grid_spacing", "min_magnitude",
         "investigation_time", "component", "imt", "period", "truncation_type",
@@ -308,15 +336,26 @@ def prepare_job(params):
         property_name = trans_tab.get(param_name, param_name)
         value = params["fields"].get(param_name)
         if value:
+            # Is there a need to translate the value?
+            trans = value_trans_tab.get(property_name)
+            if trans:
+                value = trans.get(value, value)
             setattr(oqp, property_name, value)
 
     region = params["fields"].get("region")
+
     if region:
         oqp.region = GEOSGeometry(region)
+
     oqp.save()
+    print oqp
+
     job = OqJob(oq_params=oqp, owner=upload.owner,
                 job_type=params["fields"]["job_type"])
     job.save()
+    print job
+
+    print "< prepare_job"
     return job
 
 
@@ -356,7 +395,7 @@ def oq_job_result(request, job_id):
     if request.method == "GET":
         job = OqJob.objects.get(id=int(job_id))
         if job.status == "running":
-            oqrunner_is_alive = utils.is_process_running(
+            oqrunner_is_alive = view_utils.is_process_running(
                 job.job_pid, settings.OQRUNNER_PATH)
             if oqrunner_is_alive:
                 print "OpenQuake job in progress.."
@@ -364,11 +403,11 @@ def oq_job_result(request, job_id):
             else:
                 job.status = "failed"
                 job.save()
-                result = prepare_job_result(job)
+                result = simplejson.dumps(prepare_job_result(job))
                 print "OpenQuake job failed, process not found.."
                 return HttpResponse(result, status=500, mimetype="text/html")
         else:
-            result = prepare_job_result(job)
+            result = simplejson.dumps(prepare_job_result(job))
             if job.status == "failed":
                 print "OpenQuake job failed.."
                 return HttpResponse(result, status=500, mimetype="text/html")
@@ -396,10 +435,10 @@ def prepare_job_result(job):
         files = []
         for output in job.output_set.all().order_by("id"):
             files.append(prepare_map_result(output))
-        if files:
-            result['files'] = files
+        result['files'] = files
 
-    return simplejson.dumps(result)
+    print("result: %s\n" % pprint.pformat(result))
+    return result
 
 
 def prepare_map_result(output):
@@ -417,14 +456,16 @@ def prepare_map_result(output):
         in question
     :returns: a dictionary with data needed to produce the json above.
     """
-    layer_name, _ = os.path.splitext(os.path.basename(output.shapefile_path))
-    type = dict(output.OUTPUT_TYPE_CHOICES)[output.output_type].lower()
-    format_string = (
-        "%sows" if settings.GEOSERVER_BASE_URL.endswith("/") else  "%s/ows")
+    map_type = dict(output.OUTPUT_TYPE_CHOICES)[output.output_type].lower()
+    if output.output_type == "hazard_map":
+        layer_name = "hazard_map_data"
+    else:
+        layer_name = "loss_map_data"
+    ows = urljoin(settings.GEOSERVER_BASE_URL, "ows")
     result = dict(
-        id=output.id, name=os.path.basename(output.path),
-        type=type, min=utils.round_float(output.min_value),
-        max=utils.round_float(output.max_value),
-        layer=dict(ows=format_string % settings.GEOSERVER_BASE_URL,
-                   layer="geonode:%s" % layer_name))
+        name="%s-%s" % (output.oq_job.id, os.path.basename(output.path)),
+        type=map_type, min=view_utils.round_float(output.min_value),
+        id=output.id, max=view_utils.round_float(output.max_value),
+        layer=dict(ows=ows, layer="geonode:%s" % layer_name,
+                   filter="output_id=%s" % output.id))
     return result

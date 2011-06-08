@@ -1,0 +1,24 @@
+#!/bin/bash
+
+# Restore sanity to the OpenQuake web GUI execution environment
+#   - kill all bin/openquake processes
+#   - kill all celeryd processes
+#   - do a "redis-cli flushall"
+#   - restart celeryd
+
+# First  update the user's sudo time stamp, prompting for the password if
+# necessary.
+sudo -v
+
+# Kill all bin/openquake processes
+for pid in `ps ax | grep bin.openquake | awk '{print $1}'`; do sudo kill -15 $pid; done
+
+# Kill all celeryd processes (twice for good measure)
+for pid in `ps ax | grep celeryd | awk '{print $1}'`; do sudo kill -15 $pid; done
+sleep 1
+for pid in `ps ax | grep celeryd | awk '{print $1}'`; do sudo kill -15 $pid; done
+
+# Prevent redis getting bloated
+redis-cli flushall
+
+cd /usr/openquake/openquake && nohup celeryd --purge > ~/celeryd.log 2>&1 3>&1 &

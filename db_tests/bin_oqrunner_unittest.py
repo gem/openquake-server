@@ -32,9 +32,62 @@ import unittest
 from django.conf import settings
 
 from bin.oqrunner import (
-    create_input_file_dir, find_maps, prepare_inputs, process_map, run_engine)
+    create_input_file_dir, find_maps, prepare_inputs, process_map,
+    register_shapefiles, run_engine)
 
 from db_tests.helpers import DbTestMixin
+
+
+class RegisterShapefilesTestCase(unittest.TestCase, DbTestMixin):
+    """Tests the behaviour of oqrunner.register_shapefiles()."""
+
+    def setUp(self):
+        # Two hazard maps with a shapefile.
+        hazard_map = self.setup_output()
+        self.job = hazard_map.oq_job
+        self.add_shapefile_data(hazard_map)
+        self.hazard_location = os.path.dirname(hazard_map.shapefile_path)
+        hazard_map2 = self.setup_output(job_to_use=self.job)
+        self.add_shapefile_data(hazard_map2)
+
+        # The loss map has *no* shapefile.
+        self.loss_map = self.setup_output(
+            job_to_use=self.job, output_type="loss_map")
+
+    def tearDown(self):
+        self.teardown_job(self.job)
+
+    def test_register_shapefiles(self):
+        """register_shapefiles_in_location() is called for the maps."""
+        # Add a shapefile to the loss map.
+        self.add_shapefile_data(self.loss_map)
+        loss_location = os.path.dirname(self.loss_map.shapefile_path)
+        with mock.patch('bin.oqrunner.register_shapefiles_in_location') \
+            as mock_func:
+            with mock.patch('bin.oqrunner.update_layers'):
+                register_shapefiles(self.job)
+                # Both the hazard and the loss map have a shapefile. Hence the
+                # 2 calls to register_shapefiles_in_location().
+                self.assertEqual(2, mock_func.call_count)
+                [(args1, _), (args2, _)] = mock_func.call_args_list
+                self.assertEqual(
+                    (self.hazard_location, "%s-hazardmap" % self.job.id),
+                    args1)
+                self.assertEqual(
+                    (loss_location, "%s-lossmap" % self.job.id), args2)
+
+    def test_register_shapefiles_with_map_wo_shapefile(self):
+        """register_shapefiles_in_location() is called for the maps."""
+        with mock.patch('bin.oqrunner.register_shapefiles_in_location') \
+            as mock_func:
+            with mock.patch('bin.oqrunner.update_layers'):
+                register_shapefiles(self.job)
+                # The loss map has no shapefile and is ignored.
+                self.assertEqual(1, mock_func.call_count)
+                [(args1, _)] = mock_func.call_args_list
+                self.assertEqual(
+                    (self.hazard_location, "%s-hazardmap" % self.job.id),
+                    args1)
 
 
 class ProcessMapTestCase(unittest.TestCase, DbTestMixin):
@@ -65,92 +118,181 @@ class ProcessMapTestCase(unittest.TestCase, DbTestMixin):
     def tearDown(self):
         self.teardown_job(self.job)
 
-    def test_process_map_calls_shapefile_gen_correctly_with_hazard(self):
+    def test_process_map_calls_map_transformer_correctly_with_hazard(self):
         """
-        The shapefile generator tool is invoked correctly for a hazard map.
+        The map transformer is invoked correctly for a hazard map that is to be
+        written to a shapefile.
         """
+        config = {'jobid': self.job.id, 'shapefile': True}
         maps = find_maps(self.job)
         self.assertEqual(2, len(maps))
         [hazard_map, _] = maps
         basename = os.path.basename(hazard_map.path)
         self.assertEqual("hazard_map", hazard_map.output_type)
-        with mock.patch('geonode.mtapi.utils.run_cmd') as mock_func:
+        with mock.patch('geonode.mtapi.view_utils.run_cmd') as mock_func:
             mock_func.return_value = (
                 0, "RESULT: ('/a/b/c', 16.04934554846202, 629.323267954)", "")
-            process_map(hazard_map)
+            process_map(hazard_map, config)
+            args, kwargs = mock_func.call_args
             expected = (
-                (['%s/bin/gen_shapefile.py' % settings.OQ_APIAPP_DIR,
-                  '-k', str(hazard_map.id),
-                  '-p', '%s/computed_output/%s' % (self.job.path, basename),
-                  '-t', 'hazard'],),
-                {'ignore_exit_code': True})
-            self.assertEqual(expected, mock_func.call_args)
+                ['%s/bin/map_transformer.py' % settings.OQ_APIAPP_DIR,
+                 '-k', str(hazard_map.id),
+                 '-p', '%s/computed_output/%s' % (self.job.path, basename),
+                 '--shapefile', '-t', 'hazard'],)
+            self.assertEqual(expected, args)
+            self.assertEqual({'ignore_exit_code': True}, kwargs)
 
-    def test_process_map_calls_shapefile_gen_correctly_with_loss(self):
+    def test_process_map_calls_map_transformer_correctly_with_loss(self):
         """
-        The shapefile generator tool is invoked correctly for a loss map.
+        The map transformer is invoked correctly for a loss map that is to be
+        written to a shapefile.
         """
+        config = {'jobid': self.job.id, 'shapefile': True}
         maps = find_maps(self.job)
         self.assertEqual(2, len(maps))
         [_, loss_map] = maps
         basename = os.path.basename(loss_map.path)
         self.assertEqual("loss_map", loss_map.output_type)
-        with mock.patch('geonode.mtapi.utils.run_cmd') as mock_func:
+        with mock.patch('geonode.mtapi.view_utils.run_cmd') as mock_func:
             mock_func.return_value = (
                 0, "RESULT: ('/d/e/f', 61.4039544548262, 926.3032629745)", "")
-            process_map(loss_map)
+            process_map(loss_map, config)
+            args, kwargs = mock_func.call_args
             expected = (
-                (['%s/bin/gen_shapefile.py' % settings.OQ_APIAPP_DIR,
-                  '-k', str(loss_map.id),
-                  '-p', '%s/computed_output/%s' % (self.job.path, basename),
-                  '-t', 'loss'],),
-                {'ignore_exit_code': True})
-            self.assertEqual(expected, mock_func.call_args)
+                ['%s/bin/map_transformer.py' % settings.OQ_APIAPP_DIR,
+                 '-k', str(loss_map.id),
+                 '-p', '%s/computed_output/%s' % (self.job.path, basename),
+                 '--shapefile', '-t', 'loss'],)
+            self.assertEqual(expected, args)
+            self.assertEqual({'ignore_exit_code': True}, kwargs)
 
-    def test_process_map_shapefile_generated_correctly_with_hazard(self):
+    def test_process_map_with_shapefile_and_hazard(self):
         """The db record for the hazard map is updated."""
+        config = {'jobid': self.job.id, 'shapefile': True}
         maps = find_maps(self.job)
         self.assertEqual(2, len(maps))
         [hazard_map, _] = maps
         self.assertEqual("hazard_map", hazard_map.output_type)
-        with mock.patch('geonode.mtapi.utils.run_cmd') as mock_func:
+        with mock.patch('geonode.mtapi.view_utils.run_cmd') as mock_func:
             mock_func.return_value = (
                 0, "RESULT: ('/g/h/i', 17.17, 18.18)", "")
-            process_map(hazard_map)
+            process_map(hazard_map, config)
             self.assertEqual("/g/h/i", hazard_map.shapefile_path)
             self.assertEqual(17.17, hazard_map.min_value)
             self.assertEqual(18.18, hazard_map.max_value)
 
-    def test_process_map_shapefile_generated_correctly_with_loss(self):
+    def test_process_map_with_shapefile_and_loss(self):
         """The db record for the loss map is updated."""
+        config = {'jobid': self.job.id, 'shapefile': True}
         maps = find_maps(self.job)
         self.assertEqual(2, len(maps))
         [_, loss_map] = maps
         self.assertEqual("loss_map", loss_map.output_type)
-        with mock.patch('geonode.mtapi.utils.run_cmd') as mock_func:
+        with mock.patch('geonode.mtapi.view_utils.run_cmd') as mock_func:
             mock_func.return_value = (
                 0, "RESULT: ('/j/k/l', 19.19, 21.21)", "")
-            process_map(loss_map)
+            process_map(loss_map, config)
             self.assertEqual("/j/k/l", loss_map.shapefile_path)
             self.assertEqual(19.19, loss_map.min_value)
             self.assertEqual(21.21, loss_map.max_value)
 
-    def test_process_map_with_shapefile_generator_error(self):
-        """
-        If the shapefile generation fails for a map the db record is *not*
-        updated.
-        """
+    def test_process_map_with_shapefile_and_hazard_to_db(self):
+        """The db record for the hazard map is updated."""
+        config = {'jobid': self.job.id}
         maps = find_maps(self.job)
         self.assertEqual(2, len(maps))
         [hazard_map, _] = maps
         self.assertEqual("hazard_map", hazard_map.output_type)
-        with mock.patch('geonode.mtapi.utils.run_cmd') as mock_func:
+        with mock.patch('geonode.mtapi.view_utils.run_cmd') as mock_func:
+            mock_func.return_value = (
+                0, "RESULT: (%s, 17.17, 18.18)" % hazard_map.id, "")
+            process_map(hazard_map, config)
+            self.assertTrue(hazard_map.shapefile_path is None)
+            self.assertEqual(17.17, hazard_map.min_value)
+            self.assertEqual(18.18, hazard_map.max_value)
+
+    def test_process_map_with_shapefile_and_loss_to_db(self):
+        """The db record for the loss map is updated."""
+        config = {'jobid': self.job.id}
+        maps = find_maps(self.job)
+        self.assertEqual(2, len(maps))
+        [_, loss_map] = maps
+        self.assertEqual("loss_map", loss_map.output_type)
+        with mock.patch('geonode.mtapi.view_utils.run_cmd') as mock_func:
+            mock_func.return_value = (
+                0, "RESULT: (%s, 19.19, 21.21)" % loss_map.id, "")
+            process_map(loss_map, config)
+            self.assertTrue(loss_map.shapefile_path is None)
+            self.assertEqual(19.19, loss_map.min_value)
+            self.assertEqual(21.21, loss_map.max_value)
+
+    def test_process_map_with_map_transformer_error(self):
+        """
+        If the shapefile generation fails for a map the db record is *not*
+        updated.
+        """
+        config = {'jobid': self.job.id, 'shapefile': True}
+        maps = find_maps(self.job)
+        self.assertEqual(2, len(maps))
+        [hazard_map, _] = maps
+        self.assertEqual("hazard_map", hazard_map.output_type)
+        with mock.patch('geonode.mtapi.view_utils.run_cmd') as mock_func:
             mock_func.return_value = (
                 1, "", "failed to generate shapefile")
-            process_map(hazard_map)
-            self.assertIs(None, hazard_map.shapefile_path)
-            self.assertIs(None, hazard_map.min_value)
-            self.assertIs(None, hazard_map.max_value)
+            process_map(hazard_map, config)
+            self.assertTrue(hazard_map.shapefile_path is None)
+            self.assertTrue(hazard_map.min_value is None)
+            self.assertTrue(hazard_map.max_value is None)
+
+    def test_process_map_calls_map_transformer_correctly_with_hzrd_to_db(self):
+        """
+        The map transformer is invoked correctly for a hazard map that is to be
+        written to the database.
+        Specifically: the '--shapefile' command line argument is not supplied.
+        """
+        config = {'jobid': self.job.id}
+        maps = find_maps(self.job)
+        self.assertEqual(2, len(maps))
+        [hazard_map, _] = maps
+        basename = os.path.basename(hazard_map.path)
+        self.assertEqual("hazard_map", hazard_map.output_type)
+        with mock.patch('geonode.mtapi.view_utils.run_cmd') as mock_func:
+            mock_func.return_value = (
+                0, "RESULT: (%s, 17.17, 18.18)" % hazard_map.id, "")
+            process_map(hazard_map, config)
+            args, kwargs = mock_func.call_args
+            expected = (
+                ['%s/bin/map_transformer.py' % settings.OQ_APIAPP_DIR,
+                 '-k', str(hazard_map.id),
+                 '-p', '%s/computed_output/%s' % (self.job.path, basename),
+                 '-t', 'hazard'],)
+            self.assertEqual(expected, args)
+            self.assertEqual({'ignore_exit_code': True}, kwargs)
+
+    def test_process_map_calls_map_transformer_correctly_with_loss_to_db(self):
+        """
+        The map transformer is invoked correctly for a loss map that is to be
+        written to the database.
+        Specifically: the '--shapefile' command line argument is not supplied.
+        """
+        config = {'jobid': self.job.id}
+        maps = find_maps(self.job)
+        self.assertEqual(2, len(maps))
+        [_, loss_map] = maps
+        basename = os.path.basename(loss_map.path)
+        self.assertEqual("loss_map", loss_map.output_type)
+        with mock.patch('geonode.mtapi.view_utils.run_cmd') as mock_func:
+            mock_func.return_value = (
+                0, "RESULT: (%s, 19.19, 21.21)" % loss_map.id, "")
+            process_map(loss_map, config)
+            args, kwargs = mock_func.call_args
+            expected = (
+                ['%s/bin/map_transformer.py' % settings.OQ_APIAPP_DIR,
+                 '-k', str(loss_map.id),
+                 '-p', '%s/computed_output/%s' % (self.job.path, basename),
+                 '-t', 'loss'],)
+            self.assertEqual(expected, args)
+            self.assertEqual({'ignore_exit_code': True}, kwargs)
 
 
 class FindMapsTestCase(unittest.TestCase, DbTestMixin):
@@ -253,7 +395,7 @@ class RunEngineTestCase(unittest.TestCase, DbTestMixin):
         """
         run_engine() passes the correct commands to run_cmd().
         """
-        with mock.patch('geonode.mtapi.utils.run_cmd') as mock_func:
+        with mock.patch('geonode.mtapi.view_utils.run_cmd') as mock_func:
             # Make all the calls pass.
             mock_func.return_value = (-42, "__out__", "__err__")
 
@@ -316,9 +458,7 @@ class CreateInputFileDirTestCase(unittest.TestCase, DbTestMixin):
         An <upload_path>/<jobid> directory will be created with 0777
         permissions.
         """
-        config = {
-            'db': 'openquake', 'host': 'localhost', 'jobid': self.job.id,
-            'password': 'xxx', 'user': 'oq_uiapi_writer'}
+        config = {'jobid': self.job.id}
 
         self.assertEqual("pending", self.job.status)
         job = create_input_file_dir(config)

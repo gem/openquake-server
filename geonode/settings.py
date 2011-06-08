@@ -35,7 +35,7 @@ DATABASES["default"].update(dbn())
 
 # PLEASE NOTE: do *not* ever use any of the password above in production !!
 
-OQ_ROOT = "/usr/openquake"
+OQ_ROOT = os.environ.get("OQ_SERVER_ROOT", "/usr/openquake")
 OQ_UPLOAD_DIR = os.path.join(OQ_ROOT, "spool")
 OQ_ENGINE_DIR = os.path.join(OQ_ROOT, "engine")
 OQ_APIAPP_DIR = os.path.join(OQ_ROOT, "apiapp")
@@ -119,6 +119,7 @@ INSTALLED_APPS = (
 
 NRML_RUNNER_PATH = "%s/bin/nrml_runner.py" % OQ_APIAPP_DIR
 OQRUNNER_PATH = "%s/bin/oqrunner.py" % OQ_APIAPP_DIR
+OQ_UPDATE_LAYERS_PATH = "%s/bin/oq-updatelayers" % OQ_APIAPP_DIR
 
 import sys
 APIAPP_PYTHONPATH = ":".join(
@@ -127,3 +128,7 @@ APIAPP_PYTHONPATH += ":%s:%s" % (OQ_ENGINE_DIR, OQ_APIAPP_DIR)
 
 SITEURL = "http://gemsun02.ethz.ch/"
 GEOSERVER_BASE_URL = SITEURL + "geoserver-geonode-dev/"
+os.environ["MPLCONFIGDIR"] = "/tmp"
+os.environ["OQ_ENGINE_DB_USER"] = os.environ.get(
+    "OQ_MTAPI_USER", "oq_uiapi_writer")
+os.environ["OQ_ENGINE_DB_PASSWORD"] = os.environ.get("OQ_MTAPI_PASSWORD")

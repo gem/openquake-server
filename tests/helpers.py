@@ -30,7 +30,7 @@ import tempfile
 class TestMixin(object):
     """Mixin class with various helper methods."""
 
-    def touch(self, content=None, dir="/tmp", prefix="tmp", suffix="tmp"):
+    def touch(self, content=None, dir=None, prefix="tmp", suffix="tmp"):
         """Create temporary file with the given content.
 
         Please note: the temporary file must be deleted bu the caller.
@@ -41,8 +41,9 @@ class TestMixin(object):
         :param string suffix: file name suffix
         :returns: a string with the path to the temporary file
         """
-        if not os.path.exists(dir):
-            os.makedirs(dir)
+        if dir is not None:
+            if not os.path.exists(dir):
+                os.makedirs(dir)
         fh, path = tempfile.mkstemp(dir=dir, prefix=prefix, suffix=suffix)
         if content:
             fh = os.fdopen(fh, "w")
