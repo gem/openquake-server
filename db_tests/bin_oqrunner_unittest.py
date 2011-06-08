@@ -207,7 +207,7 @@ class ProcessMapTestCase(unittest.TestCase, DbTestMixin):
             mock_func.return_value = (
                 0, "RESULT: (%s, 17.17, 18.18)" % hazard_map.id, "")
             process_map(hazard_map, config)
-            self.assertIs(None, hazard_map.shapefile_path)
+            self.assertTrue(hazard_map.shapefile_path is None)
             self.assertEqual(17.17, hazard_map.min_value)
             self.assertEqual(18.18, hazard_map.max_value)
 
@@ -222,7 +222,7 @@ class ProcessMapTestCase(unittest.TestCase, DbTestMixin):
             mock_func.return_value = (
                 0, "RESULT: (%s, 19.19, 21.21)" % loss_map.id, "")
             process_map(loss_map, config)
-            self.assertIs(None, loss_map.shapefile_path)
+            self.assertTrue(loss_map.shapefile_path is None)
             self.assertEqual(19.19, loss_map.min_value)
             self.assertEqual(21.21, loss_map.max_value)
 
