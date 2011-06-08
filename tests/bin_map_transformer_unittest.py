@@ -342,6 +342,62 @@ class CreateShapefileTestCase(unittest.TestCase, TestMixin):
                       type="unknown")
         self.assertRaises(AssertionError, create_shapefile, config)
 
+    def test_create_shapefile_raises_os_error(self):
+        """
+        If no 'output' parameter is specified, create_shapefile() will try to
+        create an output path based on the 'path' parameter.
+
+        For example: if 'path' is set to '/tmp/some-hazard-map.xml',
+        create_shapefile() will attempt to create an output directory called
+        '/tmp/shapefiles/'.
+
+        An OSError should be raised if we try to create a shapefile output
+        directory in a directory for which we don't have write access.
+        """
+        config = dict(key="11", layer="abc", path="/etc/hosts", type="hazard")
+        self.assertRaises(OSError, create_shapefile, config)
+
+    def test_create_shapefile_with_no_output_specified_hazard(self):
+        """
+        If no 'output' parameter is specified, create_shapefile() will try to
+        create an output path based on the 'path' parameter.
+
+        For example: if 'path' is set to '/tmp/some-hazard-map.xml',
+        create_shapefile() will attempt to create an output directory called
+        '/tmp/hazard-shapefiles/'.
+        """
+        config = dict(key="11", layer="", output="", path=self.map_file,
+                      type="hazard")
+
+        # mock the create_shapefile_from_hazard_map function so we don't
+        # actually create a shapefile
+        with mock.patch('bin.gen_shapefile.create_shapefile_from_hazard_map') \
+            as _mock_func:
+            create_shapefile(config)
+            expected_output = os.path.join(
+                os.path.dirname(config['path']),
+                'hazard-shapefiles')
+            self.assertEqual(expected_output, config['output'])
+
+    def test_create_shapefile_with_no_output_specified_loss(self):
+        """
+        This is bascially the same test as
+        `test_create_shapefile_with_no_output_specified_hazard`, but for loss
+        map shapefiles.
+        """
+        config = dict(key="11", layer="", output="", path=self.map_file,
+                      type="loss")
+
+        # mock the create_shapefile_from_hazard_map function so we don't
+        # actually create a shapefile
+        with mock.patch('bin.gen_shapefile.create_shapefile_from_loss_map') \
+            as _mock_func:
+            create_shapefile(config)
+            expected_output = os.path.join(
+                os.path.dirname(config['path']),
+                'loss-shapefiles')
+            self.assertEqual(expected_output, config['output'])
+
 
 class CalculateLossDataTestCase(unittest.TestCase):
     """Tests the behaviour of map_transformer.calculate_loss_data()."""
