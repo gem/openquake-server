@@ -72,7 +72,7 @@ CLASSICAL_DEFAULTS = {
         'COMPUTE_MEAN_HAZARD_CURVE': 'true',
         'STANDARD_DEVIATION_TYPE': 'Total'},
     'RISK': {
-        'RISK_CALCULATION_MODE': 'Classical PSHA',
+        'RISK_CALCULATION_MODE': 'Classical',
         'LOSS_CURVES_OUTPUT_PREFIX': 'classical-demo',
         'LOSS_MAP': 'loss_map.tiff',
         'LOSS_RATIO_MAP': 'loss_ratio_map.tiff',

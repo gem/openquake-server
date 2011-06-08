@@ -126,7 +126,7 @@ POES_HAZARD_MAPS = 0.01 0.1
 
 [RISK]
 
-RISK_CALCULATION_MODE = Classical PSHA
+RISK_CALCULATION_MODE = Classical
 
 # file containing the exposure in nrml format
 EXPOSURE = exposure.xml
