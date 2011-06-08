@@ -35,7 +35,7 @@ DATABASES["default"].update(dbn())
 
 # PLEASE NOTE: do *not* ever use any of the password above in production !!
 
-OQ_ROOT = "/usr/openquake"
+OQ_ROOT = os.environ.get("OQ_SERVER_ROOT", "/usr/openquake")
 OQ_UPLOAD_DIR = os.path.join(OQ_ROOT, "spool")
 OQ_ENGINE_DIR = os.path.join(OQ_ROOT, "engine")
 OQ_APIAPP_DIR = os.path.join(OQ_ROOT, "apiapp")
