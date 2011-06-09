@@ -1,5 +1,9 @@
 [general]
 
+# CALCULATION MODE (Event Based, Classical, Deterministic)
+CALCULATION_MODE = Classical
+
+
 # NOTE: The order of the vertices is to be kept!!!
 # lat, lon of polygon vertices (in clock or counter-clock wise order)
 REGION_VERTEX = 38.0, -122.2, 38.0, -121.7, 37.5, -121.7, 37.5, -122.2
@@ -10,10 +14,6 @@ SERIALIZE_MAPS_TO_DB = False
 OPENQUAKE_JOB_ID = 1234
 
 [HAZARD]
-
-# CALCULATION MODE (Event Based, Classical, Deterministic)
-HAZARD_CALCULATION_MODE = Classical
-
 
 SOURCE_MODEL_LT_RANDOM_SEED = 23
 GMPE_LT_RANDOM_SEED = 5
@@ -125,8 +125,6 @@ POES_HAZARD_MAPS = 0.01 0.1
 
 
 [RISK]
-
-RISK_CALCULATION_MODE = Classical
 
 # file containing the exposure in nrml format
 EXPOSURE = exposure.xml

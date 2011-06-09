@@ -33,9 +33,10 @@ from geonode.mtapi import view_utils
 
 
 CLASSICAL_DEFAULTS = {
-    'general': {},  # classical has no defaults in 'general'
+    'general': {
+        'CALCULATION_MODE': 'Classical',
+    },
     'HAZARD': {
-        'HAZARD_CALCULATION_MODE': 'Classical',
         'SOURCE_MODEL_LT_RANDOM_SEED': 23,
         'OUTPUT_DIR': 'computed_output',
         'GMPE_LT_RANDOM_SEED': 5,
@@ -72,7 +73,6 @@ CLASSICAL_DEFAULTS = {
         'COMPUTE_MEAN_HAZARD_CURVE': 'true',
         'STANDARD_DEVIATION_TYPE': 'Total'},
     'RISK': {
-        'RISK_CALCULATION_MODE': 'Classical',
         'LOSS_CURVES_OUTPUT_PREFIX': 'classical-demo',
         'LOSS_MAP': 'loss_map.tiff',
         'LOSS_RATIO_MAP': 'loss_ratio_map.tiff',
