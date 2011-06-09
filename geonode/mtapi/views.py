@@ -463,7 +463,7 @@ def prepare_map_result(output):
         layer_name = "loss_map_data"
     ows = urljoin(settings.GEOSERVER_BASE_URL, "ows")
     result = dict(
-        name="%s-%s" % (output.oq_job.id, os.path.basename(output.path)),
+        name="%s-%s" % (output.oq_job.id, output.display_name),
         type=map_type, min=view_utils.round_float(output.min_value),
         id=output.id, max=view_utils.round_float(output.max_value),
         layer=dict(ows=ows, layer="geonode:%s" % layer_name,
