@@ -316,7 +316,8 @@ def find_maps(job):
             if map_type in ("hazard", "loss")]
     for path, map_type in maps:
         output = Output(owner=job.owner, output_type="%s_map" % map_type,
-                        oq_job=job, path=path, size=os.path.getsize(path))
+                        oq_job=job, path=path, size=os.path.getsize(path),
+                        display_name=os.path.basename(path))
         output.save()
         results.append(output)
 
