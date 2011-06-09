@@ -115,7 +115,7 @@ SUBDUCTION_RUPTURE_FLOATING_TYPE = Along strike and down dip
 NUMBER_OF_LOGIC_TREE_SAMPLES = 1
 
 # List of quantiles to compute (e.g. 0.25 0.50...)
-QUANTILE_LEVELS = 0.25 0.50 0.75
+QUANTILE_LEVELS =
 
 # Compute mean hazard curve (true,false)
 COMPUTE_MEAN_HAZARD_CURVE = true
