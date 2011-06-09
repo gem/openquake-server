@@ -206,7 +206,7 @@ def update_layers():
 
     # Our default python path breaks the virtualenv running the "updatelayers"
     # command.
-    python_path = os.environ["PYTHONPATH"]
+    python_path = os.environ.get("PYTHONPATH")
     logger.info("PYTHONPATH: '%s'" % python_path)
     os.environ["PYTHONPATH"] = ""
 
@@ -214,7 +214,8 @@ def update_layers():
     subprocess.Popen(command, env=os.environ)
 
     # Restore python path.
-    os.environ["PYTHONPATH"] = python_path
+    if python_path is not None:
+        os.environ["PYTHONPATH"] = python_path
     logger.info("< update_layers")
 
 
