@@ -155,6 +155,7 @@ class DbTestMixin(TestMixin):
         output.path = self.touch(
             dir=os.path.join(job.path, "computed_output"), suffix=".xml",
             prefix="hzrd." if output_type == "hazard_map" else "loss.")
+        output.display_name = os.path.basename(output.path)
         output.save()
         return output
 
