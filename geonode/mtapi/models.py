@@ -208,7 +208,8 @@ class Output(models.Model):
     """This corresponds to the uiapi.output table."""
     owner = models.ForeignKey(OqUser)
     oq_job = models.ForeignKey(OqJob)
-    path = models.TextField(unique=True)
+    path = models.TextField(unique=True, null=True)
+    display_name = models.TextField()
     OUTPUT_TYPE_CHOICES = (
         (u"unknown", u"Unknown output file type"),
         (u"hazard_curve", u"Hazard curve"),
