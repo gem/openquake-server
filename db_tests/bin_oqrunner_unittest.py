@@ -23,6 +23,7 @@ database related unit tests for the bin/oqrunner.py module.
 """
 
 
+import datetime
 import glob
 import mock
 import os
@@ -411,6 +412,29 @@ class RunEngineTestCase(unittest.TestCase, DbTestMixin):
                   "%s/config.gem" % self.job.path],),
                 {"ignore_exit_code": True})
             self.assertEqual(expected, mock_func.call_args)
+
+    def test_run_engine_sets_job_duration(self):
+        """
+        run_engine() sets the job duration.
+        """
+
+        def utcnow_mock():
+            """Return 2 times that are 5 minutes apart."""
+            utcnow_mock.call_count += 1
+            if utcnow_mock.the_time is not None:
+                return utcnow_mock.the_time + datetime.timedelta(seconds=300)
+            else:
+                utcnow_mock.the_time = datetime.datetime.utcnow()
+                return utcnow_mock.the_time
+        utcnow_mock.the_time = None
+        utcnow_mock.call_count = 0
+
+        with mock.patch('geonode.mtapi.view_utils.run_cmd') as mock_func:
+            mock_func.return_value = (-41, "__out__", "__err__")
+            # Run the actual function that is to be tested.
+            run_engine(self.job, utc_provider=utcnow_mock)
+            self.assertEqual(300, self.job.duration)
+            self.assertEqual(2, utcnow_mock.call_count)
 
 
 class PrepareInputsTestCase(unittest.TestCase, DbTestMixin):
