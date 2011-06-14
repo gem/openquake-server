@@ -31,6 +31,7 @@ hazard/loss map data will either be written to
 """
 
 
+import datetime
 import getopt
 import glob
 import logging
@@ -92,10 +93,12 @@ def prepare_inputs(job):
         os.symlink(an_input.path, os.path.join(job.path, basename))
 
 
-def run_engine(job):
+def run_engine(job, utc_provider=datetime.datetime.utcnow):
     """Run the OpenQuake engine and wait for it to terminate.
 
     :param job: the :py:class:`geonode.mtapi.models.OqJob` instance in question
+    :param utc_provider: the function that will be used to obtain an UTC time
+        stamp. This dependency is injected to facilitate testing.
     :returns: a triple (exit code, stdout, stderr) with engine's execution
         outcome
     """
@@ -104,7 +107,12 @@ def run_engine(job):
     cmds.append("--config_file")
     cmds.append(os.path.join(job.path, "config.gem"))
     logger.info("cmds: %s" % cmds)
+    start_time = utc_provider()
     code, out, err = view_utils.run_cmd(cmds, ignore_exit_code=True)
+    end_time = utc_provider()
+    duration = end_time - start_time
+    job.duration = duration.seconds
+    job.save()
     logger.info("code: '%s'" % code)
     logger.info("out: '%s'" % out)
     if code != 0:
