@@ -332,7 +332,7 @@ class JobConfigWriter(object):
 
     def __init__(self, job_id, derive_imls_from_vuln=False,
         num_of_derived_imls=DEFAULT_NUM_OF_DERIVED_IMLS,
-        serialize_maps_to_db=True):
+        serialize_results_to_db=True):
         """
 
 
@@ -359,15 +359,15 @@ class JobConfigWriter(object):
             calculations.
         :type num_of_derived_imls: int
 
-        :param serialize_maps_to_db: If set to True, a SERIALIZE_MAPS_TO_DB
-            param will be written to the [general] section of the config file
-            which will indicate to the OpenQuake engine to write map data to
-            the database.
+        :param serialize_results_to_db: If set to True, a
+            SERIALIZE_RESULTS_TO_DB param will be written to the
+            [general] section of the config file which will indicate
+            to the OpenQuake engine to write map data to the database.
 
             If set to False, maps will be serialized to XML instead.
 
             Default value is True.
-        :type serialize_maps_to_db: bool
+        :type serialize_results_to_db: bool
         """
 
         self.job_id = job_id
@@ -378,8 +378,8 @@ class JobConfigWriter(object):
                 "There must be at least 2 IML values"
             self.num_of_derived_imls = num_of_derived_imls
 
-        self.serialize_maps_to_db = serialize_maps_to_db
-        assert isinstance(self.serialize_maps_to_db, bool), \
+        self.serialize_results_to_db = serialize_results_to_db
+        assert isinstance(self.serialize_results_to_db, bool), \
             "Expected a boolean value"
 
         # this will be used to build the config file
@@ -451,7 +451,7 @@ class JobConfigWriter(object):
             self._derive_imls_from_vulnerability(upload)
 
         self.cfg_parser.set(
-            'general', 'SERIALIZE_MAPS_TO_DB', self.serialize_maps_to_db)
+            'general', 'SERIALIZE_RESULTS_TO_DB', self.serialize_results_to_db)
         self.cfg_parser.set(
             'general', 'OPENQUAKE_JOB_ID', self.job_id)
 

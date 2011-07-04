@@ -237,17 +237,17 @@ class JobConfigWriterClassicalTestCase(unittest.TestCase):
         self._test_config_files_are_the_same(
             expected_config, path_to_new_cfg_file, oqjob_id=self.oqjob.id)
 
-    def test_classical_config_file_generation_no_serialize_maps_to_db(self):
+    def test_classical_config_file_generation_no_serialize_results_to_db(self):
         """
         By default, config files are generated with the [general] parameter
-        SERIALIZE_MAPS_TO_DB set to True. This test exercises config file
+        SERIALIZE_RESULTS_TO_DB set to True. This test exercises config file
         creation with the parameter set to False.
         """
         expected_config = tests.test_data_path('config_no_serialize_to_db.gem')
 
         cfg_writer = config_writer.JobConfigWriter(
             self.oqjob.id,
-            serialize_maps_to_db=False)
+            serialize_results_to_db=False)
 
         path_to_new_cfg_file = cfg_writer.serialize()
 
