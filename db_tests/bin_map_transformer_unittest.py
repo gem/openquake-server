@@ -101,9 +101,9 @@ class WriteMapDataToDbDbTestCase(unittest.TestCase, DbTestMixin):
         Writing hazard map data works.
         """
         expected_hazard_data = [
-            ([-121.8, 37.9], 1.23518683436),
+            ([-122.1, 38.0], 1.1905288226),
             ([-122.0, 37.5], 1.19244541041),
-            ([-122.1, 38.0], 1.1905288226)]
+            ([-121.8, 37.9], 1.23518683436)]
 
         def coords(idx):
             """Access the point coordinates."""
@@ -124,9 +124,13 @@ class WriteMapDataToDbDbTestCase(unittest.TestCase, DbTestMixin):
         write_map_data_to_db(config)
         self.assertEqual(0, len(hazard_map.lossmapdata_set.all()))
         self.assertEqual(3, len(hazard_map.hazardmapdata_set.all()))
-        for idx, hazard in enumerate(hazard_map.hazardmapdata_set.all()):
-            self.assertEqual(coords(idx), hazard.location.coords)
-            self.assertEqual(value(idx), view_utils.round_float(hazard.value))
+        # don't depend on sort order
+        all_hazard = sorted([(h.location.coords, h.value)
+                                 for h in hazard_map.hazardmapdata_set.all()])
+
+        for idx, hazard in enumerate(all_hazard):
+            self.assertEqual(coords(idx), hazard[0])
+            self.assertEqual(value(idx), view_utils.round_float(hazard[1]))
 
     def test_write_map_data_to_db_with_loss_map(self):
         """
