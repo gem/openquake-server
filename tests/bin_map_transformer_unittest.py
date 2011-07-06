@@ -371,7 +371,8 @@ class CreateShapefileTestCase(unittest.TestCase, TestMixin):
 
         # mock the create_shapefile_from_hazard_map function so we don't
         # actually create a shapefile
-        with mock.patch('bin.gen_shapefile.create_shapefile_from_hazard_map') \
+        with mock.patch('bin.map_transformer.'
+                        'create_shapefile_from_hazard_map') \
             as _mock_func:
             create_shapefile(config)
             expected_output = os.path.join(
@@ -390,7 +391,7 @@ class CreateShapefileTestCase(unittest.TestCase, TestMixin):
 
         # mock the create_shapefile_from_hazard_map function so we don't
         # actually create a shapefile
-        with mock.patch('bin.gen_shapefile.create_shapefile_from_loss_map') \
+        with mock.patch('bin.map_transformer.create_shapefile_from_loss_map') \
             as _mock_func:
             create_shapefile(config)
             expected_output = os.path.join(
