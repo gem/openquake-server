@@ -126,7 +126,7 @@ class OqParams(models.Model):
         (u"deterministic", u"Deterministic calculation"),
     )
     job_type = models.TextField(choices=JOB_TYPE_CHOICES)
-    upload = models.ForeignKey(Upload)
+    upload = models.ForeignKey(Upload, null=True)
     region_grid_spacing = models.FloatField()
     min_magnitude = models.FloatField(null=True)
     investigation_time = models.FloatField(null=True)

@@ -54,16 +54,16 @@ class JobConfigWriterTestCase(unittest.TestCase):
 
     def test_constructor_raises_with_invalid_serialize_map_to_db_value(self):
         """
-        The serialize_maps_to_db parameter must be a boolean. This verifies
+        The serialize_results_to_db parameter must be a boolean. This verifies
         that an AssertionError is raised if this parameter is not of the
         appropriate type.
         """
         fake_job_id = 1234
 
         self.assertRaises(AssertionError, config_writer.JobConfigWriter,
-            fake_job_id, serialize_maps_to_db=0)
+            fake_job_id, serialize_results_to_db=0)
         self.assertRaises(AssertionError, config_writer.JobConfigWriter,
-            fake_job_id, serialize_maps_to_db="true")
+            fake_job_id, serialize_results_to_db="true")
 
     def test_constructor_with_valid_input(self):
         """
@@ -77,8 +77,8 @@ class JobConfigWriterTestCase(unittest.TestCase):
         # num_of_derived_imls should be ignored if derive_imls_from_vuln is not
         # set to True
         config_writer.JobConfigWriter(1234, num_of_derived_imls=-2)
-        config_writer.JobConfigWriter(1234, serialize_maps_to_db=True)
-        config_writer.JobConfigWriter(1234, serialize_maps_to_db=False)
+        config_writer.JobConfigWriter(1234, serialize_results_to_db=True)
+        config_writer.JobConfigWriter(1234, serialize_results_to_db=False)
 
 
 class JobConfigWriterClassicalTestCase(unittest.TestCase):
