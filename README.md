@@ -1,0 +1,1 @@
+**THIS REPOSITORY IS OBSOLETE: AN API SERVER IS NOW PROVIDED BY https://github.com/gem/oq-engine**
